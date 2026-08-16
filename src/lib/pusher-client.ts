@@ -17,21 +17,6 @@ export type ChannelMember = {
 export type { Channel, Members };
 
 /**
- * Module-level ref for the current demo user ID.
- * Must be set before subscribing to private channels.
- */
-let _demoUserId: string | null = null;
-
-export function setDemoUserId(id: string | null) {
-  _demoUserId = id;
-  if (_client) {
-    /* Re-create the client so the authorizer picks up the new ID. */
-    _client.disconnect();
-    _client = null;
-  }
-}
-
-/**
  * Lazy-initialised client-side Pusher singleton.
  *
  * Real-time subscriptions run entirely on the browser to avoid
@@ -63,7 +48,6 @@ export function getPusherClient(): Pusher {
     channelAuthorization: {
       endpoint: "/api/pusher/auth",
       transport: "ajax",
-      headers: _demoUserId ? { "x-demo-user-id": _demoUserId } : undefined,
     },
   });
 

@@ -127,23 +127,17 @@
   }
 
   /*
-   Mobile keyboard fix.
-   On iOS Safari the entire page scrolls when the keyboard opens.
-   We pin the html/body to the visual viewport so only the scrollable
-   message feed moves.
+   Mobile keyboard fix — only applied inside the chat layout via a
+   dedicated wrapper class, so the login page gets normal scrolling.
   */
-  html {
+  .chat-locked {
     height: 100%;
     overflow: hidden;
   }
-  body {
+  .chat-locked body {
     height: var(--dvh, 100dvh);
     overflow: hidden;
     position: relative;
-  }
-
-  /* Prevent iOS rubber-banding outside the chat feed. */
-  body {
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
   }

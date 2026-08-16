@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   pusherClient,
   getChannelName,
-  setDemoUserId,
 } from "@/lib/pusher-client";
 import { getRoomId } from "@/lib/room";
 import type { ChatChannelEvents } from "@/lib/pusher-server";
@@ -62,17 +61,7 @@ export interface UseChatReturn {
 
 const TYPING_DEBOUNCE_MS = 2_000;
 
-/**
- * Build headers that include the demo user ID so the server can
- * authenticate the request even without a Supabase session cookie.
- */
-function authHeaders(currentUserId: string, extra: Record<string, string> = {}): Record<string, string> {
-  return {
-    "Content-Type": "application/json",
-    "x-demo-user-id": currentUserId,
-    ...extra,
-  };
-}
+
 
 export function useChat({
   currentUserId,
@@ -96,8 +85,7 @@ export function useChat({
     async function fetchHistory() {
       try {
         const res = await fetch(
-          `/api/messages/history?conversation_id=${conversationId}`,
-          { headers: { "x-demo-user-id": currentUserId } }
+          `/api/messages/history?conversation_id=${conversationId}`
         );
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data: ChatMessage[] = await res.json();
@@ -112,7 +100,6 @@ export function useChat({
 
   /* ---- Pusher --------------------------------------------------- */
   useEffect(() => {
-    setDemoUserId(currentUserId);
     const channel = pusherClient.subscribe(channelName) as PrivateChannel;
     channelRef.current = channel;
 
@@ -130,7 +117,7 @@ export function useChat({
       if (data.sender_id !== currentUserId) {
         fetch("/api/messages/read", {
           method: "POST",
-          headers: authHeaders(currentUserId),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ conversation_id: data.conversation_id, message_ids: [data.id] }),
         }).catch(() => {});
       }
@@ -218,7 +205,7 @@ export function useChat({
       try {
         const res = await fetch("/api/messages/send", {
           method: "POST",
-          headers: authHeaders(currentUserId),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ conversation_id: conversationId, content, ...opts }),
         });
         if (!res.ok) throw new Error(`Send failed: ${res.status}`);
@@ -237,7 +224,7 @@ export function useChat({
     try {
       await fetch("/api/messages/read", {
         method: "POST",
-        headers: authHeaders(currentUserId),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversation_id: conversationId, message_ids: messageIds }),
       });
     } catch (err) { console.error(err); }
@@ -247,7 +234,7 @@ export function useChat({
     try {
       await fetch("/api/messages/vanish", {
         method: "POST",
-        headers: authHeaders(currentUserId),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversation_id: conversationId, message_id: messageId }),
       });
     } catch (err) { console.error(err); }
@@ -269,7 +256,7 @@ export function useChat({
     }));
     fetch("/api/messages/reaction", {
       method: "POST",
-      headers: authHeaders(currentUserId),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversation_id: conversationId, message_id: messageId, emoji, add }),
     }).catch(console.error);
   }, [conversationId, currentUserId]);
