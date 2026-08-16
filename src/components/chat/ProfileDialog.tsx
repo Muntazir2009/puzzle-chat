@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Loader2, User, Check } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, User, Check, Camera } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ProfileDialogProps {
   userId: string;
@@ -19,7 +21,13 @@ interface ProfileDialogProps {
   userAvatar: string | null;
   userEmail: string | null;
   onNameChange: (newName: string) => void;
+  onAvatarChange: (newAvatarUrl: string) => void;
 }
+
+type UserOnlineStatus = {
+  online: boolean;
+  last_seen: string;
+};
 
 export function ProfileDialog({
   userId,
@@ -27,21 +35,65 @@ export function ProfileDialog({
   userAvatar,
   userEmail,
   onNameChange,
+  onAvatarChange,
 }: ProfileDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(userName);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  /* Avatar upload state */
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [avatarSuccess, setAvatarSuccess] = useState(false);
+  const [avatarHovered, setAvatarHovered] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevAvatarUrlRef = useRef<string | null>(null);
+
+  /* Status state */
+  const [userStatus, setUserStatus] = useState<UserOnlineStatus | null>(null);
+
+  /* The displayed avatar: preview takes priority, then the prop */
+  const displayedAvatar = avatarPreview ?? userAvatar;
+
+  /* Reset preview when prop avatar changes (after successful upload) */
+  useEffect(() => {
+    if (prevAvatarUrlRef.current !== userAvatar) {
+      setAvatarPreview(null);
+      prevAvatarUrlRef.current = userAvatar;
+    }
+  }, [userAvatar]);
+
   const handleOpen = useCallback(
     (isOpen: boolean) => {
       if (isOpen) {
         setName(userName);
         setSuccess(false);
+        setAvatarPreview(null);
+        setAvatarSuccess(false);
+        setAvatarHovered(false);
+
+        /* Fetch user's online status */
+        fetch("/api/users/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_ids: [userId] }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.[userId]) {
+              setUserStatus(data[userId]);
+            }
+          })
+          .catch(() => {});
+      } else {
+        /* Cleanup preview object URL on close */
+        setAvatarPreview(null);
+        setAvatarHovered(false);
       }
       setOpen(isOpen);
     },
-    [userName]
+    [userName, userId]
   );
 
   const handleSave = useCallback(async () => {
@@ -69,6 +121,81 @@ export function ProfileDialog({
     }
   }, [name, userName, onNameChange]);
 
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      /* Validate file type */
+      const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!allowed.includes(file.type)) {
+        toast({
+          title: "Invalid file",
+          description: "Please select a JPEG, PNG, GIF, or WebP image.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      /* Validate file size (2 MB) */
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Avatar must be smaller than 2 MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      /* Show immediate preview */
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarPreview(previewUrl);
+      setAvatarSuccess(false);
+      setUploading(true);
+
+      try {
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        const res = await fetch("/api/users/profile", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAvatarSuccess(true);
+          onAvatarChange(data.avatar_url);
+          toast({
+            title: "Avatar updated",
+            description: "Your profile picture has been changed.",
+          });
+        } else {
+          const errData = await res.json().catch(() => null);
+          toast({
+            title: "Upload failed",
+            description: errData?.error ?? "Something went wrong. Please try again.",
+            variant: "destructive",
+          });
+          setAvatarPreview(null);
+        }
+      } catch (err) {
+        console.error(err);
+        toast({
+          title: "Upload failed",
+          description: "Network error. Please try again.",
+          variant: "destructive",
+        });
+        setAvatarPreview(null);
+      } finally {
+        setUploading(false);
+        /* Reset file input so the same file can be re-selected */
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [onAvatarChange]
+  );
+
   const userInitials = userName
     .split(" ")
     .map((w) => w[0])
@@ -90,16 +217,76 @@ export function ProfileDialog({
         </DialogHeader>
 
         <div className="px-6 pb-6">
-          {/* Avatar preview */}
+          {/* Avatar preview with upload overlay */}
           <div className="mb-6 flex flex-col items-center gap-3">
             <div className="relative">
               <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-md" />
-              <Avatar className="relative size-20 ring-4 ring-violet-100 dark:ring-violet-900/50">
-                {userAvatar && <AvatarImage src={userAvatar} alt={userName} />}
-                <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xl font-bold text-white">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
+              {/* Outer clickable container sized to fit avatar + ring */}
+              <div
+                className="relative cursor-pointer"
+                style={{ width: 96, height: 96 }}
+                onMouseEnter={() => setAvatarHovered(true)}
+                onMouseLeave={() => setAvatarHovered(false)}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Upload avatar"
+              >
+                <div className="absolute inset-2">
+                  <Avatar className="size-full ring-4 ring-violet-100 dark:ring-violet-900/50 transition-all duration-300">
+                    <AvatarImage
+                      src={displayedAvatar ?? undefined}
+                      alt={userName}
+                      className="transition-opacity duration-500"
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xl font-bold text-white transition-all duration-300">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+
+                {/* Hover / uploading overlay */}
+                <div
+                  className={cn(
+                    "absolute inset-2 z-10 flex items-center justify-center rounded-full transition-opacity duration-200",
+                    (avatarHovered || uploading)
+                      ? "bg-black/40 opacity-100"
+                      : "bg-black/40 opacity-0 pointer-events-none"
+                  )}
+                  aria-hidden
+                >
+                  <div
+                    className={cn(
+                      "flex size-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-violet-500/90 text-white shadow-lg transition-transform duration-200",
+                      (avatarHovered && !uploading) && "scale-100",
+                      uploading && "scale-90"
+                    )}
+                  >
+                    {uploading ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : avatarSuccess ? (
+                      <Check className="size-5" strokeWidth={3} />
+                    ) : (
+                      <Camera className="size-5" />
+                    )}
+                  </div>
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
             </div>
             {userEmail && (
               <p className="text-xs text-muted-foreground">{userEmail}</p>
@@ -118,6 +305,24 @@ export function ProfileDialog({
               className="h-11 rounded-xl"
               autoFocus
             />
+
+            {/* Online status */}
+            {userStatus && (
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "inline-block size-2 rounded-full transition-colors duration-300",
+                    userStatus.online
+                      ? "bg-emerald-500 shadow-sm shadow-emerald-500/50"
+                      : "bg-zinc-400 dark:bg-zinc-600"
+                  )}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {userStatus.online ? "Online" : "Offline"}
+                </span>
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground">
               This is how you appear to others in conversations.
             </p>

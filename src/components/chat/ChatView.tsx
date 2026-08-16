@@ -72,6 +72,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [localUserName, setLocalUserName] = useState(userName);
+  const [localUserAvatar, setLocalUserAvatar] = useState(userAvatar);
   const [deletingConv, setDeletingConv] = useState<string | null>(null);
 
   const totalUnread = useMemo(
@@ -160,7 +161,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
           <div className="relative">
             <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-sm" />
             <Avatar className="relative size-11 ring-2 ring-violet-100 dark:ring-violet-900/50">
-              {userAvatar && <AvatarImage src={userAvatar} alt={localUserName} />}
+              {localUserAvatar && <AvatarImage src={localUserAvatar} alt={localUserName} />}
               <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white">
                 {userInitials}
               </AvatarFallback>
@@ -175,9 +176,10 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
         <ProfileDialog
           userId={userId}
           userName={localUserName}
-          userAvatar={userAvatar}
+          userAvatar={localUserAvatar}
           userEmail={userEmail}
           onNameChange={setLocalUserName}
+          onAvatarChange={setLocalUserAvatar}
         />
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} disabled={signingOut} className="text-red-500 focus:text-red-500">

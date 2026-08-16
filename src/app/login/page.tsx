@@ -279,9 +279,14 @@ export default function LoginPage() {
       </m.div>
 
       {/* Bottom branding */}
-      <p className="absolute bottom-6 left-0 right-0 text-center text-xs text-zinc-600">
-        Puzzle &middot; End-to-end encrypted messaging
-      </p>
+      <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-1">
+        <p className="text-xs text-zinc-600">
+          Puzzle &middot; End-to-end encrypted messaging
+        </p>
+        <p className="text-[10px] text-zinc-700">
+          Built with Next.js &amp; Supabase
+        </p>
+      </div>
     </div>
   );
 }

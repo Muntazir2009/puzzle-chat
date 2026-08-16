@@ -713,3 +713,86 @@ Stage Summary:
 - Copy action provides visual feedback via toast notifications
 - Escape key provides consistent dismissal of overlays
 - Login page verified: no console errors, all form states work correctly
+
+---
+Task ID: 6-a
+Agent: Frontend Component Builder
+Task: Enhance ProfileDialog with avatar upload and status
+
+Work Log:
+- Added avatar upload with camera overlay and file input
+- Added hover effect on avatar with semi-transparent overlay
+- Added online status display fetched from API
+- Connected to existing /api/users/profile for avatar upload
+
+Stage Summary:
+- ProfileDialog now supports avatar upload, name editing, and status display
+- Violet color scheme maintained throughout
+
+---
+Task ID: 6-b
+Agent: Frontend Stylist
+Task: Enhance ConversationList with better previews, parallax, and mobile polish
+
+Work Log:
+- Added message preview formatting (Photo/Voice labels instead of URLs)
+- Added parallax effect on empty state (+badge follows mouse)
+- Added active-conversation pin indicator for recent chats
+- Improved filter input focus styling with ring effect
+- Added mobile touch feedback (active:scale) to conversation items
+
+Stage Summary:
+- ConversationList is more informative and polished
+- Photo/Voice message previews show friendly labels
+- Subtle parallax on empty state adds life
+
+---
+Task ID: 6
+Agent: Main Agent + Subagents
+Task: QA testing, styling enhancements, and new features
+
+## 项目当前状态描述/判断
+
+项目处于功能完善和样式打磨阶段。核心架构（Supabase Auth + PostgreSQL + Pusher Real-time）已就绪，所有主要聊天功能（消息收发、实时送达/已读回执、反应、回复、滑动回复、语音消息、阅后即焚、搜索）已实现。数据库 schema.sql 已合并为一体化脚本，用户只需在 Supabase SQL Editor 运行一次即可。
+
+## 已完成的修改/验证结果
+
+### QA 测试
+- 登录页面：无控制台错误，所有交互正常（Tab 切换、登录/注册切换、密码可见性、HTML5 验证）
+- 根路由正确重定向到 /login（307）
+- 移动端视口（375x812）和桌面端（1440x900）均正常渲染
+- Dev 服务器稳定运行，所有修改编译通过
+
+### 新功能
+1. **头像上传**（ProfileDialog）— 悬停显示相机图标覆盖层，点击选择图片，上传到 Supabase Storage，实时预览
+2. **图片消息灯箱**（MessageFeed）— 点击图片消息全屏查看，ESC/点击关闭，缩放动画
+3. **打字指示器增强** — 添加伙伴头像，入场/退出 framer-motion 动画
+4. **会话列表增强** — 消息预览格式化（📷 Photo / 🎤 Voice），活跃会话 Pin 图标，空状态视差效果，移动端触摸反馈
+5. **消息上下文菜单** — 复制操作显示 Toast 通知（成功/失败）
+
+### 样式改进
+1. **日期分隔符** — 渐变分隔线 + ring 边框，更精致的视觉层次
+2. **已读回执** — 颜色从蓝色改为紫色（text-violet-400），与应用主题一致
+3. **登录页脚** — 添加“Built with Next.js & Supabase”副标题
+4. **Toast 系统** — 限制从 1 改为 3，自动关闭从 1000s 改为 4s
+5. **键盘快捷键** — ESC 关闭回复/阅后即焚/信息面板/搜索
+
+### API 增强
+- `/api/users/profile` POST 方法支持 multipart/form-data 头像上传
+- 自动创建 Supabase Storage avatars bucket
+- 文件类型和大小验证（JPEG/PNG/GIF/WebP，≤2MB）
+
+## 未解决问题或风险
+1. **数据库未初始化** — 用户仍需在 Supabase SQL Editor 运行 `supabase/schema.sql`，这是所有功能的前提
+2. **middleware 警告** — Next.js 16 建议将 middleware 改为 proxy，目前仅为警告不影响功能
+3. **Pusher 依赖** — 实时消息依赖 Pusher service（独立 mini service），需确保 Pusher 服务运行
+4. **EmojiPicker** — 已集成但需要验证在移动端的触摸交互体验
+5. **Voice message upload** — 语音录制已有 UI，但实际上传到存储的流程可能需要补充
+
+## 建议下一阶段优先事项
+1. **运行 schema.sql** — 用户必须先在 Supabase 运行完整 schema
+2. **附件上传** — Paperclip 按钮目前是 placeholder，实现图片/文件上传功能
+3. **消息转发** — 在 TapbackDock 添加 Forward 选项
+4. **Pusher 测试** — 需要两个用户同时在线测试实时消息
+5. **Performance** — 考虑添加消息分页（目前加载全部历史）
+6. **Notification** — 集成 Web Push API 实现离线通知

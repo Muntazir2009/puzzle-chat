@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, AlertCircle, EyeOff, Reply, Play, Pause, Copy, Trash2 } from "lucide-react";
+import { ArrowDown, AlertCircle, EyeOff, Reply, Play, Pause, Copy, Trash2, X, ZoomIn } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export interface MessageFeedProps {
 function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
   if (status === "sending") return <svg className="size-3.5 animate-spin text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9" /></svg>;
   if (status === "failed") return <AlertCircle className="size-3.5 text-red-500" />;
-  const color = status === "read" ? "text-blue-500" : "text-muted-foreground/50";
+  const color = status === "read" ? "text-violet-400" : "text-muted-foreground/50";
   const double = status !== "sent";
   return (
     <svg className={cn("size-3.5", color)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-label={status}>
@@ -275,6 +275,51 @@ function ReplyPreview({ senderName, content, isOwn }: { senderName: string; cont
 }
 
 /* ------------------------------------------------------------------ */
+/*  Image Lightbox (full-screen image viewer)                          */
+/* ------------------------------------------------------------------ */
+
+function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [onClose]);
+
+  return (
+    <m.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+        aria-label="Close"
+      >
+        <X className="size-5" />
+      </button>
+      <m.img
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        src={src}
+        alt="Full size image"
+        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </m.div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Reaction Pills (below bubble)                                      */
 /* ------------------------------------------------------------------ */
 
@@ -314,6 +359,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
 }) {
   const [showHeart, setShowHeart] = useState(false);
   const [showTapback, setShowTapback] = useState(false);
+  const [showLightbox, setShowLightbox] = useState<string | null>(null);
   const lastTapRef = useRef(0);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -421,7 +467,12 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
               <VoiceBubble message={message} isOwn={isOwn} waveform={message.waveform_data} />
             ) : <p className="text-white/60 italic">Voice message</p>
           ) : message.type === "image" ? (
-            <img src={message.content} alt="Shared image" className="max-h-64 rounded-lg object-contain" />
+            <div className="group/img relative cursor-zoom-in" onClick={() => setShowLightbox(message.content)}>
+              <img src={message.content} alt="Shared image" className="max-h-64 rounded-lg object-contain transition-opacity duration-150 group-hover/img:opacity-90" />
+              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors duration-150 group-hover/img:bg-black/20">
+                <ZoomIn className="size-6 text-white opacity-0 transition-opacity duration-150 group-hover/img:opacity-80" />
+              </div>
+            </div>
           ) : (
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           )}
@@ -449,6 +500,13 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
 
       {isOwn && <div className="w-8 shrink-0" />}
     </m.div>
+
+    {/* Image Lightbox */}
+    <AnimatePresence>
+      {showLightbox && (
+        <ImageLightbox src={showLightbox} onClose={() => setShowLightbox(null)} />
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -471,10 +529,12 @@ function formatDateSeparator(dateStr: string): string {
 
 function DateSeparator({ date }: { date: string }) {
   return (
-    <div className="flex items-center justify-center py-2">
-      <span className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
+    <div className="flex items-center gap-3 px-4 py-2">
+      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+      <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-border/50">
         {formatDateSeparator(date)}
       </span>
+      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }
@@ -483,17 +543,28 @@ function DateSeparator({ date }: { date: string }) {
 /*  TypingIndicator (smooth wave dots)                                 */
 /* ------------------------------------------------------------------ */
 
-function TypingIndicator({ partnerName }: { partnerName: string }) {
+function TypingIndicator({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
+  const initials = partnerName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   return (
     <div className="flex items-end gap-2.5 px-4">
-      <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20">
+      <Avatar className="size-8 shrink-0 ring-1 ring-muted">
+        {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
+        <AvatarFallback className="bg-gradient-to-br from-violet-100 to-purple-200 text-xs font-medium text-violet-700 dark:from-violet-500 dark:to-purple-600 dark:text-white">{initials}</AvatarFallback>
+      </Avatar>
+      <m.div
+        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+        className="flex items-center gap-2.5 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20"
+      >
         <span className="flex gap-1">
           <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
           <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
           <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
         </span>
         <span className="text-xs text-muted-foreground">{partnerName} is typing\u2026</span>
-      </div>
+      </m.div>
     </div>
   );
 }
@@ -632,7 +703,7 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
             const showFirstDateSep = msg && vi.index === 0;
             return (
               <div key={vi.key} data-index={vi.index} ref={virtualizer.measureElement} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)` }}>
-                {isTyping ? <TypingIndicator partnerName={partnerName} /> : msg ? (
+                {isTyping ? <TypingIndicator partnerName={partnerName} partnerAvatar={partnerAvatar} /> : msg ? (
                   <>
                     {(showDateSep || showFirstDateSep) && <DateSeparator date={msg.created_at} />}
                     <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} onDeleteMessage={onDeleteMessage} />

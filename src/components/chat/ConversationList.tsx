@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plus, MessageCircle, Loader2, X, Trash2 } from "lucide-react";
+import { Search, Plus, MessageCircle, Loader2, X, Trash2, Pin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +57,26 @@ function timeAgo(dateStr: string): string {
 
 function getInitials(name: string): string {
   return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function isImageUrl(content: string): boolean {
+  return /^https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|svg)(\?\S*)?$/i.test(content.trim());
+}
+
+function isVoiceContent(content: string): boolean {
+  const trimmed = content.trim();
+  return trimmed.startsWith("blob:") || trimmed.startsWith("data:");
+}
+
+function formatPreview(content: string): string {
+  if (isImageUrl(content)) return "\u{1F4F7} Photo";
+  if (isVoiceContent(content)) return "\u{1F3A4} Voice message";
+  return content;
+}
+
+function isWithin5Min(dateStr: string): boolean {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  return diffMs >= 0 && diffMs < 5 * 60 * 1000;
 }
 
 /* ------------------------------------------------------------------ */
@@ -191,6 +211,9 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
   onContextMenu: (e: React.MouseEvent, conv: ConversationItem) => void;
   index: number;
 }) {
+  const isRecent = conv.last_message ? isWithin5Min(conv.last_message.created_at) : false;
+  const previewText = conv.last_message ? formatPreview(conv.last_message.content) : "";
+
   return (
     <>
     {/* Subtle separator between conversation items */}
@@ -215,6 +238,8 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
           "border-l-violet-500",
           "pl-[18px]",
         ],
+        // Mobile touch feedback
+        "active:scale-[0.98]",
       )}
     >
       <div className="relative shrink-0">
@@ -228,14 +253,17 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className={cn("truncate text-sm transition-colors duration-200", activeId === conv.id ? "font-bold" : "font-semibold")}>{conv.partner.name}</span>
+          <span className="flex items-center gap-1 truncate text-sm transition-colors duration-200">
+            {conv.partner.name}
+            {isRecent && <Pin className="size-3 shrink-0 text-violet-400" />}
+          </span>
           {conv.last_message && (
             <span className={cn("shrink-0 text-[11px] tabular-nums transition-colors duration-200", activeId === conv.id ? "text-foreground/40" : "text-muted-foreground/70", conv.unread_count > 0 && "font-medium text-violet-500")}>{timeAgo(conv.last_message.created_at)}</span>
           )}
         </div>
         {conv.last_message && (
           <div className="mt-1 flex items-center justify-between gap-2">
-            <p className={cn("truncate text-xs", activeId === conv.id && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}{conv.last_message.content}</p>
+            <p className={cn("truncate text-xs", activeId === conv.id && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}{previewText}</p>
             {conv.unread_count > 0 && (
               <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-[10px] font-bold text-white shadow-sm shadow-violet-500/30 ring-2 ring-background">{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
@@ -256,6 +284,8 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
   const [onlineMap, setOnlineMap] = useState<OnlineMap>({});
   const [filter, setFilter] = useState("");
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const emptyContainerRef = useRef<HTMLDivElement>(null);
 
   /* Keep the current user's last_seen up-to-date */
   useHeartbeat();
@@ -336,7 +366,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter chats..."
-            className="h-8 w-full rounded-lg bg-muted/60 pl-8 pr-8 text-xs outline-none placeholder:text-muted-foreground/50 focus:bg-muted focus:ring-1 focus:ring-violet-500/20 transition-all"
+            className="h-8 w-full rounded-lg bg-muted/60 pl-8 pr-8 text-xs outline-none placeholder:text-muted-foreground/50 focus:bg-muted/80 focus:ring-1 focus:ring-violet-500/20 transition-all"
             aria-label="Filter conversations"
           />
           {filter && (
@@ -359,7 +389,20 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             <p className="text-xs text-muted-foreground">No matching conversations</p>
           </div>
         ) : filteredConversations.length === 0 ? (
-          <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-5 px-6 text-center">
+          <div
+            ref={emptyContainerRef}
+            className="flex h-full min-h-[200px] flex-col items-center justify-center gap-5 px-6 text-center"
+            onMouseMove={(e) => {
+              if (!emptyContainerRef.current) return;
+              const rect = emptyContainerRef.current.getBoundingClientRect();
+              const cx = rect.left + rect.width / 2;
+              const cy = rect.top + rect.height / 2;
+              const dx = (cx - e.clientX) * 0.03;
+              const dy = (cy - e.clientY) * 0.03;
+              setParallax({ x: dx, y: dy });
+            }}
+            onMouseLeave={() => setParallax({ x: 0, y: 0 })}
+          >
             {/* Illustration: layered chat bubbles */}
             <div className="relative">
               {/* Background decorative ring */}
@@ -367,11 +410,12 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
               <div className="relative flex size-24 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
                 <MessageCircle className="size-12 text-violet-400/40" />
               </div>
-              {/* Floating action badge */}
+              {/* Floating action badge with parallax (desktop only) */}
               <m.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 ring-4 ring-background"
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)` }}
+                className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 ring-4 ring-background max-lg:!transform-none"
               >
                 <Plus className="size-4 text-white" />
               </m.div>
