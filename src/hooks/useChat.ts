@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   pusherClient,
   getChannelName,
+  setDemoUserId,
 } from "@/lib/pusher-client";
 import { getRoomId } from "@/lib/room";
 import type { ChatChannelEvents } from "@/lib/pusher-server";
@@ -61,6 +62,18 @@ export interface UseChatReturn {
 
 const TYPING_DEBOUNCE_MS = 2_000;
 
+/**
+ * Build headers that include the demo user ID so the server can
+ * authenticate the request even without a Supabase session cookie.
+ */
+function authHeaders(currentUserId: string, extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "x-demo-user-id": currentUserId,
+    ...extra,
+  };
+}
+
 export function useChat({
   currentUserId,
   otherUserId,
@@ -82,7 +95,10 @@ export function useChat({
     let cancelled = false;
     async function fetchHistory() {
       try {
-        const res = await fetch(`/api/messages/history?conversation_id=${conversationId}`);
+        const res = await fetch(
+          `/api/messages/history?conversation_id=${conversationId}`,
+          { headers: { "x-demo-user-id": currentUserId } }
+        );
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data: ChatMessage[] = await res.json();
         if (!cancelled) { setMessages(data); setIsLoading(false); }
@@ -92,10 +108,11 @@ export function useChat({
     }
     fetchHistory();
     return () => { cancelled = true; };
-  }, [conversationId, initialMessages.length]);
+  }, [conversationId, currentUserId, initialMessages.length]);
 
   /* ---- Pusher --------------------------------------------------- */
   useEffect(() => {
+    setDemoUserId(currentUserId);
     const channel = pusherClient.subscribe(channelName) as PrivateChannel;
     channelRef.current = channel;
 
@@ -112,7 +129,8 @@ export function useChat({
       setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
       if (data.sender_id !== currentUserId) {
         fetch("/api/messages/read", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST",
+          headers: authHeaders(currentUserId),
           body: JSON.stringify({ conversation_id: data.conversation_id, message_ids: [data.id] }),
         }).catch(() => {});
       }
@@ -199,7 +217,8 @@ export function useChat({
       setMessages((prev) => [...prev, optimistic]);
       try {
         const res = await fetch("/api/messages/send", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST",
+          headers: authHeaders(currentUserId),
           body: JSON.stringify({ conversation_id: conversationId, content, ...opts }),
         });
         if (!res.ok) throw new Error(`Send failed: ${res.status}`);
@@ -217,21 +236,23 @@ export function useChat({
     if (messageIds.length === 0) return;
     try {
       await fetch("/api/messages/read", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: authHeaders(currentUserId),
         body: JSON.stringify({ conversation_id: conversationId, message_ids: messageIds }),
       });
     } catch (err) { console.error(err); }
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
   const vanishMessage = useCallback(async (messageId: string) => {
     try {
       await fetch("/api/messages/vanish", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: authHeaders(currentUserId),
         body: JSON.stringify({ conversation_id: conversationId, message_id: messageId }),
       });
     } catch (err) { console.error(err); }
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
   const sendReaction = useCallback((messageId: string, emoji: string, add: boolean) => {
     setMessages((prev) => prev.map((m) => {
@@ -247,7 +268,8 @@ export function useChat({
       return { ...m, reactions };
     }));
     fetch("/api/messages/reaction", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: authHeaders(currentUserId),
       body: JSON.stringify({ conversation_id: conversationId, message_id: messageId, emoji, add }),
     }).catch(console.error);
   }, [conversationId, currentUserId]);

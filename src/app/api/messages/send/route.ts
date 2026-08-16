@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth";
 import { pusherServer, type ChatChannelEvents } from "@/lib/pusher-server";
 import { getRoomId } from "@/lib/room";
 import { getChannelName } from "@/lib/pusher-client";
@@ -26,14 +27,16 @@ export async function POST(req: NextRequest) {
 
     const { conversation_id, content, type, vanish_mode, ephemeral_seconds, reply_to_id, voice_duration, waveform_data } = parsed.data;
 
+    const authUser = await getAuthUser(req);
+    if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = authUser.id;
+
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { data: conv } = await supabase
       .from("conversations").select("id, user_a, user_b").eq("id", conversation_id).single();
     if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
-    if (conv.user_a !== user.id && conv.user_b !== user.id) {
+    if (conv.user_a !== userId && conv.user_b !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -53,14 +56,14 @@ export async function POST(req: NextRequest) {
 
     /* Resolve sender name */
     const { data: senderProfile } = await supabase
-      .from("users").select("name").eq("id", user.id).single();
+      .from("users").select("name").eq("id", userId).single();
     const sender_name = senderProfile?.name ?? "Unknown";
 
     const { data: message, error: msgErr } = await supabase
       .from("messages")
       .insert({
         conversation_id,
-        sender_id: user.id,
+        sender_id: userId,
         reply_to_id: reply_to_id ?? null,
         content,
         type,
@@ -78,8 +81,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to persist message" }, { status: 500 });
     }
 
-    const otherUserId = conv.user_a === user.id ? conv.user_b : conv.user_a;
-    const roomId = getRoomId(user.id, otherUserId);
+    const otherUserId = conv.user_a === userId ? conv.user_b : conv.user_a;
+    const roomId = getRoomId(userId, otherUserId);
     const channelName = getChannelName(roomId);
 
     const eventPayload: ChatChannelEvents["new-message"] = {

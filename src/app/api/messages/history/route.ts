@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 
 const historyQuerySchema = z.object({
@@ -27,21 +28,20 @@ export async function GET(req: NextRequest) {
     const { conversation_id, before, limit } = parsed.data;
 
     /* Verify auth */
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const userId = authUser.id;
+
+    const supabase = await createClient();
 
     /* Verify participation */
     const { data: conv, error: convErr } = await supabase
       .from("conversations")
       .select("id")
       .eq("id", conversation_id)
-      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
       .single();
 
     if (convErr || !conv) {

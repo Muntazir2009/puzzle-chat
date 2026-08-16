@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth";
 import { pusherServer, type ChatChannelEvents } from "@/lib/pusher-server";
 import { getRoomId } from "@/lib/room";
 import { getChannelName } from "@/lib/pusher-client";
@@ -24,13 +25,13 @@ export async function POST(req: NextRequest) {
     const { conversation_id, message_id } = parsed.data;
 
     /* Verify auth */
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const userId = authUser.id;
+
+    const supabase = await createClient();
 
     /* Verify conversation participation */
     const { data: conv } = await supabase
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (conv.user_a !== user.id && conv.user_b !== user.id) {
+    if (conv.user_a !== userId && conv.user_b !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -81,8 +82,8 @@ export async function POST(req: NextRequest) {
 
     /* Broadcast vanish event so all clients scrub the message. */
     const otherUserId =
-      conv.user_a === user.id ? conv.user_b : conv.user_a;
-    const roomId = getRoomId(user.id, otherUserId);
+      conv.user_a === userId ? conv.user_b : conv.user_a;
+    const roomId = getRoomId(userId, otherUserId);
     const channelName = getChannelName(roomId);
 
     const eventPayload: ChatChannelEvents["vanish"] = {

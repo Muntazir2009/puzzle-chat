@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth";
 
 /**
  * Pusher private-channel authorisation endpoint.
  * The client SDK calls this automatically before subscribing.
- * We verify the Supabase session so that unauthenticated browsers
- * cannot join any private chat channel.
+ * We verify the user session (Supabase or demo header) so that
+ * unauthenticated browsers cannot join any private chat channel.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -20,17 +20,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const authUser = await getAuthUser(req);
 
-    if (!user) {
+    if (!authUser) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+
+    const userId = authUser.id;
 
     /* Only allow subscribing to private-chat- channels the user belongs to. */
     const match = channelName.match(/^private-chat-(.+)$/);
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
     const roomId = match[1];
     const userIds = roomId.split("_");
 
-    if (userIds.length !== 2 || !userIds.includes(user.id)) {
+    if (userIds.length !== 2 || !userIds.includes(userId)) {
       return NextResponse.json(
         { error: "You are not a participant in this conversation" },
         { status: 403 }
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     const auth = JSON.stringify({
       auth: `${pusherKey}:${signature}`,
-      channel_data: JSON.stringify({ user_id: user.id }),
+      channel_data: JSON.stringify({ user_id: userId }),
     });
 
     return new NextResponse(auth, {

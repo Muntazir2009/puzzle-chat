@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth";
 import { pusherServer, type ChatChannelEvents } from "@/lib/pusher-server";
 import { getRoomId } from "@/lib/room";
 import { getChannelName } from "@/lib/pusher-client";
@@ -25,13 +26,13 @@ export async function POST(req: NextRequest) {
     const { conversation_id, message_ids } = parsed.data;
 
     /* Verify auth */
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const userId = authUser.id;
+
+    const supabase = await createClient();
 
     /* Verify conversation participation */
     const { data: conv } = await supabase
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (conv.user_a !== user.id && conv.user_b !== user.id) {
+    if (conv.user_a !== userId && conv.user_b !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
       .update({ status: "read" })
       .eq("conversation_id", conversation_id)
       .in("id", message_ids)
-      .neq("sender_id", user.id);
+      .neq("sender_id", userId);
 
     if (updateErr) {
       console.error("[messages/read] update error:", updateErr);
@@ -69,14 +70,14 @@ export async function POST(req: NextRequest) {
 
     /* Broadcast read receipt to the channel so the sender can update UI. */
     const otherUserId =
-      conv.user_a === user.id ? conv.user_b : conv.user_a;
-    const roomId = getRoomId(user.id, otherUserId);
+      conv.user_a === userId ? conv.user_b : conv.user_a;
+    const roomId = getRoomId(userId, otherUserId);
     const channelName = getChannelName(roomId);
 
     const eventPayload: ChatChannelEvents["read"] = {
       message_ids,
       conversation_id,
-      user_id: user.id,
+      user_id: userId,
     };
 
     await pusherServer.trigger(channelName, "read", eventPayload);
