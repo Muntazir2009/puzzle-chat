@@ -647,3 +647,69 @@ Stage Summary:
 - 5 new features added (extended reactions, copy, delete, conversation search, online dots)
 - Comprehensive styling pass across 5 files
 - IMPORTANT: User still needs to run `supabase/migration-fix-user-creation.sql` in Supabase SQL Editor to fix the trigger on their database
+---
+Task ID: 4-a
+Agent: Frontend Component Builder
+Task: Build lightweight emoji picker and integrate into chat input
+
+Work Log:
+- Created /src/components/chat/EmojiPicker.tsx with inline emoji data, category tabs, search, framer-motion animations
+- Integrated emoji picker into ChatLayout.tsx input area
+- Emoji appends at cursor position, input refocuses after selection
+
+Stage Summary:
+- EmojiPicker: ~150 emojis, 5 categories, search filter, glass-morphism styling
+- Integration: wraps Smile icon button in ChatLayout, appends emoji to draft text
+
+---
+Task ID: 5-a
+Agent: Main Agent
+Task: Fix critical SQL error "relation public.users does not exist" and consolidate schema
+
+Work Log:
+- Diagnosed root cause: user ran migration SQL before base tables were created in Supabase
+- Rewrote supabase/schema.sql as a complete all-in-one script with clean slate approach
+- Schema now includes: DROP IF EXISTS for all objects, then CREATE all enums/tables/indexes/triggers/RLS/functions
+- All previous fixes incorporated: handle_new_user() EXCEPTION handler, SET search_path, VOLATILE get_or_create_conversation
+- Added verification queries at end of script to confirm setup
+- Deleted obsolete supabase/migration-fix-user-creation.sql
+- Reviewed application code: page.tsx and auth/callback/route.ts have robust dual-fallback user creation (regular client → admin client)
+
+Stage Summary:
+- Critical fix: supabase/schema.sql is now a single all-in-one script (run ONCE in Supabase SQL Editor)
+- User must run the new schema.sql before any app features will work
+- App code is already resilient with fallback user creation
+
+---
+Task ID: 5-b
+Agent: Frontend Component Builder (subagent)
+Task: Build lightweight emoji picker and integrate into chat input
+
+Work Log:
+- Created /src/components/chat/EmojiPicker.tsx with inline emoji data, category tabs, search, framer-motion animations
+- ~150 emojis across 5 categories: Smileys, Gestures, Hearts, Nature, Objects
+- Integrated emoji picker into ChatLayout.tsx input area wrapping the Smile icon button
+- Cursor-aware insertion: reads selectionStart/selectionEnd from textarea and inserts at cursor position
+- Auto-refocus after emoji selection
+
+Stage Summary:
+- EmojiPicker: glass-morphism styling, violet color scheme, mobile-friendly (max-w-320px, 7-col grid)
+- Integration: wraps Smile icon in ChatLayout, appends emoji to draft text at cursor position
+
+---
+Task ID: 5-c
+Agent: Main Agent
+Task: Add copy-to-clipboard toast, keyboard shortcuts, and UX polish
+
+Work Log:
+- Updated use-toast.ts: changed TOAST_LIMIT from 1 to 3, TOAST_REMOVE_DELAY from 1000000ms to 4000ms
+- Updated MessageFeed.tsx handleCopy: now shows success/error toast when copying messages
+- Added global keyboard shortcuts in ChatLayout: Escape closes reply mode, ephemeral dropdown, info panel, search panel
+- Added Esc keyboard hint badge next to reply dismiss button (visible on desktop)
+- Verified login page with agent-browser: all interactions work (tab switching, sign in/up toggle, form fields)
+
+Stage Summary:
+- Toast system now functional with 3 toast limit and 4s auto-dismiss
+- Copy action provides visual feedback via toast notifications
+- Escape key provides consistent dismissal of overlays
+- Login page verified: no console errors, all form states work correctly

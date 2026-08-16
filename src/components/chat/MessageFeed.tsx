@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { m, AnimatePresence, type PanInfo } from "framer-motion";
 import type { ChatMessage } from "@/hooks/useChat";
+import { toast } from "@/hooks/use-toast";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -343,7 +344,11 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
   }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(message.content).catch(() => {});
+    navigator.clipboard?.writeText(message.content).then(() => {
+      toast({ title: "Copied to clipboard", description: message.content.length > 50 ? message.content.slice(0, 50) + "..." : message.content });
+    }).catch(() => {
+      toast({ title: "Failed to copy", description: "Could not access clipboard", variant: "destructive" });
+    });
     setShowTapback(false);
   }, [message.content]);
 

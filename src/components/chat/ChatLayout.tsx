@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { MessageFeed } from "@/components/chat/MessageFeed";
+import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
@@ -360,6 +361,20 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   /* Show voice waveform when recording */
   useEffect(() => { setShowVoiceWaveform(voice.isRecording); }, [voice.isRecording]);
 
+  /* Global keyboard shortcuts */
+  useEffect(() => {
+    function handleGlobalKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (replyTo) { setReplyTo(null); e.preventDefault(); }
+        else if (ephemeralOpen) { setEphemeralOpen(false); e.preventDefault(); }
+        else if (infoPanelOpen) { setInfoPanelOpen(false); e.preventDefault(); }
+        else if (searchOpen) { setSearchOpen(false); e.preventDefault(); }
+      }
+    }
+    window.addEventListener("keydown", handleGlobalKey);
+    return () => window.removeEventListener("keydown", handleGlobalKey);
+  }, [replyTo, ephemeralOpen, infoPanelOpen, searchOpen]);
+
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = draft.trim();
@@ -504,7 +519,10 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   <p className="text-[11px] font-semibold text-violet-500">{replyTo.sender_name || "Unknown"}</p>
                   <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
                 </div>
-                <button type="button" onClick={() => setReplyTo(null)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>
+                <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => setReplyTo(null)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>
+                  <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
+                </div>
               </div>
             </m.div>
           )}
@@ -587,11 +605,28 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               </m.button>
             )}
 
-            {/* Emoji button (placeholder) */}
+            {/* Emoji button with picker */}
             {!showVoiceWaveform && (
-              <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Emoji">
-                <Smile className="size-4" />
-              </m.button>
+              <EmojiPicker
+                onSelect={(emoji) => {
+                  const ta = inputRef.current;
+                  if (!ta) return;
+                  const start = ta.selectionStart ?? draft.length;
+                  const end = ta.selectionEnd ?? draft.length;
+                  const before = draft.slice(0, start);
+                  const after = draft.slice(end);
+                  setDraft(before + emoji + after);
+                  requestAnimationFrame(() => {
+                    const pos = start + emoji.length;
+                    ta.focus();
+                    ta.setSelectionRange(pos, pos);
+                  });
+                }}
+              >
+                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Emoji">
+                  <Smile className="size-4" />
+                </m.button>
+              </EmojiPicker>
             )}
 
             {/* Send button (shown when there's text) */}

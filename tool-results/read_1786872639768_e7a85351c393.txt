@@ -1,0 +1,639 @@
+     1→"use client";
+     2→
+     3→import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+     4→import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Search, Loader2 } from "lucide-react";
+     5→import { Button } from "@/components/ui/button";
+     6→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+     7→import { Switch } from "@/components/ui/switch";
+     8→import { Separator } from "@/components/ui/separator";
+     9→import { MessageFeed } from "@/components/chat/MessageFeed";
+    10→import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
+    11→import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+    12→import { useVisualViewport } from "@/hooks/useVisualViewport";
+    13→import { cn } from "@/lib/utils";
+    14→import { m, AnimatePresence } from "framer-motion";
+    15→import { formatDistanceToNow } from "date-fns";
+    16→
+    17→/* ------------------------------------------------------------------ */
+    18→/*  Props                                                              */
+    19→/* ------------------------------------------------------------------ */
+    20→
+    21→export interface ChatPartner { id: string; name: string; avatar_url: string | null }
+    22→export interface ChatLayoutProps { currentUserId: string; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
+    23→
+    24→const EPHEMERAL_OPTIONS = [
+    25→  { label: "Off", value: null },
+    26→  { label: "5s", value: 5 },
+    27→  { label: "1m", value: 60 },
+    28→  { label: "1h", value: 3600 },
+    29→];
+    30→
+    31→const DOT_PATTERN = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.7' fill='%239ca3af' opacity='0.15'/%3E%3C/svg%3E")`;
+    32→
+    33→/* ------------------------------------------------------------------ */
+    34→/*  Helpers                                                            */
+    35→/* ------------------------------------------------------------------ */
+    36→
+    37→function formatLastSeen(lastSeen: string | null): string {
+    38→  if (!lastSeen) return "Offline";
+    39→  const diffMs = Date.now() - new Date(lastSeen).getTime();
+    40→  const diffSec = Math.floor(diffMs / 1000);
+    41→  if (diffSec < 60) return "Seen just now";
+    42→  const diffMin = Math.floor(diffSec / 60);
+    43→  if (diffMin < 60) return `Seen ${diffMin}m ago`;
+    44→  const diffHr = Math.floor(diffMin / 60);
+    45→  if (diffHr < 24) return `Seen ${diffHr}h ago`;
+    46→  const diffDay = Math.floor(diffHr / 24);
+    47→  if (diffDay < 7) return `Seen ${diffDay}d ago`;
+    48→  return `Seen ${new Date(lastSeen).toLocaleDateString()}`;
+    49→}
+    50→
+    51→function StatusDot({ online, size = "size-2.5" }: { online: boolean; size?: string }) {
+    52→  return (
+    53→    <span
+    54→      className={cn(
+    55→        "inline-block rounded-full",
+    56→        size,
+    57→        online ? "bg-emerald-500" : "bg-muted-foreground/50",
+    58→      )}
+    59→    />
+    60→  );
+    61→}
+    62→
+    63→/* ------------------------------------------------------------------ */
+    64→/*  SearchPanel                                                        */
+    65→/* ------------------------------------------------------------------ */
+    66→
+    67→function SearchPanel({
+    68→  conversationId,
+    69→  onResultClick,
+    70→  onClose,
+    71→}: {
+    72→  conversationId: string;
+    73→  onResultClick: (messageId: string) => void;
+    74→  onClose: () => void;
+    75→}) {
+    76→  const [query, setQuery] = useState("");
+    77→  const [results, setResults] = useState<ChatMessage[]>([]);
+    78→  const [isSearching, setIsSearching] = useState(false);
+    79→  const inputRef = useRef<HTMLInputElement>(null);
+    80→  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    81→
+    82→  /* Auto-focus on open */
+    83→  useEffect(() => {
+    84→    requestAnimationFrame(() => inputRef.current?.focus());
+    85→  }, []);
+    86→
+    87→  /* Escape key to close */
+    88→  useEffect(() => {
+    89→    function handleKeyDown(e: KeyboardEvent) {
+    90→      if (e.key === "Escape") onClose();
+    91→    }
+    92→    window.addEventListener("keydown", handleKeyDown);
+    93→    return () => window.removeEventListener("keydown", handleKeyDown);
+    94→  }, [onClose]);
+    95→
+    96→  /* Debounced search */
+    97→  useEffect(() => {
+    98→    if (debounceRef.current) clearTimeout(debounceRef.current);
+    99→    if (!query.trim()) { setResults([]); setIsSearching(false); return; }
+   100→    setIsSearching(true);
+   101→    debounceRef.current = setTimeout(async () => {
+   102→      try {
+   103→        const res = await fetch(`/api/messages/search?conversation_id=${conversationId}&q=${encodeURIComponent(query)}`);
+   104→        if (res.ok) {
+   105→          const data: ChatMessage[] = await res.json();
+   106→          setResults(data);
+   107→        }
+   108→      } catch (_err) {
+   109→        /* silent */
+   110→      } finally {
+   111→        setIsSearching(false);
+   112→      }
+   113→    }, 300);
+   114→    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+   115→  }, [query, conversationId]);
+   116→
+   117→  return (
+   118→    <div
+   119→      className="overflow-hidden border-b bg-background/80 backdrop-blur-xl"
+   120→    >
+   121→      <div className="flex items-center gap-2 px-4 py-2.5">
+   122→        <Search className="size-4 shrink-0 text-muted-foreground" />
+   123→        <input
+   124→          ref={inputRef}
+   125→          type="text"
+   126→          value={query}
+   127→          onChange={(e) => setQuery(e.target.value)}
+   128→          placeholder="Search messages..."
+   129→          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+   130→          aria-label="Search messages"
+   131→        />
+   132→        {isSearching ? (
+   133→          <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+   134→        ) : (
+   135→          <button
+   136→            type="button"
+   137→            onClick={() => { setQuery(""); onClose(); }}
+   138→            className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+   139→            aria-label="Close search"
+   140→          >
+   141→            <X className="size-3.5" />
+   142→          </button>
+   143→        )}
+   144→      </div>
+   145→
+   146→      {/* Results list */}
+   147→      {results.length > 0 && (
+   148→        <div className="max-h-[200px] overflow-y-auto border-t px-2 pb-2">
+   149→          {results.map((msg) => (
+   150→            <button
+   151→              key={msg.id}
+   152→              type="button"
+   153→              onClick={() => onResultClick(msg.id)}
+   154→              className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+   155→            >
+   156→              <p className="truncate text-sm text-foreground">
+   157→                {msg.content.length > 60 ? msg.content.slice(0, 60) + "..." : msg.content}
+   158→              </p>
+   159→              <span className="text-[11px] text-muted-foreground">
+   160→                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+   161→              </span>
+   162→            </button>
+   163→          ))}
+   164→        </div>
+   165→      )}
+   166→
+   167→      {query.trim() && !isSearching && results.length === 0 && (
+   168→        <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
+   169→          No results found
+   170→        </div>
+   171→      )}
+   172→    </div>
+   173→  );
+   174→}
+   175→
+   176→/* ------------------------------------------------------------------ */
+   177→/*  PartnerInfoPanel                                                   */
+   178→/* ------------------------------------------------------------------ */
+   179→
+   180→function PartnerInfoPanel({
+   181→  partner,
+   182→  partnerStatus,
+   183→  open,
+   184→  onClose,
+   185→}: {
+   186→  partner: ChatPartner;
+   187→  partnerStatus: PartnerStatus;
+   188→  open: boolean;
+   189→  onClose: () => void;
+   190→}) {
+   191→  const [muted, setMuted] = useState(false);
+   192→
+   193→  return (
+   194→    <AnimatePresence>
+   195→      {open && (
+   196→        <>
+   197→          {/* Backdrop */}
+   198→          <m.div
+   199→            key="backdrop"
+   200→            initial={{ opacity: 0 }}
+   201→            animate={{ opacity: 1 }}
+   202→            exit={{ opacity: 0 }}
+   203→            transition={{ duration: 0.2 }}
+   204→            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+   205→            onClick={onClose}
+   206→          />
+   207→          {/* Panel */}
+   208→          <m.aside
+   209→            key="panel"
+   210→            initial={{ x: "100%" }}
+   211→            animate={{ x: 0 }}
+   212→            exit={{ x: "100%" }}
+   213→            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+   214→            className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-background border-l shadow-2xl"
+   215→          >
+   216→            {/* Panel header */}
+   217→            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+   218→              <h3 className="text-sm font-semibold">User Info</h3>
+   219→              <button
+   220→                type="button"
+   221→                onClick={onClose}
+   222→                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
+   223→                aria-label="Close panel"
+   224→              >
+   225→                <X className="size-4" />
+   226→              </button>
+   227→            </div>
+   228→
+   229→            {/* Scrollable content */}
+   230→            <div className="flex-1 overflow-y-auto">
+   231→              {/* Avatar + Name + Status */}
+   232→              <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
+   233→                <div className="relative">
+   234→                  <Avatar className="size-20 ring-4 ring-violet-100 dark:ring-violet-900/40">
+   235→                    {partner.avatar_url && (
+   236→                      <AvatarImage src={partner.avatar_url} alt={partner.name} />
+   237→                    )}
+   238→                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xl font-bold text-white">
+   239→                      {partner.name.slice(0, 2).toUpperCase()}
+   240→                    </AvatarFallback>
+   241→                  </Avatar>
+   242→                  <span
+   243→                    className={cn(
+   244→                      "absolute bottom-1 right-1 size-3.5 rounded-full ring-2 ring-background",
+   245→                      partnerStatus.online ? "bg-emerald-500" : "bg-muted-foreground/50",
+   246→                    )}
+   247→                  />
+   248→                </div>
+   249→                <div className="flex flex-col items-center gap-1">
+   250→                  <span className="text-lg font-semibold">{partner.name}</span>
+   251→                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   252→                    <StatusDot online={partnerStatus.online} size="size-2" />
+   253→                    <span>
+   254→                      {partnerStatus.online
+   255→                        ? "Online"
+   256→                        : formatLastSeen(partnerStatus.last_seen)}
+   257→                    </span>
+   258→                  </div>
+   259→                </div>
+   260→              </div>
+   261→
+   262→              <Separator />
+   263→
+   264→              {/* Shared media (placeholder) */}
+   265→              <button
+   266→                type="button"
+   267→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   268→              >
+   269→                <div className="flex items-center gap-3">
+   270→                  <ImageIcon className="size-4 text-muted-foreground" />
+   271→                  <span>Shared media</span>
+   272→                </div>
+   273→                <ChevronRight className="size-4 text-muted-foreground" />
+   274→              </button>
+   275→
+   276→              <Separator />
+   277→
+   278→              {/* Shared links (placeholder) */}
+   279→              <button
+   280→                type="button"
+   281→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   282→              >
+   283→                <div className="flex items-center gap-3">
+   284→                  <Link2 className="size-4 text-muted-foreground" />
+   285→                  <span>Shared links</span>
+   286→                </div>
+   287→                <ChevronRight className="size-4 text-muted-foreground" />
+   288→              </button>
+   289→
+   290→              <Separator />
+   291→
+   292→              {/* Mute notifications */}
+   293→              <div className="flex items-center justify-between px-5 py-3.5">
+   294→                <span className="text-sm">Mute notifications</span>
+   295→                <Switch
+   296→                  checked={muted}
+   297→                  onCheckedChange={setMuted}
+   298→                />
+   299→              </div>
+   300→
+   301→              <Separator />
+   302→
+   303→              {/* Block user */}
+   304→              <button
+   305→                type="button"
+   306→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   307→              >
+   308→                <Ban className="size-4" />
+   309→                <span>Block user</span>
+   310→              </button>
+   311→
+   312→              <Separator />
+   313→
+   314→              {/* Clear chat */}
+   315→              <button
+   316→                type="button"
+   317→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   318→              >
+   319→                <Trash2 className="size-4" />
+   320→                <span>Clear chat</span>
+   321→              </button>
+   322→            </div>
+   323→          </m.aside>
+   324→        </>
+   325→      )}
+   326→    </AnimatePresence>
+   327→  );
+   328→}
+   329→
+   330→/* ------------------------------------------------------------------ */
+   331→/*  ChatLayout                                                         */
+   332→/* ------------------------------------------------------------------ */
+   333→
+   334→export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
+   335→  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction } =
+   336→    useChat({ currentUserId, otherUserId, conversationId, initialMessages });
+   337→
+   338→  const [draft, setDraft] = useState("");
+   339→  const [sendBtnKey, setSendBtnKey] = useState(0);
+   340→  const [isSending, setIsSending] = useState(false);
+   341→  const [vanishMode, setVanishMode] = useState(false);
+   342→  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+   343→  const [ephemeralOpen, setEphemeralOpen] = useState(false);
+   344→  const [ephemeralSeconds, setEphemeralSeconds] = useState<number | null>(null);
+   345→  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
+   346→  const [searchOpen, setSearchOpen] = useState(false);
+   347→  const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
+   348→  const inputRef = useRef<HTMLTextAreaElement>(null);
+   349→  const viewport = useVisualViewport();
+   350→
+   351→  /* Voice */
+   352→  const voice = useVoiceRecorder();
+   353→  const [showVoiceWaveform, setShowVoiceWaveform] = useState(false);
+   354→
+   355→  const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
+   356→  const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
+   357→
+   358→  useEffect(() => { inputRef.current?.focus(); }, []);
+   359→
+   360→  /* Show voice waveform when recording */
+   361→  useEffect(() => { setShowVoiceWaveform(voice.isRecording); }, [voice.isRecording]);
+   362→
+   363→  const handleSubmit = useCallback(async (e: FormEvent) => {
+   364→    e.preventDefault();
+   365→    const trimmed = draft.trim();
+   366→    if (!trimmed || isSending) return;
+   367→    setIsSending(true);
+   368→    const opts: SendMessageOptions = { vanish_mode: vanishMode, ephemeral_seconds: ephemeralSeconds, reply_to_id: replyTo?.id ?? null };
+   369→    setDraft(""); setReplyTo(null);
+   370→    if (inputRef.current) inputRef.current.style.height = "auto";
+   371→    try { await sendMessage(trimmed, opts); setSendBtnKey((k) => k + 1); }
+   372→    finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
+   373→  }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo]);
+   374→
+   375→  const handleVoiceSend = useCallback(async () => {
+   376→    const result = await voice.stopRecording();
+   377→    if (!result || result.duration < 1) return;
+   378→    const blob = result.blob;
+   379→    const url = URL.createObjectURL(blob);
+   380→    await sendMessage(url, { type: "voice", voice_duration: result.duration, waveform_data: result.amplitudes, ephemeral_seconds: ephemeralSeconds });
+   381→    URL.revokeObjectURL(url);
+   382→  }, [voice, sendMessage, ephemeralSeconds]);
+   383→
+   384→  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+   385→    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const form = e.currentTarget.closest("form"); if (form) form.requestSubmit(); }
+   386→  }, []);
+   387→
+   388→  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
+   389→  const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
+   390→
+   391→  const hasText = draft.trim().length > 0;
+   392→
+   393→  /* Search result click → scroll to message */
+   394→  const handleSearchResultClick = useCallback((messageId: string) => {
+   395→    setScrollToMessageId(messageId);
+   396→    setSearchOpen(false);
+   397→  }, []);
+   398→
+   399→  const handleScrolledToMessage = useCallback(() => {
+   400→    setScrollToMessageId(null);
+   401→  }, []);
+   402→
+   403→  /* Status text for header */
+   404→  const statusText = isPartnerTyping
+   405→    ? "typing\u2026"
+   406→    : partnerStatus.online
+   407→      ? "Online"
+   408→      : formatLastSeen(partnerStatus.last_seen);
+   409→
+   410→  /* ---- Render --------------------------------------------------- */
+   411→
+   412→  return (
+   413→    <div className="flex w-full flex-col bg-background" style={containerStyle}>
+   414→      <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
+   415→        {/* Header - sticky with glassmorphic blur + shadow */}
+   416→        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 px-4">
+   417→          <button
+   418→            type="button"
+   419→            onClick={() => setInfoPanelOpen(true)}
+   420→            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+   421→            aria-label="Open user info"
+   422→          >
+   423→            <Avatar className="size-9 ring-2 ring-violet-100 dark:ring-violet-900/50">
+   424→              {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
+   425→              <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+   426→            </Avatar>
+   427→            <div className="flex flex-col">
+   428→              <span className="text-sm font-semibold leading-tight">{partner.name}</span>
+   429→              <div className="flex items-center gap-1.5">
+   430→                <StatusDot online={partnerStatus.online} />
+   431→                <span className={cn(
+   432→                  "text-xs",
+   433→                  isPartnerTyping ? "text-violet-500" : "text-muted-foreground",
+   434→                )}>{statusText}</span>
+   435→              </div>
+   436→            </div>
+   437→          </button>
+   438→
+   439→          {/* Search icon button - right side of header */}
+   440→          <div className="ml-auto">
+   441→            <button
+   442→              type="button"
+   443→              onClick={() => setSearchOpen((v) => !v)}
+   444→              className={cn(
+   445→                "flex size-9 items-center justify-center rounded-lg transition-colors",
+   446→                searchOpen
+   447→                  ? "bg-violet-500/15 text-violet-500"
+   448→                  : "text-muted-foreground hover:bg-muted",
+   449→              )}
+   450→              aria-label={searchOpen ? "Close search" : "Search messages"}
+   451→            >
+   452→              <Search className="size-4" />
+   453→            </button>
+   454→          </div>
+   455→        </header>
+   456→
+   457→        {/* Search panel (animated slide-down) */}
+   458→        <AnimatePresence>
+   459→          {searchOpen && (
+   460→            <SearchPanel
+   461→              conversationId={conversationId}
+   462→              onResultClick={handleSearchResultClick}
+   463→              onClose={() => setSearchOpen(false)}
+   464→            />
+   465→          )}
+   466→        </AnimatePresence>
+   467→
+   468→        {/* Feed with dot pattern background */}
+   469→        <div className="relative min-h-0 flex-1">
+   470→          {/* Subtle dot pattern behind messages */}
+   471→          <div
+   472→            className="pointer-events-none absolute inset-0"
+   473→            style={{
+   474→              backgroundImage: DOT_PATTERN,
+   475→              backgroundRepeat: "repeat",
+   476→              backgroundSize: "20px 20px",
+   477→            }}
+   478→            aria-hidden="true"
+   479→          />
+   480→          <MessageFeed
+   481→            messages={messages}
+   482→            isLoading={isLoading}
+   483→            isPartnerTyping={isPartnerTyping}
+   484→            currentUserId={currentUserId}
+   485→            partnerName={partner.name}
+   486→            partnerAvatar={partner.avatar_url}
+   487→            onMarkAsRead={markAsRead}
+   488→            onVanishMessage={vanishMessage}
+   489→            onDeleteMessage={deleteMessage}
+   490→            onReplyTo={setReplyTo}
+   491→            onReact={sendReaction}
+   492→            scrollToMessageId={scrollToMessageId}
+   493→            onScrolledToMessage={handleScrolledToMessage}
+   494→          />
+   495→        </div>
+   496→
+   497→        {/* Reply preview bar */}
+   498→        <AnimatePresence>
+   499→          {replyTo && (
+   500→            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden border-t bg-muted/30">
+   501→              <div className="flex items-center gap-2 px-4 py-2">
+   502→                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-500 to-purple-600" />
+   503→                <div className="min-w-0 flex-1">
+   504→                  <p className="text-[11px] font-semibold text-violet-500">{replyTo.sender_name || "Unknown"}</p>
+   505→                  <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
+   506→                </div>
+   507→                <button type="button" onClick={() => setReplyTo(null)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>
+   508→              </div>
+   509→            </m.div>
+   510→          )}
+   511→        </AnimatePresence>
+   512→
+   513→        {/* Voice waveform overlay */}
+   514→        <AnimatePresence>
+   515→          {showVoiceWaveform && (
+   516→            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
+   517→              <div className="flex items-center gap-3 px-4 py-3">
+   518→                <div className="flex size-10 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+   519→                  {voice.isRecording ? <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex size-3 rounded-full bg-red-500" /></span> : null}
+   520→                </div>
+   521→                <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 40 }}>
+   522→                  {voice.amplitudes.slice(-60).map((amp, i) => (
+   523→                    <div key={i} className="w-[2px] rounded-full bg-violet-500/70 transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px` }} />
+   524→                  ))}
+   525→                </div>
+   526→                <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}</span>
+   527→                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white" aria-label="Send voice">
+   528→                  <ArrowUp className="size-4" />
+   529→                </m.button>
+   530→              </div>
+   531→            </m.div>
+   532→          )}
+   533→        </AnimatePresence>
+   534→
+   535→        {/* Input bar */}
+   536→        <div className="shrink-0 border-t bg-background px-3 py-2.5 sm:px-4 sm:py-3">
+   537→          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+   538→            {/* Vanish toggle - compact with smooth transition */}
+   539→            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200", vanishMode ? "bg-violet-500/15 text-violet-500 shadow-sm shadow-violet-500/10" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
+   540→              {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+   541→            </m.button>
+   542→
+   543→            {/* Ephemeral timer dropdown - compact */}
+   544→            <div className="relative">
+   545→              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-muted")} aria-label="Ephemeral timer">
+   546→                <Clock className="size-3.5" />
+   547→              </m.button>
+   548→              <AnimatePresence>
+   549→                {ephemeralOpen && (
+   550→                  <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-32 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl shadow-black/10">
+   551→                    {EPHEMERAL_OPTIONS.map((opt) => (
+   552→                      <button key={opt.label} type="button" onClick={() => { setEphemeralSeconds(opt.value); setEphemeralOpen(false); }}
+   553→                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all duration-150", ephemeralSeconds === opt.value ? "bg-violet-500/10 text-violet-500 font-semibold" : "text-foreground hover:bg-muted")}>
+   554→                        <Clock className="size-3 opacity-60" />{opt.label}
+   555→                      </button>
+   556→                    ))}
+   557→                  </m.div>
+   558→                )}
+   559→              </AnimatePresence>
+   560→            </div>
+   561→
+   562→            {/* Text input (hidden when recording) - pill shaped with gradient border on focus */}
+   563→            {!showVoiceWaveform && (
+   564→              <div className="relative flex-1">
+   565→                <textarea ref={inputRef} value={draft} onChange={handleInputChange} onKeyDown={handleKeyDown} onInput={handleInput}
+   566→                  placeholder={vanishMode ? "Send a disappearing message\u2026" : replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message\u2026"}
+   567→                  rows={1} className={cn(
+   568→                    "w-full resize-none rounded-2xl border bg-muted/50 px-4 py-3 text-sm",
+   569→                    "placeholder:text-muted-foreground",
+   570→                    "focus-visible:outline-none",
+   571→                    "max-h-32 overflow-y-auto",
+   572→                    "transition-all duration-300",
+   573→                    // Glow effect on focus
+   574→                    "focus-visible:border-transparent focus-visible:ring-2",
+   575→                    vanishMode
+   576→                      ? "border-violet-500/30 focus-visible:ring-violet-400/40 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.15)]"
+   577→                      : "focus-visible:ring-violet-400/30 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.08)]",
+   578→                  )}
+   579→                />
+   580→              </div>
+   581→            )}
+   582→
+   583→            {/* Attachment button (placeholder) */}
+   584→            {!showVoiceWaveform && (
+   585→              <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Attach file">
+   586→                <Paperclip className="size-4" />
+   587→              </m.button>
+   588→            )}
+   589→
+   590→            {/* Emoji button (placeholder) */}
+   591→            {!showVoiceWaveform && (
+   592→              <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Emoji">
+   593→                <Smile className="size-4" />
+   594→              </m.button>
+   595→            )}
+   596→
+   597→            {/* Send button (shown when there's text) */}
+   598→            {!showVoiceWaveform && hasText && (
+   599→              <AnimatePresence>
+   600→                <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
+   601→                  <Button type="submit" size="icon" disabled={isSending}
+   602→                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105")}
+   603→                    aria-label="Send message"><ArrowUp className="size-4" /></Button>
+   604→                </m.div>
+   605→              </AnimatePresence>
+   606→            )}
+   607→
+   608→            {/* Mic button (shown when input is empty) */}
+   609→            {!showVoiceWaveform && !hasText && (
+   610→              <AnimatePresence>
+   611→                <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
+   612→                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Record voice">
+   613→                    <Mic className="size-4" />
+   614→                  </m.button>
+   615→                </m.div>
+   616→              </AnimatePresence>
+   617→            )}
+   618→
+   619→            {/* Cancel recording button */}
+   620→            {showVoiceWaveform && (
+   621→              <m.button type="button" onClick={async () => { await voice.stopRecording(); setShowVoiceWaveform(false); }} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-xl text-red-500 hover:bg-red-500/10" aria-label="Cancel recording">
+   622→                <MicOff className="size-4" />
+   623→              </m.button>
+   624→            )}
+   625→          </form>
+   626→        </div>
+   627→      </div>
+   628→
+   629→      {/* Partner Info Panel */}
+   630→      <PartnerInfoPanel
+   631→        partner={partner}
+   632→        partnerStatus={partnerStatus}
+   633→        open={infoPanelOpen}
+   634→        onClose={() => setInfoPanelOpen(false)}
+   635→      />
+   636→    </div>
+   637→  );
+   638→}
+   639→
