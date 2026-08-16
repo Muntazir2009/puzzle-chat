@@ -15,13 +15,17 @@
     "binding": "ASSETS"
   },
 
-  // Environment variables required at deploy-time.
-  // Runtime secrets (SUPABASE_SERVICE_ROLE_KEY, etc.) should be set via
-  // `wrangler secret put` rather than committed here.
+  // Public env vars (embedded at build time via NEXT_PUBLIC_ prefix,
+  // but also needed at runtime for SSR on Workers).
   "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://njtdajospdunfbfgyymh.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdGRham9zcGR1bmZiZmd5eW1oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NTI3MTYsImV4cCI6MjEwMjQyODcxNn0.A5hF3MXpeBvpCY-2oM1MHzrqEB43fFmoosCfsPIECQQ",
+    "NEXT_PUBLIC_PUSHER_APP_KEY": "4a662489f0b94bc99fac",
+    "NEXT_PUBLIC_PUSHER_CLUSTER": "ap2",
+    "PUSHER_APP_ID": "2186503"
   },
 
-  // Uncomment and populate these via `wrangler secret put`:
-  // "secrets": ["SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"]
+  // Server-only secrets — set via `wrangler secret put <NAME>`:
+  //   wrangler secret put PUSHER_SECRET
+  //   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 }

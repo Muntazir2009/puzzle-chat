@@ -47,7 +47,7 @@ let _server: Pusher | null = null;
 export function getPusherServer(): Pusher {
   if (_server) return _server;
   const app_id = process.env.PUSHER_APP_ID;
-  const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+  const key = process.env.NEXT_PUBLIC_PUSHER_APP_KEY;
   const secret = process.env.PUSHER_SECRET;
   const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "us2";
   const useTLS = process.env.PUSHER_USE_TLS !== "false";

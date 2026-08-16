@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     /* Delegate signing to the Pusher HTTP API. */
     const pusherAppId = process.env.PUSHER_APP_ID;
-    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_APP_KEY;
     const pusherSecret = process.env.PUSHER_SECRET;
 
     if (!pusherAppId || !pusherKey || !pusherSecret) {
