@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
 import { ChatLayout } from "./ChatLayout";
 import { ProfileDialog } from "./ProfileDialog";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -329,6 +330,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                 transition={{ duration: 0.2 }}
                 className="relative flex min-h-0 flex-1 flex-col"
               >
+                <ErrorBoundary>
                 <ChatLayout
                   currentUserId={userId}
                   otherUserId={activeConv.partner.id}
@@ -339,6 +341,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                     avatar_url: activeConv.partner.avatar_url,
                   }}
                 />
+                </ErrorBoundary>
                 <button
                   type="button"
                   onClick={() => setActiveConv(null)}
@@ -364,6 +367,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                 transition={{ duration: 0.15 }}
                 className="flex min-h-0 flex-1 flex-col"
               >
+                <ErrorBoundary>
                 <ChatLayout
                   currentUserId={userId}
                   otherUserId={activeConv.partner.id}
@@ -374,6 +378,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                     avatar_url: activeConv.partner.avatar_url,
                   }}
                 />
+                </ErrorBoundary>
               </m.div>
             ) : (
               <m.div

@@ -72,7 +72,27 @@ export interface UseChatReturn {
 
 const TYPING_DEBOUNCE_MS = 2_000;
 
-
+/** Normalize a raw message row from Supabase into a safe ChatMessage. */
+function normalizeMessage(raw: Record<string, unknown>): ChatMessage {
+  return {
+    id: (raw.id as string) ?? "",
+    conversation_id: (raw.conversation_id as string) ?? "",
+    sender_id: (raw.sender_id as string) ?? "",
+    sender_name: (raw.sender_name as string) ?? "",
+    reply_to_id: (raw.reply_to_id as string) ?? null,
+    reply_to_content: (raw.reply_to_content as string) ?? null,
+    reply_to_sender_name: (raw.reply_to_sender_name as string) ?? null,
+    content: (raw.content as string) ?? "",
+    type: (raw.type as ChatMessage["type"]) ?? "text",
+    status: (raw.status as ChatMessage["status"]) ?? "sent",
+    vanish_mode: Boolean(raw.vanish_mode),
+    ephemeral_seconds: (raw.ephemeral_seconds as number) ?? null,
+    voice_duration: (raw.voice_duration as number) ?? null,
+    waveform_data: Array.isArray(raw.waveform_data) ? raw.waveform_data as number[] : null,
+    reactions: (raw.reactions && typeof raw.reactions === "object" ? raw.reactions : {}) as Record<string, string[]>,
+    created_at: (raw.created_at as string) ?? new Date().toISOString(),
+  };
+}
 
 export function useChat({
   currentUserId,
@@ -180,7 +200,8 @@ export function useChat({
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
-          setMessages(data.messages);
+          const normalized = (data.messages ?? []).map(normalizeMessage);
+          setMessages(normalized);
           setHasMore(data.has_more);
           nextCursorRef.current = data.next_cursor;
           setIsLoading(false);
@@ -391,7 +412,7 @@ export function useChat({
       const data = await res.json();
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
-        const older = (data.messages ?? []).filter((m: ChatMessage) => !existingIds.has(m.id));
+        const older = (data.messages ?? []).map(normalizeMessage).filter((m) => !existingIds.has(m.id));
         return [...older, ...prev];
       });
       setHasMore(data.has_more);

@@ -968,3 +968,29 @@ Stage Summary:
 - Highlight uses yellow `<mark>` tags with semi-transparent backgrounds that work in both light and dark mode.
 - Highlight auto-dismisses when the user types in the message input or clicks anywhere in the message area.
 - Search API was not modified. All changes are in `MessageFeed.tsx` and `ChatLayout.tsx`.
+---
+Task ID: fix-crash-dialog-warning
+Agent: Main Agent
+Task: Fix client-side crash when tapping on a user + fix DialogContent aria-describedby warning
+
+Work Log:
+- Diagnosed the crash: `Object.entries(null)` in `ReactionPills` when Supabase returns `reactions: null` for messages without reactions
+- Added `normalizeMessage()` helper to `useChat.ts` that safely defaults all nullable fields (reactions, waveform_data, reply_to_content, sender_name, etc.)
+- Applied `normalizeMessage` to both initial history fetch and loadMore pagination
+- Added `reactions ?? {}` null coalescing in `ReactionPills` component
+- Added `message.reactions &&` guard before rendering `ReactionPills`
+- Added `message.created_at || Date.now()` fallback for `formatDistanceToNow`
+- Created `ErrorBoundary` component (`src/components/ErrorBoundary.tsx`) with retry UI
+- Wrapped both mobile and desktop `ChatLayout` instances in `ErrorBoundary` in `ChatView.tsx`
+- Fixed `DialogContent` missing `Description` warning by adding `aria-describedby={undefined}` to:
+  - `ConversationList.tsx` (NewChatDialog)
+  - `ProfileDialog.tsx`
+- Verified: login page compiles and renders with zero console errors
+
+Stage Summary:
+- Root cause of crash: Supabase returns `null` for JSONB columns when empty, causing `Object.entries(null)` TypeError in ReactionPills
+- All nullable message fields now safely normalized via `normalizeMessage()` helper
+- ErrorBoundary added as safety net so individual chat crashes don't take down the whole app
+- DialogContent accessibility warnings resolved with `aria-describedby={undefined}`
+- Files modified: `useChat.ts`, `MessageFeed.tsx`, `ChatView.tsx`, `ConversationList.tsx`, `ProfileDialog.tsx`
+- Files created: `ErrorBoundary.tsx`

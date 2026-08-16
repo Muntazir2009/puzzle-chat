@@ -144,7 +144,7 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
           <Plus className="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden rounded-2xl">
+      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden rounded-2xl" aria-describedby={undefined}>
         <DialogHeader className="px-5 pt-5 pb-3">
           <DialogTitle className="text-base font-semibold">Start a conversation</DialogTitle>
         </DialogHeader>

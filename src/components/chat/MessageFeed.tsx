@@ -406,7 +406,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
 function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
   reactions: Record<string, string[]>; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; currentUserId: string;
 }) {
-  const entries = Object.entries(reactions).filter(([, ids]) => ids.length > 0);
+  const entries = Object.entries(reactions ?? {}).filter(([, ids]) => ids.length > 0);
   if (entries.length === 0) return null;
   return (
     <div className={cn("flex flex-wrap gap-1 px-1 pt-0.5", isOwn ? "justify-end" : "justify-start")}>
@@ -571,12 +571,12 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
             <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
           )}
-          <span className={cn(isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]")}>{formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}</span>
+          <span className={cn(isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]")}>{formatDistanceToNow(new Date(message.created_at || Date.now()), { addSuffix: true })}</span>
           {isOwn && <ReceiptIcon status={message.status} />}
         </div>
 
         {/* Reactions */}
-        {onReact && <ReactionPills reactions={message.reactions} isOwn={isOwn} onReact={(e, a) => onReact(message.id, e, a)} currentUserId={""} />}
+        {onReact && message.reactions && <ReactionPills reactions={message.reactions} isOwn={isOwn} onReact={(e, a) => onReact(message.id, e, a)} currentUserId={""} />}
 
         {isFailed && (
           <button

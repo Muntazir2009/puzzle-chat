@@ -211,7 +211,7 @@ export function ProfileDialog({
           Edit profile
         </div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm gap-0 p-0 overflow-hidden rounded-2xl">
+      <DialogContent className="sm:max-w-sm gap-0 p-0 overflow-hidden rounded-2xl" aria-describedby={undefined}>
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="text-base font-semibold">Edit Profile</DialogTitle>
         </DialogHeader>
