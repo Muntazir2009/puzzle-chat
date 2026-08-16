@@ -81,30 +81,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to persist message" }, { status: 500 });
     }
 
-    const otherUserId = conv.user_a === userId ? conv.user_b : conv.user_a;
-    const roomId = getRoomId(userId, otherUserId);
-    const channelName = getChannelName(roomId);
+    /*
+     * Fire Pusher event in a non-blocking try/catch so that a Pusher
+     * failure (e.g. on Cloudflare Workers where the `pusher` Node SDK may
+     * not work correctly) does NOT cause a 500 response when the message
+     * was already persisted to the database.
+     */
+    try {
+      const otherUserId = conv.user_a === userId ? conv.user_b : conv.user_a;
+      const roomId = getRoomId(userId, otherUserId);
+      const channelName = getChannelName(roomId);
 
-    const eventPayload: ChatChannelEvents["new-message"] = {
-      id: message.id,
-      conversation_id: message.conversation_id,
-      sender_id: message.sender_id,
-      sender_name,
-      reply_to_id: message.reply_to_id,
-      reply_to_content,
-      reply_to_sender_name,
-      content: message.content,
-      type: message.type,
-      status: message.status,
-      vanish_mode: message.vanish_mode,
-      ephemeral_seconds: message.ephemeral_seconds,
-      voice_duration: message.voice_duration,
-      waveform_data: message.waveform_data as number[] | null,
-      reactions: (message.reactions as Record<string, string[]>) || {},
-      created_at: message.created_at,
-    };
+      const eventPayload: ChatChannelEvents["new-message"] = {
+        id: message.id,
+        conversation_id: message.conversation_id,
+        sender_id: message.sender_id,
+        sender_name,
+        reply_to_id: message.reply_to_id,
+        reply_to_content,
+        reply_to_sender_name,
+        content: message.content,
+        type: message.type,
+        status: message.status,
+        vanish_mode: message.vanish_mode,
+        ephemeral_seconds: message.ephemeral_seconds,
+        voice_duration: message.voice_duration,
+        waveform_data: message.waveform_data as number[] | null,
+        reactions: (message.reactions as Record<string, string[]>) || {},
+        created_at: message.created_at,
+      };
 
-    await pusherServer.trigger(channelName, "new-message", eventPayload);
+      await pusherServer.trigger(channelName, "new-message", eventPayload);
+    } catch (pusherErr) {
+      /* Log but don't fail — message is already in the DB */
+      console.error("[messages/send] Pusher trigger failed (non-fatal):", pusherErr);
+    }
+
     return NextResponse.json(message, { status: 201 });
   } catch (err) {
     console.error("[messages/send] error:", err);

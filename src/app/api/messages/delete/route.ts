@@ -91,7 +91,11 @@ export async function POST(req: NextRequest) {
       conversation_id,
     };
 
-    await pusherServer.trigger(channelName, "vanish", eventPayload);
+    try {
+      await pusherServer.trigger(channelName, "vanish", eventPayload);
+    } catch (err) {
+      console.error("[messages/delete] Pusher trigger failed (non-fatal):", err);
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {

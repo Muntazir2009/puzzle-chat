@@ -198,7 +198,11 @@ export async function POST(req: NextRequest) {
       created_at: message.created_at,
     };
 
-    await pusherServer.trigger(channelName, "new-message", eventPayload);
+    try {
+      await pusherServer.trigger(channelName, "new-message", eventPayload);
+    } catch (err) {
+      console.error("[messages/upload] Pusher trigger failed (non-fatal):", err);
+    }
 
     return NextResponse.json(message, { status: 201 });
   } catch (err) {

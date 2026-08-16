@@ -74,7 +74,11 @@ export async function POST(req: NextRequest) {
       emoji,
       add,
     };
-    await pusherServer.trigger(channelName, "reaction", eventPayload);
+    try {
+      await pusherServer.trigger(channelName, "reaction", eventPayload);
+    } catch (err) {
+      console.error("[messages/reaction] Pusher trigger failed (non-fatal):", err);
+    }
 
     return NextResponse.json({ ok: true, reactions }, { status: 200 });
   } catch (err) {

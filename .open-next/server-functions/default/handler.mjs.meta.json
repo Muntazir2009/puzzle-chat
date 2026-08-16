@@ -4618,7 +4618,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__929b843c._.js": {
-      "bytes": 9388,
+      "bytes": 9473,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -4765,7 +4765,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__f308a449._.js": {
-      "bytes": 9733,
+      "bytes": 9820,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -4871,7 +4871,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__d911d25a._.js": {
-      "bytes": 9259,
+      "bytes": 9342,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -5018,7 +5018,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__ec03dbe2._.js": {
-      "bytes": 10442,
+      "bytes": 10525,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -5124,7 +5124,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__f18549a4._.js": {
-      "bytes": 11537,
+      "bytes": 11622,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -5230,7 +5230,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__5dfd4723._.js": {
-      "bytes": 9401,
+      "bytes": 9486,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
@@ -10265,7 +10265,7 @@
           "bytesInOutput": 523753
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__929b843c._.js": {
-          "bytesInOutput": 9558
+          "bytesInOutput": 9645
         },
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_delete_route_actions_14defe8d.js": {
           "bytesInOutput": 289
@@ -10277,13 +10277,13 @@
           "bytesInOutput": 291
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__f308a449._.js": {
-          "bytesInOutput": 9977
+          "bytesInOutput": 10066
         },
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_reaction_route_actions_9f3ffdc2.js": {
           "bytesInOutput": 293
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__d911d25a._.js": {
-          "bytesInOutput": 9425
+          "bytesInOutput": 9510
         },
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_read_route_actions_0582009b.js": {
           "bytesInOutput": 285
@@ -10295,19 +10295,19 @@
           "bytesInOutput": 289
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__ec03dbe2._.js": {
-          "bytesInOutput": 10657
+          "bytesInOutput": 10742
         },
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_send_route_actions_98cc16e6.js": {
           "bytesInOutput": 285
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__f18549a4._.js": {
-          "bytesInOutput": 11788
+          "bytesInOutput": 11875
         },
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_upload_route_actions_41934f92.js": {
           "bytesInOutput": 289
         },
         ".open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__5dfd4723._.js": {
-          "bytesInOutput": 9570
+          "bytesInOutput": 9657
         },
         ".open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_vanish_route_actions_e8f2431a.js": {
           "bytesInOutput": 289
@@ -10640,7 +10640,7 @@
           "bytesInOutput": 58077
         }
       },
-      "bytes": 5298772
+      "bytes": 5299292
     }
   }
 }

@@ -80,7 +80,11 @@ export async function POST(req: NextRequest) {
       user_id: userId,
     };
 
-    await pusherServer.trigger(channelName, "read", eventPayload);
+    try {
+      await pusherServer.trigger(channelName, "read", eventPayload);
+    } catch (err) {
+      console.error("[messages/read] Pusher trigger failed (non-fatal):", err);
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
