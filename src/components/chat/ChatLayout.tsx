@@ -422,6 +422,48 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const hasAttachment = attachmentFile !== null;
   const hasText = draft.trim().length > 0;
 
+  /* ---- Attachment upload helpers (declared BEFORE handleSubmit
+     because handleSubmit's dependency array includes uploadAttachment;
+     accessing a const before its declaration causes a TDZ crash in the
+     production webpack bundle deployed to Cloudflare Workers). ---- */
+  const clearAttachment = useCallback(() => {
+    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
+  }, [attachmentPreview]);
+
+  const uploadAttachment = useCallback(async () => {
+    if (!attachmentFile || isUploading) return;
+    setIsUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", attachmentFile);
+      fd.append("conversation_id", conversationId);
+      if (replyTo?.id) fd.append("reply_to_id", replyTo.id);
+      if (vanishMode) fd.append("vanish_mode", "true");
+      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
+
+      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(data.error || `Upload failed: ${res.status}`);
+      }
+      /* Message is inserted server-side and pushed via Pusher;
+         the useChat hook will pick it up automatically. */
+      clearAttachment();
+      setReplyTo(null);
+    } catch (err) {
+      console.error("[ChatLayout] upload error:", err);
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not send the file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
+
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     /* If an attachment is selected, upload it instead of sending text */
@@ -498,44 +540,6 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     /* Reset input so the same file can be re-selected */
     e.target.value = "";
   }, []);
-
-  const clearAttachment = useCallback(() => {
-    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
-    setAttachmentFile(null);
-    setAttachmentPreview(null);
-  }, [attachmentPreview]);
-
-  const uploadAttachment = useCallback(async () => {
-    if (!attachmentFile || isUploading) return;
-    setIsUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", attachmentFile);
-      fd.append("conversation_id", conversationId);
-      if (replyTo?.id) fd.append("reply_to_id", replyTo.id);
-      if (vanishMode) fd.append("vanish_mode", "true");
-      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
-
-      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(data.error || `Upload failed: ${res.status}`);
-      }
-      /* Message is inserted server-side and pushed via Pusher;
-         the useChat hook will pick it up automatically. */
-      clearAttachment();
-      setReplyTo(null);
-    } catch (err) {
-      console.error("[ChatLayout] upload error:", err);
-      toast({
-        title: "Upload failed",
-        description: err instanceof Error ? err.message : "Could not send the file.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
 
   const handlePaperclipClick = useCallback(() => {
     fileInputRef.current?.click();
