@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
     const waveform_data = formData.get("waveform_data");
     const vanish_mode = formData.get("vanish_mode");
     const ephemeral_seconds = formData.get("ephemeral_seconds");
-    const reply_to_id = formData.get("reply_to_id");
+    const reply_to_id_raw = formData.get("reply_to_id");
+    const reply_to_id = typeof reply_to_id_raw === 'string' ? reply_to_id_raw : null;
 
     // Resolve sender name
     const { data: senderProfile } = await supabase
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
       const { data: replyMsg } = await supabase
         .from("messages")
         .select("content, sender_id")
-        .eq("id", reply_to_id)
+        .eq("id", String(reply_to_id))
         .single();
       if (replyMsg) {
         reply_to_content = replyMsg.content;
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
         ephemeral_seconds: ephemeral_seconds
           ? parseInt(ephemeral_seconds as string, 10)
           : null,
-        reply_to_id: reply_to_id ? (reply_to_id as string) : null,
+        reply_to_id: reply_to_id ?? null,
         status: "sent",
       })
       .select()

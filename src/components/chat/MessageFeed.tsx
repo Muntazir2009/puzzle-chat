@@ -1006,7 +1006,7 @@ function MessageBubble({
             drag="x"
             dragConstraints={{ left: 0, right: 120 }}
             dragElastic={0.3}
-            dragTransition={{ duration: 0.2, ease: "easeOut" }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
             onDrag={(_, info) => {
               if (info.offset.x < 0) return;
               wasDraggedRef.current = true;
@@ -1017,8 +1017,8 @@ function MessageBubble({
                 onReplyTo(message);
               }
               setShowReplyArrow(false);
+              wasDraggedRef.current = false;
             }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={handleClick}
             onPointerDown={handlePressStart}
             onPointerUp={handlePressEnd}
