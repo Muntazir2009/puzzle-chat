@@ -1,0 +1,12 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/messages/history/route": "/api/messages/history",
+  "/api/messages/reaction/route": "/api/messages/reaction",
+  "/api/messages/read/route": "/api/messages/read",
+  "/api/messages/send/route": "/api/messages/send",
+  "/api/messages/vanish/route": "/api/messages/vanish",
+  "/api/pusher/auth/route": "/api/pusher/auth",
+  "/api/route": "/api",
+  "/page": "/"
+}

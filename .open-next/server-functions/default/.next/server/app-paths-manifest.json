@@ -1,0 +1,12 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/messages/history/route": "app/api/messages/history/route.js",
+  "/api/messages/reaction/route": "app/api/messages/reaction/route.js",
+  "/api/messages/read/route": "app/api/messages/read/route.js",
+  "/api/messages/send/route": "app/api/messages/send/route.js",
+  "/api/messages/vanish/route": "app/api/messages/vanish/route.js",
+  "/api/pusher/auth/route": "app/api/pusher/auth/route.js",
+  "/api/route": "app/api/route.js",
+  "/page": "app/page.js"
+}
