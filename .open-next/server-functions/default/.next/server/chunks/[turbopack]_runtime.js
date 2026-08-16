@@ -823,7 +823,7 @@ module.exports = (sourcePath)=>({
       case "server/chunks/[root-of-the-server]__986faf1e._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__986faf1e._.js");
       case "server/chunks/[root-of-the-server]__f408c708._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__f408c708._.js");
       case "server/chunks/[turbopack]_runtime.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[turbopack]_runtime.js");
-      case "server/chunks/_974e6aeb._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/_974e6aeb._.js");
+      case "server/chunks/_90dfd328._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/_90dfd328._.js");
       case "server/chunks/_next-internal_server_app_api_messages_history_route_actions_6f711296.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_history_route_actions_6f711296.js");
       case "server/chunks/node_modules_zod_v4_classic_external_fa90cebf.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/node_modules_zod_v4_classic_external_fa90cebf.js");
       case "server/chunks/[root-of-the-server]__38d471a4._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__38d471a4._.js");
@@ -836,7 +836,7 @@ module.exports = (sourcePath)=>({
       case "server/chunks/[root-of-the-server]__658af4c3._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__658af4c3._.js");
       case "server/chunks/_next-internal_server_app_api_messages_vanish_route_actions_e8f2431a.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_messages_vanish_route_actions_e8f2431a.js");
       case "server/chunks/[externals]_node:crypto_c20cce38._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[externals]_node:crypto_c20cce38._.js");
-      case "server/chunks/[root-of-the-server]__bfb73a0b._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__bfb73a0b._.js");
+      case "server/chunks/[root-of-the-server]__0fb3eecb._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__0fb3eecb._.js");
       case "server/chunks/_next-internal_server_app_api_pusher_auth_route_actions_848d82e4.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_pusher_auth_route_actions_848d82e4.js");
       case "server/chunks/[root-of-the-server]__c93ff223._.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/[root-of-the-server]__c93ff223._.js");
       case "server/chunks/_next-internal_server_app_api_route_actions_dcc5d538.js": return require("/home/z/my-project/.open-next/server-functions/default/.next/server/chunks/_next-internal_server_app_api_route_actions_dcc5d538.js");
