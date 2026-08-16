@@ -164,6 +164,12 @@ export function useChat({
 
   /* ---- Load history --------------------------------------------- */
   useEffect(() => {
+    /* Skip fetch for temp (not-yet-created) conversations */
+    if (conversationId.startsWith("temp-")) {
+      setIsLoading(false);
+      setHasMore(false);
+      return;
+    }
     if (initialMessages.length > 0) { setIsLoading(false); setHasMore(false); return; }
     let cancelled = false;
     async function fetchHistory() {
