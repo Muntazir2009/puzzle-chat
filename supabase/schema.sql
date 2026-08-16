@@ -6,39 +6,38 @@
    ⚠️  Run this in Supabase SQL Editor (Dashboard → SQL Editor)
    ⚠️  It creates ALL tables, indexes, triggers, functions, and RLS policies.
    *
-   Changelog vs v1:
-   - handle_new_user() now has EXCEPTION handler & SET search_path
+   Changelog vs v2:
+   - Cleanup uses DROP TABLE CASCADE first (avoids 42P01 on non-existent tables)
+   - handle_new_user() has EXCEPTION handler & SET search_path
    - get_or_create_conversation() is VOLATILE (no STABLE)
-   - users_insert_self RLS policy included
    ================================================================== */
 
 -- ────────────────────────────────────────────────────────────────────
--- 0. CLEAN SLATE (safe – uses IF EXISTS / IF NOT EXISTS everywhere)
+-- 0. CLEAN SLATE
+--    Tables are dropped FIRST with CASCADE – this automatically removes
+--    all dependent triggers, policies, and indexes.
+--    Then functions and types are dropped separately.
 -- ────────────────────────────────────────────────────────────────────
 
-DROP TRIGGER IF EXISTS trg_on_auth_user_created ON auth.users;
-DROP TRIGGER IF EXISTS trg_update_conversation_timestamp ON public.messages;
+-- 0a. Drop auth trigger separately (auth.users always exists)
+DO $$ BEGIN
+  DROP TRIGGER IF EXISTS trg_on_auth_user_created ON auth.users;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+
+-- 0b. Drop functions that may have been created independently
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.get_or_create_conversation(UUID) CASCADE;
 DROP FUNCTION IF EXISTS public.update_conversation_timestamp() CASCADE;
 
-DROP POLICY IF EXISTS "users_select_all"       ON public.users;
-DROP POLICY IF EXISTS "users_insert_self"      ON public.users;
-DROP POLICY IF EXISTS "users_update_self"      ON public.users;
-DROP POLICY IF EXISTS "conversations_select"   ON public.conversations;
-DROP POLICY IF EXISTS "conversations_insert"   ON public.conversations;
-DROP POLICY IF EXISTS "conversations_update"   ON public.conversations;
-DROP POLICY IF EXISTS "messages_select"        ON public.messages;
-DROP POLICY IF EXISTS "messages_insert"        ON public.messages;
-DROP POLICY IF EXISTS "messages_update"        ON public.messages;
-DROP POLICY IF EXISTS "messages_delete"        ON public.messages;
+-- 0c. Drop tables (CASCADE auto-removes their triggers, policies, indexes)
+DROP TABLE IF EXISTS public.messages    CASCADE;
+DROP TABLE IF EXISTS public.conversations CASCADE;
+DROP TABLE IF EXISTS public.users        CASCADE;
 
-DROP TABLE IF EXISTS public.messages;
-DROP TABLE IF EXISTS public.conversations;
-DROP TABLE IF EXISTS public.users;
-
-DROP TYPE IF EXISTS message_status;
-DROP TYPE IF EXISTS message_type;
+-- 0d. Drop enum types (after tables so column dependencies are gone)
+DROP TYPE IF EXISTS message_status CASCADE;
+DROP TYPE IF EXISTS message_type   CASCADE;
 
 -- ────────────────────────────────────────────────────────────────────
 -- 1. ENUMS
