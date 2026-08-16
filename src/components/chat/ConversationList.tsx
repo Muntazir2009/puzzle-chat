@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Plus, MessageCircle, Loader2, X, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { m, AnimatePresence } from "framer-motion";
+import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 export interface ConversationItem {
   id: string;
@@ -31,6 +32,8 @@ export interface ConversationListProps {
   onDelete?: (convId: string) => void;
   deletingId?: string | null;
 }
+
+type OnlineMap = Record<string, boolean>;
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -170,10 +173,11 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
 /*  ConversationItemRow                                                */
 /* ------------------------------------------------------------------ */
 
-function ConversationItemRow({ conv, activeId, currentUserId, onSelect, onContextMenu }: {
+function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect, onContextMenu }: {
   conv: ConversationItem;
   activeId: string | null;
   currentUserId: string;
+  isOnline: boolean;
   onSelect: (conv: ConversationItem) => void;
   onContextMenu: (e: React.MouseEvent, conv: ConversationItem) => void;
 }) {
@@ -193,10 +197,15 @@ function ConversationItemRow({ conv, activeId, currentUserId, onSelect, onContex
           : "border-l-[3px] border-l-transparent",
       )}
     >
-      <Avatar className="size-11 shrink-0 ring-2 ring-transparent transition-all duration-200 group-hover:ring-violet-200/30 dark:group-hover:ring-violet-500/20">
-        {conv.partner.avatar_url && <AvatarImage src={conv.partner.avatar_url} alt={conv.partner.name} />}
-        <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{getInitials(conv.partner.name)}</AvatarFallback>
-      </Avatar>
+      <div className="relative shrink-0">
+        <Avatar className="size-11 ring-2 ring-transparent transition-all duration-200 group-hover:ring-violet-200/30 dark:group-hover:ring-violet-500/20">
+          {conv.partner.avatar_url && <AvatarImage src={conv.partner.avatar_url} alt={conv.partner.name} />}
+          <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{getInitials(conv.partner.name)}</AvatarFallback>
+        </Avatar>
+        {isOnline && (
+          <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className={cn("truncate text-sm transition-colors duration-200", activeId === conv.id ? "font-bold" : "font-semibold")}>{conv.partner.name}</span>
@@ -224,6 +233,46 @@ function ConversationItemRow({ conv, activeId, currentUserId, onSelect, onContex
 export function ConversationList({ conversations, activeId, currentUserId, onSelect, onNewChat, onDelete, deletingId }: ConversationListProps) {
   const [ctxConv, setCtxConv] = useState<ConversationItem | null>(null);
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
+  const [onlineMap, setOnlineMap] = useState<OnlineMap>({});
+
+  /* Keep the current user's last_seen up-to-date */
+  useHeartbeat();
+
+  /* Fetch online status for all conversation partners */
+  const partnerIds = useMemo(
+    () => conversations.map((c) => c.partner.id),
+    [conversations],
+  );
+
+  useEffect(() => {
+    if (partnerIds.length === 0) return;
+    let cancelled = false;
+    async function fetchStatuses() {
+      try {
+        const res = await fetch("/api/users/batch-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_ids: partnerIds }),
+        });
+        if (!res.ok) return;
+        const data: OnlineMap = await res.json();
+        if (!cancelled) {
+          // Map to { [id]: online } boolean
+          const map: OnlineMap = {};
+          for (const [id, status] of Object.entries(data)) {
+            map[id] = (status as { online: boolean }).online;
+          }
+          setOnlineMap(map);
+        }
+      } catch {
+        /* silent */
+      }
+    }
+    fetchStatuses();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchStatuses, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [partnerIds]);
 
   useEffect(() => {
     if (!ctxConv) return;
@@ -265,8 +314,8 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {conversations.map((conv, i) => (
-              <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} onSelect={onSelect} onContextMenu={handleCtx} />
+            {conversations.map((conv) => (
+              <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} />
             ))}
           </AnimatePresence>
         )}

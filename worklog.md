@@ -513,3 +513,26 @@ Stage Summary:
 2. Phase 5: Online status via Pusher Presence
 3. Phase 5: Message attachments via Supabase Storage
 4. Phase 5: Attachment button functionality in chat input
+
+---
+Task ID: 6
+Agent: Full-stack Developer
+Task: Online status, partner info panel, batch status API
+
+Work Log:
+- Created `src/app/api/users/heartbeat/route.ts` — POST endpoint that updates `public.users.last_seen = now()` for the authenticated user. Called every 60s from the client.
+- Created `src/app/api/users/status/route.ts` — POST endpoint taking `{ user_ids: string[] }`, returns `{ [userId]: { online, last_seen } }`. Online = last_seen within 3 minutes.
+- Created `src/app/api/users/batch-status/route.ts` — Same logic as status route, explicitly named for conversation-list bulk fetching. Returns online booleans for all requested partner IDs.
+- Updated `src/app/api/pusher/auth/route.ts` — Extended to authorize both `private-chat-{roomId}` and `presence-{roomId}` channels. For presence channels, the HMAC string-to-sign includes `channel_data` per Pusher spec.
+- Created `src/hooks/useHeartbeat.ts` — Simple hook that POSTs to `/api/users/heartbeat` immediately on mount and every 60 seconds. Cleans up interval on unmount.
+- Updated `src/hooks/useChat.ts` — Added `PartnerStatus` type and `partnerStatus` state. Subscribes to `presence-{roomId}` Pusher channel for real-time online/offline via `pusher:subscription_succeeded`, `pusher:member_added`, `pusher:member_removed`. Fetches initial partner status from `/api/users/status`. Calls `useHeartbeat` internally. Exports `partnerStatus` in `UseChatReturn`.
+- Updated `src/components/chat/ChatLayout.tsx` — Header now shows a green/gray status dot and contextual text ("Online" vs "Seen Xm ago") using `partnerStatus`. Added click handler on header avatar/name to open a Partner Info Panel. Created `PartnerInfoPanel` component with Framer Motion slide-in from right: backdrop overlay, partner avatar (large centered), name, online status with dot, "Shared media" and "Shared links" placeholder rows with chevrons, "Mute notifications" Switch toggle, "Block user" and "Clear chat" buttons (UI only). Uses `AnimatePresence` for enter/exit animations.
+- Updated `src/components/chat/ConversationList.tsx` — Added `useHeartbeat` at list level. Fetches batch online status for all conversation partners via `/api/users/batch-status` on mount and every 30 seconds. Each `ConversationItemRow` now shows a small green dot (`bg-emerald-500`, absolute positioned with ring-2 ring-background) on the partner avatar when online.
+
+Stage Summary:
+- Full online/last-seen status system implemented: heartbeat API, status APIs, presence channel, client hooks, and UI indicators
+- Real-time partner presence via Pusher presence channels with graceful fallback to 3-minute last_seen threshold
+- Partner Info Panel with smooth Framer Motion slide-in/out, backdrop overlay, and all requested UI sections (mute, block, clear chat placeholders)
+- Conversation list avatars now show online dots, refreshing every 30 seconds
+- All files pass ESLint with zero errors and zero warnings
+- Dev server compiles successfully with no issues

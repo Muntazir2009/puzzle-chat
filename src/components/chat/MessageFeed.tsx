@@ -44,6 +44,8 @@ export interface MessageFeedProps {
   onVanishMessage?: (id: string) => void;
   onReplyTo?: (message: ChatMessage) => void;
   onReact?: (messageId: string, emoji: string, add: boolean) => void;
+  scrollToMessageId?: string | null;
+  onScrolledToMessage?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -438,19 +440,28 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
-      {/* Decorative large avatar */}
+      {/* Decorative large avatar with pulse + glow */}
       <div className="relative">
-        <div className="absolute -inset-2 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-600/20 blur-md" />
-        <Avatar className="relative size-20 ring-4 ring-violet-100 dark:ring-violet-900/50">
-          {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-          <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-2xl font-bold text-white">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        {/* Animated glow ring */}
+        <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-lg animate-[pulse_3s_ease-in-out_infinite]" />
+        <m.div
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="relative"
+        >
+          <Avatar className="size-20 ring-4 ring-violet-100 dark:ring-violet-900/50">
+            {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
+            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-2xl font-bold text-white">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        </m.div>
       </div>
       <div className="text-center">
         <p className="text-sm font-semibold text-foreground">{partnerName}</p>
-        <p className="mt-1 text-xs text-muted-foreground">No messages yet. Say hello!</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {"👋"} No messages yet. Say hello to start the conversation!
+        </p>
       </div>
     </div>
   );
@@ -460,7 +471,7 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
 /*  MessageFeed (main export)                                          */
 /* ------------------------------------------------------------------ */
 
-export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, onMarkAsRead, onVanishMessage, onReplyTo, onReact }: MessageFeedProps) {
+export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, onMarkAsRead, onVanishMessage, onReplyTo, onReact, scrollToMessageId, onScrolledToMessage }: MessageFeedProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const isAutoScrollRef = useRef(true);
   const [showNewBtn, setShowNewBtn] = useState(false);
@@ -487,6 +498,15 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
   useEffect(() => { if (messages.length > 0) requestAnimationFrame(() => scrollToBottom("instant")); }, [isLoading, scrollToBottom]);
 
   useEffect(() => { if (!onMarkAsRead) return; const unread = messages.filter((m) => m.sender_id !== currentUserId && m.status !== "read"); if (unread.length > 0 && isAutoScrollRef.current) onMarkAsRead(unread.map((m) => m.id)); }, [messages, currentUserId, onMarkAsRead]);
+
+  /* ---- Scroll to a specific message ----------------------------------- */
+  useEffect(() => {
+    if (!scrollToMessageId) return;
+    const idx = messages.findIndex((m) => m.id === scrollToMessageId);
+    if (idx === -1) { onScrolledToMessage?.(); return; }
+    virtualizer.scrollToIndex(idx, { align: "center" });
+    onScrolledToMessage?.();
+  }, [scrollToMessageId, messages, virtualizer, onScrolledToMessage]);
 
   useEffect(() => {
     const prev = prevCountRef.current; const next = messages.length; prevCountRef.current = next;

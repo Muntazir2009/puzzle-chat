@@ -8,6 +8,7 @@ import {
 import { getRoomId } from "@/lib/room";
 import type { ChatChannelEvents } from "@/lib/pusher-server";
 import type { PrivateChannel } from "pusher-js";
+import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -41,6 +42,11 @@ export interface SendMessageOptions {
   waveform_data?: number[] | null;
 }
 
+export interface PartnerStatus {
+  online: boolean;
+  last_seen: string | null;
+}
+
 export interface UseChatOptions {
   currentUserId: string;
   otherUserId: string;
@@ -52,6 +58,7 @@ export interface UseChatReturn {
   messages: ChatMessage[];
   isLoading: boolean;
   isPartnerTyping: boolean;
+  partnerStatus: PartnerStatus;
   sendMessage: (content: string, opts?: SendMessageOptions) => Promise<void>;
   onTyping: () => void;
   markAsRead: (messageIds: string[]) => Promise<void>;
@@ -71,12 +78,82 @@ export function useChat({
 }: UseChatOptions): UseChatReturn {
   const roomId = getRoomId(currentUserId, otherUserId);
   const channelName = getChannelName(roomId);
+  const presenceChannelName = `presence-${roomId}`;
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(initialMessages.length === 0);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const [partnerStatus, setPartnerStatus] = useState<PartnerStatus>({
+    online: false,
+    last_seen: null,
+  });
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<PrivateChannel | undefined>(undefined);
+
+  /* ---- Heartbeat (keeps last_seen up-to-date) -------------------- */
+  useHeartbeat();
+
+  /* ---- Fetch initial partner status ------------------------------ */
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchStatus() {
+      try {
+        const res = await fetch("/api/users/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_ids: [otherUserId] }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data[otherUserId]) {
+          setPartnerStatus({
+            online: data[otherUserId].online,
+            last_seen: data[otherUserId].last_seen || null,
+          });
+        }
+      } catch {
+        /* silent */
+      }
+    }
+    fetchStatus();
+    return () => { cancelled = true; };
+  }, [otherUserId]);
+
+  /* ---- Presence channel for real-time online status --------------- */
+  useEffect(() => {
+    const presenceChannel = pusherClient.subscribe(presenceChannelName);
+
+    function onSubscriptionSucceeded(members: { count: number; each: (cb: (member: { id: string }) => void) => void }) {
+      let partnerOnline = false;
+      members.each((member: { id: string }) => {
+        if (member.id === otherUserId) partnerOnline = true;
+      });
+      setPartnerStatus((prev) => ({ ...prev, online: partnerOnline }));
+    }
+
+    function onMemberAdded(member: { id: string }) {
+      if (member.id === otherUserId) {
+        setPartnerStatus((prev) => ({ ...prev, online: true }));
+      }
+    }
+
+    function onMemberRemoved(member: { id: string }) {
+      if (member.id === otherUserId) {
+        setPartnerStatus((prev) => ({ ...prev, online: false, last_seen: new Date().toISOString() }));
+      }
+    }
+
+    presenceChannel.bind("pusher:subscription_succeeded", onSubscriptionSucceeded);
+    presenceChannel.bind("pusher:member_added", onMemberAdded);
+    presenceChannel.bind("pusher:member_removed", onMemberRemoved);
+
+    return () => {
+      presenceChannel.unbind("pusher:subscription_succeeded", onSubscriptionSucceeded);
+      presenceChannel.unbind("pusher:member_added", onMemberAdded);
+      presenceChannel.unbind("pusher:member_removed", onMemberRemoved);
+      pusherClient.unsubscribe(presenceChannelName);
+    };
+  }, [presenceChannelName, otherUserId]);
 
   /* ---- Load history --------------------------------------------- */
   useEffect(() => {
@@ -274,5 +351,5 @@ export function useChat({
 
   useEffect(() => { return () => { if (typingTimerRef.current) clearTimeout(typingTimerRef.current); }; }, []);
 
-  return { messages, isLoading, isPartnerTyping, sendMessage, onTyping, markAsRead, vanishMessage, sendReaction };
+  return { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, sendReaction };
 }

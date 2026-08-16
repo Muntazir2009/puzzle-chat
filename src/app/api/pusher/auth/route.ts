@@ -31,8 +31,17 @@ export async function POST(req: NextRequest) {
 
     const userId = authUser.id;
 
-    /* Only allow subscribing to private-chat- channels the user belongs to. */
-    const match = channelName.match(/^private-chat-(.+)$/);
+    /*
+     * Allow two channel patterns:
+     *  1. private-chat-{roomId}  — standard private chat channel
+     *  2. presence-{roomId}      — Pusher presence channel for online status
+     * Both use the same deterministic room ID (sorted user IDs joined by _).
+     */
+    const chatMatch = channelName.match(/^private-chat-(.+)$/);
+    const presenceMatch = channelName.match(/^presence-(.+)$/);
+    const match = chatMatch ?? presenceMatch;
+    const isPresence = Boolean(presenceMatch);
+
     if (!match) {
       return NextResponse.json(
         { error: "Invalid channel name" },
@@ -64,15 +73,29 @@ export async function POST(req: NextRequest) {
 
     const crypto = await import("node:crypto");
 
-    const stringToSign = `${socketId}:${channelName}`;
+    /*
+     * For presence channels the channel_data is part of the string
+     * that gets signed, so we must build it before computing the HMAC.
+     */
+    const channelData = JSON.stringify({ user_id: userId });
+
+    const stringToSign = isPresence
+      ? `${socketId}:${channelName}:${channelData}`
+      : `${socketId}:${channelName}`;
+
     const signature = crypto
       .createHmac("sha256", pusherSecret)
       .update(stringToSign)
       .digest("hex");
 
+    /*
+     * For private channels we still echo channel_data so the client
+     * can inspect who authorised (used by the presence subscription
+     * success callback).  For non-presence channels it's harmless.
+     */
     const auth = JSON.stringify({
       auth: `${pusherKey}:${signature}`,
-      channel_data: JSON.stringify({ user_id: userId }),
+      channel_data: channelData,
     });
 
     return new NextResponse(auth, {
