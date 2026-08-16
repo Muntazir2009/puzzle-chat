@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 
@@ -28,37 +29,22 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    /* Look up partner by email in auth.users — use admin client */
-    // The public `users` table doesn't store email, so we need to look up
-    // the auth.users table via an RPC or admin query.
-    // We use the admin client to query auth.users for the email.
-    // But since the Database types don't include auth.users, we cast.
-    //
-    // Alternative: search the public users table by name (won't match email).
-    // The practical approach is to use the admin client.
-
-    // Dynamic import to avoid pulling admin client on every request path
-    const { createAdminClient } = await import(
-      "@/lib/supabase/admin"
-    );
+    /* Look up partner by email using admin auth API */
     const admin = createAdminClient();
+    const { data: { users }, error: listErr } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+      filters: { email: partner_email },
+    });
 
-    // Query auth.users by email — bypass TypeScript by using any cast
-    const { data: authUsers, error: authErr } = await (admin as any)
-      .from("users")
-      .select("id")
-      .eq("email", partner_email)
-      .limit(1)
-      .single();
-
-    if (authErr || !authUsers) {
+    if (listErr || !users || users.length === 0) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
       );
     }
 
-    const partnerId = authUsers.id as string;
+    const partnerId = users[0].id;
 
     if (partnerId === userId) {
       return NextResponse.json(
@@ -66,6 +52,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    /* Ensure partner has a public.users row */
+    await supabase.from("users").upsert(
+      {
+        id: partnerId,
+        name: users[0].user_metadata?.name ?? partner_email.split("@")[0],
+      },
+      { onConflict: "id" },
+    ).ignore();
 
     /* Use the get_or_create_conversation RPC */
     const { data: conversationId, error: rpcErr } = await supabase.rpc(

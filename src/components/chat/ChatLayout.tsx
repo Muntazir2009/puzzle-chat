@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, ChevronDown } from "lucide-react";
+import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageFeed } from "@/components/chat/MessageFeed";
@@ -82,6 +82,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
 
+  const hasText = draft.trim().length > 0;
+
   /* ---- Render --------------------------------------------------- */
 
   return (
@@ -89,13 +91,13 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
         {/* Header */}
         <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-          <Avatar className="size-9">
+          <Avatar className="size-9 ring-2 ring-violet-100 dark:ring-violet-900/50">
             {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
-            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-semibold text-white">{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
             <span className="text-sm font-semibold leading-tight">{partner.name}</span>
-            <span className={cn("text-xs", isPartnerTyping ? "text-indigo-500" : "text-muted-foreground")}>{isPartnerTyping ? "typing\u2026" : "Online"}</span>
+            <span className={cn("text-xs", isPartnerTyping ? "text-violet-500" : "text-muted-foreground")}>{isPartnerTyping ? "typing\u2026" : "Online"}</span>
           </div>
         </header>
 
@@ -109,9 +111,9 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
           {replyTo && (
             <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden border-t bg-muted/30">
               <div className="flex items-center gap-2 px-4 py-2">
-                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-500 to-purple-600" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-indigo-500">{replyTo.sender_name || "Unknown"}</p>
+                  <p className="text-[11px] font-semibold text-violet-500">{replyTo.sender_name || "Unknown"}</p>
                   <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
                 </div>
                 <button type="button" onClick={() => setReplyTo(null)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>
@@ -130,11 +132,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                 </div>
                 <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 40 }}>
                   {voice.amplitudes.slice(-60).map((amp, i) => (
-                    <div key={i} className="w-[2px] rounded-full bg-indigo-500/70 transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px` }} />
+                    <div key={i} className="w-[2px] rounded-full bg-violet-500/70 transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px` }} />
                   ))}
                 </div>
                 <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}</span>
-                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white" aria-label="Send voice">
+                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white" aria-label="Send voice">
                   <ArrowUp className="size-4" />
                 </m.button>
               </div>
@@ -145,22 +147,22 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         {/* Input bar */}
         <div className="shrink-0 border-t bg-background px-3 py-2.5 sm:px-4 sm:py-3">
           <form onSubmit={handleSubmit} className="flex items-end gap-2">
-            {/* Vanish toggle */}
-            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors duration-200", vanishMode ? "bg-indigo-500/15 text-indigo-500" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
-              {vanishMode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {/* Vanish toggle - compact */}
+            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", vanishMode ? "bg-violet-500/15 text-violet-500" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
+              {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             </m.button>
 
-            {/* Ephemeral timer dropdown */}
+            {/* Ephemeral timer dropdown - compact */}
             <div className="relative">
-              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-muted")} aria-label="Ephemeral timer">
-                <Clock className="size-4" />
+              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-muted")} aria-label="Ephemeral timer">
+                <Clock className="size-3.5" />
               </m.button>
               <AnimatePresence>
                 {ephemeralOpen && (
                   <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-28 overflow-hidden rounded-xl border bg-popover p-1 shadow-xl">
                     {EPHEMERAL_OPTIONS.map((opt) => (
                       <button key={opt.label} type="button" onClick={() => { setEphemeralSeconds(opt.value); setEphemeralOpen(false); }}
-                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors", ephemeralSeconds === opt.value ? "bg-indigo-500/10 text-indigo-500 font-medium" : "text-foreground hover:bg-muted")}>
+                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors", ephemeralSeconds === opt.value ? "bg-violet-500/10 text-violet-500 font-medium" : "text-foreground hover:bg-muted")}>
                         <Clock className="size-3" />{opt.label}
                       </button>
                     ))}
@@ -169,26 +171,62 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               </AnimatePresence>
             </div>
 
-            {/* Text input (hidden when recording) */}
+            {/* Text input (hidden when recording) - pill shaped with gradient border on focus */}
             {!showVoiceWaveform && (
-              <textarea ref={inputRef} value={draft} onChange={handleInputChange} onKeyDown={handleKeyDown} onInput={handleInput}
-                placeholder={vanishMode ? "Send a disappearing message\u2026" : replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message\u2026"}
-                rows={1} className={cn("flex-1 resize-none rounded-xl border bg-muted/50 px-3 py-2.5 text-sm sm:px-4", "placeholder:text-muted-foreground", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40", "max-h-32 overflow-y-auto", "transition-[box-shadow] duration-150", vanishMode && "border-indigo-500/30 focus-visible:ring-indigo-500/40")}
-              />
+              <div className="relative flex-1">
+                <textarea ref={inputRef} value={draft} onChange={handleInputChange} onKeyDown={handleKeyDown} onInput={handleInput}
+                  placeholder={vanishMode ? "Send a disappearing message\u2026" : replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message\u2026"}
+                  rows={1} className={cn(
+                    "w-full resize-none rounded-2xl border bg-muted/50 px-4 py-3 text-sm",
+                    "placeholder:text-muted-foreground",
+                    "focus-visible:outline-none focus-visible:ring-0",
+                    "max-h-32 overflow-y-auto",
+                    "transition-all duration-200",
+                    // Gradient border effect on focus
+                    "focus-visible:border-transparent focus-visible:ring-[2px]",
+                    vanishMode
+                      ? "border-violet-500/30 focus-visible:ring-violet-400/30"
+                      : "focus-visible:ring-violet-400/25",
+                  )}
+                />
+                {/* Subtle gradient border overlay when focused - implemented via ring colors */}
+              </div>
             )}
 
-            {/* Mic / Send */}
-            {!showVoiceWaveform ? (
-              <Button type="submit" size="icon" disabled={!draft.trim() || isSending}
-                className={cn("size-10 shrink-0 rounded-xl", (vanishMode || ephemeralSeconds) && "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700")}
-                aria-label="Send message"><ArrowUp className="size-4" /></Button>
-            ) : null}
-
-            {/* Mic button (shown when not recording, hidden during) */}
+            {/* Attachment button (placeholder) */}
             {!showVoiceWaveform && (
-              <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Record voice">
-                <Mic className="size-4" />
+              <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Attach file">
+                <Paperclip className="size-4" />
               </m.button>
+            )}
+
+            {/* Emoji button (placeholder) */}
+            {!showVoiceWaveform && (
+              <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Emoji">
+                <Smile className="size-4" />
+              </m.button>
+            )}
+
+            {/* Send button (shown when there's text) */}
+            {!showVoiceWaveform && hasText && (
+              <AnimatePresence>
+                <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
+                  <Button type="submit" size="icon" disabled={isSending}
+                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700")}
+                    aria-label="Send message"><ArrowUp className="size-4" /></Button>
+                </m.div>
+              </AnimatePresence>
+            )}
+
+            {/* Mic button (shown when input is empty) */}
+            {!showVoiceWaveform && !hasText && (
+              <AnimatePresence>
+                <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
+                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Record voice">
+                    <Mic className="size-4" />
+                  </m.button>
+                </m.div>
+              </AnimatePresence>
             )}
 
             {/* Cancel recording button */}

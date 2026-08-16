@@ -10,32 +10,26 @@ export default async function Home() {
 
   if (!user) redirect("/login");
 
-  /* Ensure public.users row exists */
+  /* Ensure public.users row exists (upsert for safety) */
+  const userName =
+    user.user_metadata?.name ?? user.email?.split("@")[0] ?? "User";
+
+  await supabase.from("users").upsert(
+    { id: user.id, name: userName },
+    { onConflict: "id" },
+  ).ignore();
+
   const { data: profile } = await supabase
     .from("users")
     .select("id, name, avatar_url")
     .eq("id", user.id)
     .single();
 
-  if (!profile) {
-    await supabase.from("users").insert({
-      id: user.id,
-      name: user.user_metadata?.name ?? user.email?.split("@")[0] ?? "User",
-    });
-  }
-
-  const userName =
-    profile?.name ??
-    user.user_metadata?.name ??
-    user.email?.split("@")[0] ??
-    "User";
-  const userAvatar = profile?.avatar_url ?? null;
-
   return (
     <ChatView
       userId={user.id}
-      userName={userName}
-      userAvatar={userAvatar}
+      userName={profile?.name ?? userName}
+      userAvatar={profile?.avatar_url ?? null}
       userEmail={user.email}
     />
   );

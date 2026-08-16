@@ -192,7 +192,7 @@ function VoiceBubble({ message, isOwn, waveform }: {
   }, [waveform]);
 
   const barColor = isOwn ? "bg-white/70" : "bg-zinc-400";
-  const progressColor = isOwn ? "bg-white" : "bg-indigo-400";
+  const progressColor = isOwn ? "bg-white" : "bg-violet-400";
   const progressIdx = Math.floor(progress * bars.length);
 
   return (
@@ -218,8 +218,8 @@ function VoiceBubble({ message, isOwn, waveform }: {
 
 function ReplyPreview({ senderName, content, isOwn }: { senderName: string; content: string; isOwn: boolean }) {
   return (
-    <div className={cn("mb-1 rounded-md border-l-2 px-2 py-1", isOwn ? "border-white/40 bg-white/10" : "border-indigo-400/60 bg-indigo-500/10")}>
-      <p className={cn("text-[10px] font-semibold", isOwn ? "text-white/80" : "text-indigo-400")}>{senderName}</p>
+    <div className={cn("mb-1 rounded-md border-l-2 px-2 py-1", isOwn ? "border-white/40 bg-white/10" : "border-violet-400/60 bg-violet-500/10")}>
+      <p className={cn("text-[10px] font-semibold", isOwn ? "text-white/80" : "text-violet-400")}>{senderName}</p>
       <p className={cn("truncate text-[11px]", isOwn ? "text-white/60" : "text-zinc-400")}>{content}</p>
     </div>
   );
@@ -240,8 +240,8 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
         const isActive = ids.includes(currentUserId);
         return (
           <button key={emoji} type="button" onClick={() => onReact(emoji, !isActive)}
-            className={cn("flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] transition-all", isActive ? (isOwn ? "border-white/30 bg-white/20" : "border-indigo-400/40 bg-indigo-500/15") : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700")}>
-            <span>{emoji}</span><span className={cn("text-[10px]", isActive ? (isOwn ? "text-white/70" : "text-indigo-300") : "text-zinc-400")}>{ids.length}</span>
+            className={cn("flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] transition-all", isActive ? (isOwn ? "border-white/30 bg-white/20" : "border-violet-400/40 bg-violet-500/15") : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700")}>
+            <span>{emoji}</span><span className={cn("text-[10px]", isActive ? (isOwn ? "text-white/70" : "text-violet-300") : "text-zinc-400")}>{ids.length}</span>
           </button>
         );
       })}
@@ -297,18 +297,24 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
 
   const isFailed = message.status === "failed";
   const isVoice = message.type === "voice";
+  const isNew = message.status === "sending" || Date.now() - new Date(message.created_at).getTime() < 2000;
 
   return (
-    <div className={cn("relative flex w-full gap-2.5 px-4", isOwn ? "justify-end" : "justify-start")}>
+    <m.div
+      className={cn("relative flex w-full gap-2.5 px-4", isOwn ? "justify-end" : "justify-start")}
+      initial={isNew ? { opacity: 0, y: 12 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
       <HeartBurst show={showHeart} />
       <AnimatePresence>{showTapback && onReact && (
         <TapbackDock message={message} isOwn={isOwn} onReact={(emoji, add) => { onReact(message.id, emoji, add); setShowTapback(false); }} onReply={() => { onReplyTo?.(message); setShowTapback(false); }} />
       )}</AnimatePresence>
 
       {!isOwn && (
-        <Avatar className="mt-auto size-8 shrink-0">
+        <Avatar className="mt-auto size-8 shrink-0 ring-1 ring-muted">
           {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-          <AvatarFallback className="text-xs font-medium">{partnerName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="bg-gradient-to-br from-violet-100 to-purple-200 text-xs font-medium text-violet-700 dark:from-violet-500 dark:to-purple-600 dark:text-white">{partnerName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
       )}
 
@@ -326,8 +332,10 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           onContextMenu={handleContextMenu}
           className={cn(
             "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-transform duration-100 active:scale-[0.98]",
-            isOwn && "bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-br-md shadow-sm",
-            !isOwn && "bg-zinc-800 text-zinc-50 rounded-bl-md shadow-sm dark:bg-zinc-700 dark:text-zinc-100",
+            // Own messages: vibrant violet-purple gradient with subtle shadow
+            isOwn && "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md shadow-md shadow-violet-500/15",
+            // Partner messages: softer background with shadow
+            !isOwn && "bg-muted text-foreground rounded-bl-md shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-violet-950/20",
             isFailed && "ring-2 ring-red-400/50",
             isVoice && "py-2"
           )}
@@ -371,24 +379,24 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
       </div>
 
       {isOwn && <div className="w-8 shrink-0" />}
-    </div>
+    </m.div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  TypingIndicator                                                    */
+/*  TypingIndicator (larger, more bouncy dots)                         */
 /* ------------------------------------------------------------------ */
 
 function TypingIndicator({ partnerName }: { partnerName: string }) {
   return (
     <div className="flex items-end gap-2.5 px-4">
-      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-zinc-800 px-4 py-3 shadow-sm dark:bg-zinc-700">
-        <span className="flex gap-1">
-          <span className="size-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:0ms]" />
-          <span className="size-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
-          <span className="size-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
+      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20">
+        <span className="flex gap-1.5">
+          <span className="size-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:0ms] [animation-duration:600ms]" />
+          <span className="size-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:180ms] [animation-duration:600ms]" />
+          <span className="size-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:360ms] [animation-duration:600ms]" />
         </span>
-        <span className="text-xs text-zinc-400">{partnerName} is typing\u2026</span>
+        <span className="text-xs text-muted-foreground">{partnerName} is typing\u2026</span>
       </div>
     </div>
   );
@@ -404,7 +412,7 @@ function MessageListSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className={cn("flex gap-2.5", i % 2 === 0 ? "justify-start" : "justify-end")}>
           {i % 2 === 0 && <Skeleton className="size-8 shrink-0 rounded-full" />}
-          <Skeleton className={cn("h-16 w-48 rounded-2xl", i % 2 !== 0 && "bg-gradient-to-r from-indigo-500/20 to-purple-600/20")} />
+          <Skeleton className={cn("h-16 w-48 rounded-2xl", i % 2 !== 0 && "bg-gradient-to-r from-violet-500/20 to-purple-600/20")} />
           {i % 2 !== 0 && <div className="w-8 shrink-0" />}
         </div>
       ))}
@@ -414,19 +422,36 @@ function MessageListSkeleton() {
 
 function NewMessagesButton({ onClick, count }: { onClick: () => void; count: number }) {
   return (
-    <m.button type="button" onClick={onClick} initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full bg-indigo-500 px-4 py-2 text-xs font-medium text-white shadow-lg transition-colors hover:bg-indigo-600 active:scale-95" aria-label={`Scroll to ${count} new`} style={{ transform: "translate3d(0,0,0)" }}>
+    <m.button type="button" onClick={onClick} initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-violet-500/20 transition-colors hover:from-violet-600 hover:to-purple-700 active:scale-95" aria-label={`Scroll to ${count} new`} style={{ transform: "translate3d(0,0,0)" }}>
       <ArrowDown className="size-3.5" /><span>{count} new message{count > 1 ? "s" : ""}</span>
     </m.button>
   );
 }
 
-function EmptyState() {
+function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
+  const initials = partnerName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
-      <div className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-600/10">
-        <svg className="size-6 stroke-1 text-muted-foreground/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+    <div className="flex flex-col items-center justify-center gap-4 py-20">
+      {/* Decorative large avatar */}
+      <div className="relative">
+        <div className="absolute -inset-2 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-600/20 blur-md" />
+        <Avatar className="relative size-20 ring-4 ring-violet-100 dark:ring-violet-900/50">
+          {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
+          <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-2xl font-bold text-white">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
       </div>
-      <p className="text-sm">No messages yet. Say hello!</p>
+      <div className="text-center">
+        <p className="text-sm font-semibold text-foreground">{partnerName}</p>
+        <p className="mt-1 text-xs text-muted-foreground">No messages yet. Say hello!</p>
+      </div>
     </div>
   );
 }
@@ -473,7 +498,7 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
   }, [messages.length, currentUserId, scrollToBottom]);
 
   if (isLoading) return <MessageListSkeleton />;
-  if (messages.length === 0 && !isPartnerTyping) return <EmptyState />;
+  if (messages.length === 0 && !isPartnerTyping) return <EmptyState partnerName={partnerName} partnerAvatar={partnerAvatar} />;
 
   const virtualItems = virtualizer.getVirtualItems();
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, LogOut, Settings } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
 import { ChatLayout } from "./ChatLayout";
+import { ProfileDialog } from "./ProfileDialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -26,6 +29,31 @@ export interface ChatViewProps {
   userName: string;
   userAvatar: string | null;
   userEmail: string | null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Puzzle Logo                                                        */
+/* ------------------------------------------------------------------ */
+
+function PuzzleLogo({ unreadCount }: { unreadCount: number }) {
+  return (
+    <div className="relative flex items-center gap-2.5">
+      <div className="relative flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm shadow-violet-500/20">
+        <svg className="size-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        {unreadCount > 0 && (
+          <span className={cn(
+            "absolute -right-1 -top-1 flex items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-background",
+            unreadCount > 99 ? "min-w-[24px]" : "min-w-[16px]"
+          )}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </div>
+      <span className="text-sm font-bold tracking-tight">Puzzle</span>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -43,8 +71,14 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
   const [loading, setLoading] = useState(true);
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [localUserName, setLocalUserName] = useState(userName);
+  const [deletingConv, setDeletingConv] = useState<string | null>(null);
 
-  /* ---- Fetch conversations ---------------------------------------- */
+  const totalUnread = useMemo(
+    () => conversations.reduce((sum, c) => sum + c.unread_count, 0),
+    [conversations]
+  );
+
   const fetchConversations = useCallback(async () => {
     try {
       const res = await fetch("/api/conversations");
@@ -59,40 +93,45 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
     }
   }, []);
 
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+  useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
-  /* ---- Handle conversation selection ----------------------------- */
   const handleSelectConversation = useCallback((conv: ConversationItem) => {
     setActiveConv(conv);
   }, []);
 
-  /* ---- Handle new chat (from dialog) ------------------------------ */
   const handleNewChat = useCallback(
     (partnerId: string, partnerName: string, partnerAvatar: string | null) => {
-      // Check if conversation already exists in the list
       const existing = conversations.find((c) => c.partner.id === partnerId);
-      if (existing) {
-        setActiveConv(existing);
-        return;
-      }
-      // Create a temporary conversation item
+      if (existing) { setActiveConv(existing); return; }
       const newConv: ConversationItem = {
         id: `temp-${partnerId}`,
         partner: { id: partnerId, name: partnerName, avatar_url: partnerAvatar },
-        last_message: null,
-        unread_count: 0,
+        last_message: null, unread_count: 0,
       };
       setConversations((prev) => [newConv, ...prev]);
       setActiveConv(newConv);
-      // Re-fetch to get the real conversation ID
       fetchConversations();
     },
     [conversations, fetchConversations],
   );
 
-  /* ---- Sign out --------------------------------------------------- */
+  const handleDeleteConversation = useCallback(async (convId: string) => {
+    setDeletingConv(convId);
+    try {
+      await fetch("/api/conversations/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: convId }),
+      });
+      setConversations((prev) => prev.filter((c) => c.id !== convId));
+      if (activeConv?.id === convId) setActiveConv(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingConv(null);
+    }
+  }, [activeConv]);
+
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
     await supabase.auth.signOut();
@@ -100,19 +139,15 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
     router.refresh();
   }, [supabase, router]);
 
-  /* ---- Conversation changed via new chat (update active) --------- */
   useEffect(() => {
-    if (!activeConv) return;
-    // If the active conv was a temp one, replace with the real one
-    if (activeConv.id.startsWith("temp-")) {
-      const real = conversations.find((c) => c.partner.id === activeConv.partner.id);
-      if (real && real.id !== activeConv.id) {
-        setActiveConv(real);
-      }
-    }
+    if (!activeConv || !activeConv.id.startsWith("temp-")) return;
+    const real = conversations.find((c) => c.partner.id === activeConv.partner.id);
+    if (real && real.id !== activeConv.id) setActiveConv(real);
   }, [conversations, activeConv]);
 
-  /* ---- Render sidebar header user menu ---------------------------- */
+  const userInitials = localUserName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+
+  /* ---- User menu --------------------------------------------------- */
   const userMenu = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -121,84 +156,123 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <div className="flex items-center gap-3 px-2 py-1.5">
-          <Avatar className="size-8">
-            {userAvatar && <AvatarImage src={userAvatar} alt={userName} />}
-            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-semibold text-white">
-              {userName.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+        <div className="flex items-center gap-3 px-2 py-2">
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-sm" />
+            <Avatar className="relative size-11 ring-2 ring-violet-100 dark:ring-violet-900/50">
+              {userAvatar && <AvatarImage src={userAvatar} alt={localUserName} />}
+              <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{userName}</p>
-            {userEmail && (
-              <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
-            )}
+            <p className="truncate text-sm font-semibold">{localUserName}</p>
+            {userEmail && <p className="truncate text-xs text-muted-foreground">{userEmail}</p>}
           </div>
         </div>
         <DropdownMenuSeparator />
+        <ProfileDialog
+          userId={userId}
+          userName={localUserName}
+          userAvatar={userAvatar}
+          userEmail={userEmail}
+          onNameChange={setLocalUserName}
+        />
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} disabled={signingOut} className="text-red-500 focus:text-red-500">
           <LogOut className="mr-2 size-4" />
-          {signingOut ? "Signing out…" : "Sign out"}
+          {signingOut ? "Signing out\u2026" : "Sign out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  /* ---- Loading state --------------------------------------------- */
+  /* ---- Loading ----------------------------------------------------- */
   if (loading) {
     return (
-      <div className="flex h-dvh w-full flex-col items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">Loading chats…</p>
+      <div className="flex h-dvh w-full flex-col bg-background">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
+          <aside className="hidden w-80 shrink-0 flex-col border-r sm:flex">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <Skeleton className="size-8 rounded-xl" />
+                <Skeleton className="h-4 w-14" />
+              </div>
+              <Skeleton className="size-8 rounded-lg" />
+            </div>
+            <div className="flex flex-col gap-0 p-0">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 border-l-[3px] border-l-transparent px-4 py-3.5">
+                  <Skeleton className="size-11 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-8" />
+                    </div>
+                    <div className="mt-1"><Skeleton className="h-3 w-36" /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+          <main className="hidden min-h-0 flex-1 flex-col sm:flex">
+            <div className="flex h-full flex-col items-center justify-center gap-3">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Loading chats\u2026</p>
+            </div>
+          </main>
+        </div>
       </div>
     );
   }
 
-  /* ---- No conversation selected (desktop shows list + empty) ----- */
+  /* ---- Empty state ------------------------------------------------ */
   const emptyState = (
     <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
-      <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
-        <svg className="size-8 text-violet-400/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
+      <div className="relative">
+        <div className="absolute -inset-3 rounded-3xl bg-gradient-to-br from-violet-500/15 to-purple-600/15 blur-xl" />
+        <div className="relative flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
+          <svg className="size-9 text-violet-400/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
       </div>
       <div>
-        <p className="text-sm font-medium">Select a conversation</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-sm font-semibold">Select a conversation</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           Choose from your existing chats or start a new one.
         </p>
       </div>
     </div>
   );
 
+  /* ---- Shared ConversationList props ------------------------------- */
+  const listProps = {
+    conversations,
+    currentUserId: userId,
+    onSelect: handleSelectConversation,
+    onNewChat: handleNewChat,
+    onDelete: handleDeleteConversation,
+    deletingId: deletingConv,
+  };
+
+  /* ---- Render ----------------------------------------------------- */
   return (
     <div className="flex h-dvh w-full flex-col bg-background">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
-        {/* ---- Desktop sidebar ------------------------------------ */}
+        {/* Desktop sidebar */}
         <aside className="hidden w-80 shrink-0 flex-col border-r sm:flex">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600">
-                <svg className="size-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </div>
-              <span className="text-sm font-bold tracking-tight">Puzzle</span>
-            </div>
+            <PuzzleLogo unreadCount={totalUnread} />
             {userMenu}
           </div>
           <div className="min-h-0 flex-1">
-            <ConversationList
-              conversations={conversations}
-              activeId={activeConv?.id ?? null}
-              currentUserId={userId}
-              onSelect={handleSelectConversation}
-              onNewChat={handleNewChat}
-            />
+            <ConversationList {...listProps} activeId={activeConv?.id ?? null} />
           </div>
         </aside>
 
-        {/* ---- Mobile: show conversation list or chat view --------- */}
+        {/* Mobile: list or chat */}
         <div className="flex min-h-0 flex-1 flex-col sm:hidden">
           <AnimatePresence mode="wait">
             {!activeConv ? (
@@ -210,26 +284,12 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                 transition={{ duration: 0.2 }}
                 className="flex min-h-0 flex-1 flex-col"
               >
-                {/* Mobile header */}
                 <div className="flex items-center justify-between border-b px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600">
-                      <svg className="size-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-bold tracking-tight">Puzzle</span>
-                  </div>
+                  <PuzzleLogo unreadCount={totalUnread} />
                   {userMenu}
                 </div>
                 <div className="min-h-0 flex-1">
-                  <ConversationList
-                    conversations={conversations}
-                    activeId={null}
-                    currentUserId={userId}
-                    onSelect={handleSelectConversation}
-                    onNewChat={handleNewChat}
-                  />
+                  <ConversationList {...listProps} activeId={null} />
                 </div>
               </m.div>
             ) : (
@@ -241,7 +301,6 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                 transition={{ duration: 0.2 }}
                 className="relative flex min-h-0 flex-1 flex-col"
               >
-                {/* Back button overlay on mobile */}
                 <ChatLayout
                   currentUserId={userId}
                   otherUserId={activeConv.partner.id}
@@ -252,11 +311,10 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                     avatar_url: activeConv.partner.avatar_url,
                   }}
                 />
-                {/* Floating back button */}
                 <button
                   type="button"
                   onClick={() => setActiveConv(null)}
-                  className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm shadow-sm border transition-colors hover:bg-muted"
+                  className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-colors hover:bg-muted"
                   aria-label="Back to chats"
                 >
                   <ArrowLeft className="size-4" />
@@ -266,7 +324,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
           </AnimatePresence>
         </div>
 
-        {/* ---- Desktop: chat area or empty state -------------------- */}
+        {/* Desktop: chat area or empty state */}
         <main className="hidden min-h-0 flex-1 flex-col sm:flex">
           <AnimatePresence mode="wait">
             {activeConv ? (

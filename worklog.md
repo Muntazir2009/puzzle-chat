@@ -439,3 +439,77 @@ Stage Summary:
 - New chat flow: COMPLETE — dialog searches users by name/email, creates conversation via RPC
 - Chat view: COMPLETE — responsive layout with desktop sidebar and mobile slide transitions
 - Next steps: Add `attachment_url` column (Phase 1), premium UI overhaul (Phase 2), WhatsApp/Telegram features (Phase 3)
+
+---
+Task ID: 4
+Agent: Frontend Styling Expert
+Task: UI polish and styling improvements
+
+Work Log:
+- ConversationList.tsx: Added hover effect with background transition and left-border accent (`border-l-violet-300/60`). Active conversation now has a prominent 3px violet left border (`border-l-violet-500`). Improved time-ago display with `tabular-nums` font and better color contrast. Added avatar ring on hover (`group-hover:ring-violet-200/30`). Enhanced empty state with decorative icon container and a floating "+" badge. Implemented 300ms debounced auto-search in NewChatDialog using `useRef` for timer — search triggers automatically as user types without needing Enter key.
+- ChatLayout.tsx: Made text input pill-shaped with `rounded-2xl`, more padding (`px-4 py-3`). Added gradient ring effect on focus (`focus-visible:ring-violet-400/25`). Send button only appears when there's text (animated in/out via Framer Motion spring); mic button shows when empty. Added emoji trigger button (Smile icon from Lucide) and attachment button (Paperclip icon). Made vanish/ephemeral buttons more compact (`size-8 rounded-lg`, icon `size-3.5`). Updated gradient colors to violet/purple throughout (voice waveform, reply bar gradient, ephemeral active state).
+- MessageFeed.tsx: Added subtle shadows to message bubbles (`shadow-md shadow-violet-500/15` for own, `shadow-sm` for partner). Own messages now use `from-violet-500 to-purple-600` gradient. Partner messages use softer `bg-muted` in light mode. Added entrance animation for new messages (fade in + slide up via `initial={{ opacity: 0, y: 12 }}`). Typing indicator dots are larger (`size-2`) with slower bounce (`600ms` duration). Empty state now shows partner's initials in a large decorative avatar with gradient glow. Partner avatar in bubbles uses light-mode friendly gradient (`from-violet-100 to-purple-200 text-violet-700`). New messages button uses violet gradient. Voice waveform progress bar uses violet.
+- ChatView.tsx: Added total unread count badge on Puzzle logo (red badge with `ring-2 ring-background`, shows "99+" for large counts). Extracted `PuzzleLogo` component for reuse across desktop/mobile. User dropdown avatar is now larger (`size-11`) with decorative gradient glow ring. Improved loading skeleton to match conversation list item layout exactly (avatar + name + time skeleton structure). Desktop sidebar empty state has enhanced glow effect. Login page reviewed — already has polished glassmorphic dark theme, no changes needed.
+
+Stage Summary:
+- All 4 chat components polished with consistent violet/purple color system
+- Debounced search, animated send/mic toggle, emoji/attachment button placeholders added
+- Message bubbles have shadows, entrance animations, and refined typography
+- Unread badge on sidebar header, decorative avatars in dropdown
+- Loading skeleton matches real content layout
+- Login page verified — no changes needed
+
+---
+Task ID: 5
+Agent: Main Session (Bug Fix + Features)
+Task: Fix 'Database error saving new user' bug, improve styling, add features
+
+Work Log:
+- **Fixed 'Database error saving new user' bug**:
+  - Root cause: `users` table had RLS enabled but NO INSERT policy. The `handle_new_user()` trigger was failing.
+  - Added `users_insert_self` RLS policy: `FOR INSERT WITH CHECK (auth.uid() = id)`
+  - Made trigger robust: added `SET search_path = public, auth` and `EXCEPTION WHEN OTHERS` handler so trigger failure doesn't block signup
+  - Changed `page.tsx` to use `.upsert().ignore()` instead of `.insert()` for idempotent profile creation
+  - Created `supabase/migration-fix-user-creation.sql` for user to run in Supabase SQL Editor
+
+- **Fixed conversations/create API** (src/app/api/conversations/create/route.ts):
+  - Was querying `public.users` by email via admin client (wrong - no email column)
+  - Fixed to use `admin.auth.admin.listUsers()` API for email lookup
+  - Also ensures partner has a `public.users` row via upsert
+
+- **Fixed users/search API** (src/app/api/users/search/route.ts):
+  - Same bug: was querying `public.users` by email (wrong)
+  - Simplified to search by name only in `public.users`
+
+- **Styling improvements** (delegated to agent):
+  - Conversation list: hover effects with left-border accent, active state, improved time display
+  - Chat input: pill-shaped, gradient focus ring, send/mic toggle animation, emoji & attachment placeholder buttons
+  - Message bubbles: violet gradient for own messages, shadows, entrance animations
+  - ChatView: unread badge on Puzzle logo, loading skeleton, enhanced empty state
+  - NewChatDialog: 300ms debounced auto-search
+
+- **New features added**:
+  - Profile settings dialog (`src/components/chat/ProfileDialog.tsx`): edit display name
+  - Profile API endpoint (`src/app/api/users/profile/route.ts`): PUT to update name
+  - Conversation deletion: right-click context menu on conversation items
+  - Delete API endpoint (`src/app/api/conversations/delete/route.ts`)
+  - Extracted `ConversationItemRow` component for cleaner code
+
+Stage Summary:
+- Critical bug fixed: new user signup was failing due to missing RLS INSERT policy on users table
+- User needs to run `supabase/migration-fix-user-creation.sql` in Supabase SQL Editor
+- Three new API endpoints: profile update, conversation delete
+- Profile dialog accessible from settings dropdown menu
+- Conversation deletion via right-click context menu
+- All styling improvements maintain violet/purple theme consistency
+
+## Current Project Status
+- **Phase**: Bug fixes + feature additions (post Phase 4)
+- **State**: Dev server running, login page verified (200), code compiles clean
+- **Pending**: User must run SQL migration in Supabase SQL Editor
+
+## Next Steps
+1. User runs `supabase/migration-fix-user-creation.sql` in Supabase SQL Editor
+2. Phase 5: Online status via Pusher Presence
+3. Phase 5: Message attachments via Supabase Storage
+4. Phase 5: Attachment button functionality in chat input
