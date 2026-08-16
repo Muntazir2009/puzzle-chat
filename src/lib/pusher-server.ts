@@ -44,7 +44,7 @@ export interface ChatChannelEvents {
 
 let _server: Pusher | null = null;
 
-export function getPusherServer(): Pusher {
+function ensureServer(): Pusher {
   if (_server) return _server;
   const app_id = process.env.PUSHER_APP_ID;
   const key = process.env.NEXT_PUBLIC_PUSHER_APP_KEY;
@@ -58,9 +58,13 @@ export function getPusherServer(): Pusher {
   return _server;
 }
 
-export const pusherServer = new Proxy({} as Pusher, {
-  get(_target, prop) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (getPusherServer() as any)[prop];
+/**
+ * Lightweight Pusher-like facade that delegates every call to the
+ * lazily-created real server client.  Avoids `new Proxy(…)` to
+ * eliminate potential TDZ errors.
+ */
+export const pusherServer = {
+  trigger(channel: string, event: string, data: unknown) {
+    return ensureServer().trigger(channel, event, data);
   },
-});
+} as unknown as Pusher;

@@ -994,3 +994,29 @@ Stage Summary:
 - DialogContent accessibility warnings resolved with `aria-describedby={undefined}`
 - Files modified: `useChat.ts`, `MessageFeed.tsx`, `ChatView.tsx`, `ConversationList.tsx`, `ProfileDialog.tsx`
 - Files created: `ErrorBoundary.tsx`
+---
+Task ID: 7
+Agent: Main Agent
+Task: Fix "Cannot access 'eE' before initialization" TDZ error in deployed Cloudflare Workers build
+
+Work Log:
+- Diagnosed the error as a Temporal Dead Zone (TDZ) ReferenceError occurring in the production webpack bundle on Cloudflare Workers
+- Identified three potential TDZ sources in the codebase:
+  1. `pusher-client.ts` and `pusher-server.ts` used `new Proxy({} as Pusher, { get ... })` where the get handler referenced a function that could be reordered by the bundler
+  2. `use-toast.ts` had `const reducer = ...` referenced by `function dispatch()` which called `const addToRemoveQueue = ...` – circular const references that could break in minified output
+  3. `useChat.ts` had a module-level `const normalizeMessage = ...` function that was the most recent addition
+- Fixed `pusher-client.ts`: Replaced `new Proxy({} as Pusher, { get ... })` with a simple object literal facade that explicitly delegates `subscribe()` and `unsubscribe()` to the lazily-created Pusher client. No Proxy involved.
+- Fixed `pusher-server.ts`: Same approach – replaced Proxy with a simple object facade for `trigger()`.
+- Fixed `use-toast.ts`: Converted ALL function expressions (`const reducer = ...`, `const dispatch = ...`, `const addToRemoveQueue = ...`, `const toast = ...`) to `function` declarations which are always hoisted above `let`/`const` declarations, eliminating TDZ risk.
+- Fixed `useChat.ts`: Removed the module-level `normalizeMessage` helper function and inlined the null coalescing directly in the `.map()` callbacks, eliminating another module-level const.
+- Improved `ErrorBoundary.tsx`: Added `error.stack` and `info.componentStack` logging to `componentDidCatch` for better debugging if the error recurs.
+- Ran lint on all changed files – no errors.
+- Built for Cloudflare Workers (`bun run build:cf`) – succeeded.
+- Deployed to Cloudflare Workers – succeeded at https://puzzle.killermunu.workers.dev (Version: fb451d6f-8ee8-488a-b359-559dde5e9417).
+
+Stage Summary:
+- Eliminated all `new Proxy(...)` patterns in pusher client/server modules (replaced with explicit method facades)
+- Converted all `const fn = () => {}` to `function fn() {}` in use-toast.ts for guaranteed hoisting
+- Removed module-level `normalizeMessage` const from useChat.ts
+- Deployed successfully to Cloudflare Workers
+- Root cause: Most likely the `new Proxy({} as Pusher, { get(_target, prop) { return getPusherClient()[prop]; } })` pattern in pusher-client.ts, where the bundler could reorder the Proxy initialization before the `getPusherClient` function declaration in the production minified output, causing a TDZ error when the Proxy's get handler tried to access the not-yet-initialized function.
