@@ -9,7 +9,19 @@ import React, {
   useState,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, AlertCircle, EyeOff, Reply, Play, Pause, Copy, Trash2, X, ZoomIn } from "lucide-react";
+import {
+  ArrowDown,
+  AlertCircle,
+  EyeOff,
+  Reply,
+  Play,
+  Pause,
+  Copy,
+  Trash2,
+  X,
+  ZoomIn,
+  Forward,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -25,9 +37,17 @@ import { toast } from "@/hooks/use-toast";
 const AUTO_SCROLL_THRESHOLD = 120;
 const ESTIMATED_ROW_HEIGHT = 72;
 const OVERSCAN = 8;
-const DOUBLE_TAP_MS = 300;
 const LONG_PRESS_MS = 500;
-const REACTION_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}", "\u{1F622}", "\u{1F64F}", "\u{1F525}", "\u{1F389}"];
+const REACTION_EMOJIS = [
+  "\u{1F44D}",
+  "\u2764\uFE0F",
+  "\u{1F602}",
+  "\u{1F62E}",
+  "\u{1F622}",
+  "\u{1F64F}",
+  "\u{1F525}",
+  "\u{1F389}",
+];
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -60,11 +80,37 @@ export interface MessageFeedProps {
 /* ------------------------------------------------------------------ */
 
 function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
-  if (status === "sending") return <svg className="size-3 animate-spin text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9" /></svg>;
-  if (status === "failed") return <AlertCircle className="size-3 text-red-500" />;
+  if (status === "sending")
+    return (
+      <svg
+        className="size-3 animate-spin text-muted-foreground/60"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 12a9 9 0 1 1-9-9" />
+      </svg>
+    );
+  if (status === "failed")
+    return <AlertCircle className="size-3 text-red-500" />;
   const double = status !== "sent";
   return (
-    <svg className="size-3 opacity-60 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-label={status} style={{ color: status === "read" ? "var(--app-accent-light)" : undefined }}>
+    <svg
+      className="size-3 opacity-60 text-muted-foreground"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-label={status}
+      style={{
+        color: status === "read" ? "var(--app-accent-light)" : undefined,
+      }}
+    >
       {double && <polyline points="18 6 7 17 2 12" />}
       <polyline points="20 6 9 17 4 12" />
     </svg>
@@ -72,31 +118,29 @@ function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Heart Burst                                                        */
-/* ------------------------------------------------------------------ */
-
-function HeartBurst({ show }: { show: boolean }) {
-  return (
-    <AnimatePresence>
-      {show && (
-        <m.span key="heart" initial={{ opacity: 0, scale: 0.2, y: 8 }} animate={{ opacity: 1, scale: 1.2, y: -56 }} exit={{ opacity: 0, scale: 0.5, y: -80 }} transition={{ type: "spring", stiffness: 420, damping: 18, mass: 0.7 }} className="pointer-events-none absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 select-none text-4xl drop-shadow-lg" style={{ willChange: "transform, opacity", transform: "translate3d(0,0,0)" }} aria-hidden>\u2764\uFE0F</m.span>
-      )}
-    </AnimatePresence>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  Ephemeral Timer (circular SVG countdown)                           */
 /* ------------------------------------------------------------------ */
 
-function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () => void }) {
+function EphemeralTimer({
+  seconds,
+  onExpire,
+}: {
+  seconds: number;
+  onExpire: () => void;
+}) {
   const [remaining, setRemaining] = useState(seconds);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       setRemaining((r) => {
-        if (r <= 1) { clearInterval(intervalRef.current); onExpire(); return 0; }
+        if (r <= 1) {
+          clearInterval(intervalRef.current);
+          onExpire();
+          return 0;
+        }
         return r - 1;
       });
     }, 1000);
@@ -108,19 +152,135 @@ function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () =
   const offset = circ * (1 - pct);
 
   return (
-    <svg className="size-3.5 shrink-0 ephemeral-timer-pulse" viewBox="0 0 18 18" aria-label={`${remaining}s remaining`}>
-      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20" />
-      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ color: "var(--app-accent-lighter)", transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 1s linear" }} />
+    <svg
+      className="size-3.5 shrink-0 ephemeral-timer-pulse"
+      viewBox="0 0 18 18"
+      aria-label={`${remaining}s remaining`}
+    >
+      <circle
+        cx="9"
+        cy="9"
+        r="7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        className="text-white/20"
+      />
+      <circle
+        cx="9"
+        cy="9"
+        r="7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{
+          color: "var(--app-accent-lighter)",
+          transform: "rotate(-90deg)",
+          transformOrigin: "50% 50%",
+          transition: "stroke-dashoffset 1s linear",
+        }}
+      />
     </svg>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tapback Dock (iMessage long-press reactions)                        */
+/*  Message Action Sheet (single-tap action menu)                     */
 /* ------------------------------------------------------------------ */
 
-function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
-  message: ChatMessage; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; onReply: () => void; onCopy: () => void; onDelete?: () => void;
+function MessageActionSheet({
+  isOwn,
+  onReply,
+  onCopy,
+  onDelete,
+  onForward,
+}: {
+  isOwn: boolean;
+  onReply: () => void;
+  onCopy: () => void;
+  onDelete?: () => void;
+  onForward: () => void;
+}) {
+  return (
+    <m.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.15 }}
+      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 bg-zinc-900/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-[var(--app-accent-subtle)]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center gap-1 px-2 py-2">
+        <button
+          type="button"
+          onClick={onReply}
+          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95 group"
+          aria-label="Reply"
+        >
+          <Reply className="size-4 text-white group-hover:text-[var(--app-accent)]" />
+          <span className="text-[10px] text-zinc-400 group-hover:text-[var(--app-accent)]">
+            Reply
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95 group"
+          aria-label="Copy"
+        >
+          <Copy className="size-4 text-white group-hover:text-[var(--app-accent)]" />
+          <span className="text-[10px] text-zinc-400 group-hover:text-[var(--app-accent)]">
+            Copy
+          </span>
+        </button>
+        {isOwn && onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95"
+            aria-label="Delete"
+          >
+            <Trash2 className="size-4 text-red-400" />
+            <span className="text-[10px] text-red-400">Delete</span>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onForward}
+          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95 group"
+          aria-label="Forward"
+        >
+          <Forward className="size-4 text-white group-hover:text-[var(--app-accent)]" />
+          <span className="text-[10px] text-zinc-400 group-hover:text-[var(--app-accent)]">
+            Forward
+          </span>
+        </button>
+      </div>
+    </m.div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tapback Dock (long-press emoji reactions)                          */
+/* ------------------------------------------------------------------ */
+
+function TapbackDock({
+  message,
+  isOwn,
+  onReact,
+  onReply,
+  onCopy,
+  onDelete,
+}: {
+  message: ChatMessage;
+  isOwn: boolean;
+  onReact: (emoji: string, add: boolean) => void;
+  onReply: () => void;
+  onCopy: () => void;
+  onDelete?: () => void;
 }) {
   const [showMore, setShowMore] = useState(false);
   const primaryEmojis = REACTION_EMOJIS.slice(0, 4);
@@ -130,11 +290,11 @@ function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
       initial={{ opacity: 0, scale: 0.8, y: 4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 4 }}
-      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
         "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl",
         isOwn ? "right-2" : "left-2",
-        "-bottom-12"
+        "-top-12",
       )}
       style={{ willChange: "transform, opacity" }}
     >
@@ -142,34 +302,51 @@ function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
         <button
           key={emoji}
           type="button"
-          onClick={(e) => { e.stopPropagation(); onReact(emoji, true); }}
-          className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-90"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReact(emoji, true);
+          }}
+          className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-95"
           aria-label={`React ${emoji}`}
-        >{emoji}</button>
+        >
+          {emoji}
+        </button>
       ))}
       {extraEmojis.length > 0 && (
         <div className="relative">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setShowMore((v) => !v); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMore((v) => !v);
+            }}
             className="flex size-8 items-center justify-center rounded-xl text-xs font-bold text-zinc-400 transition-all duration-150 hover:bg-white/10"
             aria-label="More reactions"
-          >+</button>
+          >
+            +
+          </button>
           <AnimatePresence>
             {showMore && (
               <m.div
                 initial={{ opacity: 0, scale: 0.9, y: 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
                 className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl"
               >
                 {extraEmojis.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onReact(emoji, true); setShowMore(false); }}
-                    className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-90"
-                  >{emoji}</button>
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReact(emoji, true);
+                      setShowMore(false);
+                    }}
+                    className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-95"
+                  >
+                    {emoji}
+                  </button>
                 ))}
               </m.div>
             )}
@@ -177,14 +354,38 @@ function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
         </div>
       )}
       <div className="mx-0.5 h-4 w-px bg-zinc-700" />
-      <button type="button" onClick={(e) => { e.stopPropagation(); onCopy(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10" aria-label="Copy message">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCopy();
+        }}
+        className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10 active:scale-95"
+        aria-label="Copy message"
+      >
         <Copy className="size-3.5" />
       </button>
-      <button type="button" onClick={(e) => { e.stopPropagation(); onReply(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10" aria-label="Reply">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onReply();
+        }}
+        className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10 active:scale-95"
+        aria-label="Reply"
+      >
         <Reply className="size-3.5" />
       </button>
       {isOwn && onDelete && (
-        <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-500 transition-all duration-150 hover:text-red-400 hover:bg-white/10" aria-label="Delete">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="flex size-8 items-center justify-center rounded-xl text-zinc-500 transition-all duration-150 hover:text-red-400 hover:bg-white/10 active:scale-95"
+          aria-label="Delete"
+        >
           <Trash2 className="size-3.5" />
         </button>
       )}
@@ -196,8 +397,14 @@ function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
 /*  Voice Bubble                                                       */
 /* ------------------------------------------------------------------ */
 
-function VoiceBubble({ message, isOwn, waveform }: {
-  message: ChatMessage; isOwn: boolean; waveform: number[];
+function VoiceBubble({
+  message,
+  isOwn,
+  waveform,
+}: {
+  message: ChatMessage;
+  isOwn: boolean;
+  waveform: number[];
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -209,18 +416,29 @@ function VoiceBubble({ message, isOwn, waveform }: {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    const onTime = () => { if (audio.duration) setProgress(audio.currentTime / audio.duration); };
+    const onTime = () => {
+      if (audio.duration) setProgress(audio.currentTime / audio.duration);
+    };
     const onEnd = () => setPlaying(false);
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("ended", onEnd);
-    return () => { audio.removeEventListener("timeupdate", onTime); audio.removeEventListener("ended", onEnd); };
+    return () => {
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("ended", onEnd);
+    };
   }, []);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (playing) { audio.pause(); setPlaying(false); }
-    else { audio.playbackRate = speed; audio.play().catch(() => {}); setPlaying(true); }
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      audio.playbackRate = speed;
+      audio.play().catch(() => {});
+      setPlaying(true);
+    }
   }, [playing, speed]);
 
   const cycleSpeed = useCallback(() => {
@@ -243,16 +461,60 @@ function VoiceBubble({ message, isOwn, waveform }: {
 
   return (
     <div className={cn("flex items-center gap-3", isOwn ? "flex-row-reverse" : "")}>
-      <button type="button" onClick={toggle} className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-all duration-150", isOwn ? "bg-white/20 hover:bg-white/30 hover:scale-105" : "bg-zinc-600 hover:bg-zinc-500 hover:scale-105")} aria-label={playing ? "Pause" : "Play"}>
-        {playing ? <Pause className="size-3.5 text-white" /> : <Play className="size-3.5 text-white ml-0.5" />}
+      <button
+        type="button"
+        onClick={toggle}
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-95",
+          isOwn
+            ? "bg-white/20 hover:bg-white/30"
+            : "bg-zinc-600 hover:bg-[var(--app-accent-subtle)]",
+        )}
+        aria-label={playing ? "Pause" : "Play"}
+      >
+        {playing ? (
+          <Pause className="size-3.5 text-white" />
+        ) : (
+          <Play className="size-3.5 text-white ml-0.5" />
+        )}
       </button>
       <div className="flex items-center gap-[2px]" style={{ height: 32 }}>
         {bars.map((amp, i) => (
-          <div key={i} className="w-[2.5px] rounded-full transition-all duration-100" style={{ height: `${Math.max(4, amp * 32)}px`, backgroundColor: i < progressIdx ? (isOwn ? "rgba(255,255,255,1)" : "var(--app-accent-light)") : (isOwn ? "rgba(255,255,255,0.5)" : "rgba(161,161,170,0.7)") }} />
+          <div
+            key={i}
+            className="w-[2.5px] rounded-full transition-all duration-100"
+            style={{
+              height: `${Math.max(4, amp * 32)}px`,
+              backgroundColor:
+                i < progressIdx
+                  ? isOwn
+                    ? "rgba(255,255,255,1)"
+                    : "var(--app-accent-light)"
+                  : isOwn
+                    ? "rgba(255,255,255,0.5)"
+                    : "rgba(161,161,170,0.7)",
+            }}
+          />
         ))}
       </div>
-      <button type="button" onClick={cycleSpeed} className={cn("shrink-0 text-[11px] font-semibold tabular-nums transition-colors hover:opacity-80", isOwn ? "text-white/70" : "text-zinc-400")}>{speed}x</button>
-      <span className={cn("shrink-0 text-[11px] tabular-nums", isOwn ? "text-white/50" : "text-zinc-500")}>{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}</span>
+      <button
+        type="button"
+        onClick={cycleSpeed}
+        className={cn(
+          "shrink-0 text-[11px] font-semibold tabular-nums transition-colors hover:opacity-80 active:scale-95",
+          isOwn ? "text-white/70" : "text-zinc-400",
+        )}
+      >
+        {speed}x
+      </button>
+      <span
+        className={cn(
+          "shrink-0 text-[11px] tabular-nums",
+          isOwn ? "text-white/50" : "text-zinc-500",
+        )}
+      >
+        {Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}
+      </span>
       <audio ref={audioRef} src={message.content} preload="metadata" />
     </div>
   );
@@ -264,7 +526,9 @@ function VoiceBubble({ message, isOwn, waveform }: {
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 
-type TextSegment = { type: "text"; value: string } | { type: "link"; value: string };
+type TextSegment =
+  | { type: "text"; value: string }
+  | { type: "link"; value: string };
 
 function parseUrls(text: string): TextSegment[] {
   const segments: TextSegment[] = [];
@@ -296,7 +560,10 @@ function highlightText(text: string, query: string): React.ReactNode[] {
       parts.push(text.slice(lastIndex, match.index));
     }
     parts.push(
-      <mark key={match.index} className="bg-yellow-300/60 dark:bg-yellow-400/40 rounded-sm px-0.5">
+      <mark
+        key={match.index}
+        className="bg-yellow-300/60 dark:bg-yellow-400/40 rounded-sm px-0.5"
+      >
         {match[1]}
       </mark>,
     );
@@ -308,7 +575,15 @@ function highlightText(text: string, query: string): React.ReactNode[] {
   return parts;
 }
 
-export const LinkifiedText = React.memo(function LinkifiedText({ text, className, highlight }: { text: string; className?: string; highlight?: string }) {
+export const LinkifiedText = React.memo(function LinkifiedText({
+  text,
+  className,
+  highlight,
+}: {
+  text: string;
+  className?: string;
+  highlight?: string;
+}) {
   const segments = useMemo(() => parseUrls(text), [text]);
   return (
     <span className={className}>
@@ -326,7 +601,9 @@ export const LinkifiedText = React.memo(function LinkifiedText({ text, className
             {seg.value}
           </a>
         ) : (
-          <span key={i}>{highlight ? highlightText(seg.value, highlight) : seg.value}</span>
+          <span key={i}>
+            {highlight ? highlightText(seg.value, highlight) : seg.value}
+          </span>
         ),
       )}
     </span>
@@ -337,17 +614,47 @@ export const LinkifiedText = React.memo(function LinkifiedText({ text, className
 /*  Reply Preview (inside bubble)                                      */
 /* ------------------------------------------------------------------ */
 
-function ReplyPreview({ senderName, content, isOwn }: { senderName: string; content: string; isOwn: boolean }) {
+function ReplyPreview({
+  senderName,
+  content,
+  isOwn,
+}: {
+  senderName: string;
+  content: string;
+  isOwn: boolean;
+}) {
   return (
     <div
       className="mb-1.5 rounded-lg border-l-2 px-2.5 py-1.5"
-      style={isOwn
-        ? { borderLeftColor: "rgba(255,255,255,0.5)", backgroundColor: "rgba(255,255,255,0.08)" }
-        : { borderLeftColor: "var(--app-accent-light)", backgroundColor: "var(--app-accent-glow)" }
+      style={
+        isOwn
+          ? {
+              borderLeftColor: "rgba(255,255,255,0.5)",
+              backgroundColor: "rgba(255,255,255,0.08)",
+            }
+          : {
+              borderLeftColor: "var(--app-accent-light)",
+              backgroundColor: "var(--app-accent-glow)",
+            }
       }
     >
-      <p className="text-[10px] font-bold leading-tight" style={{ color: isOwn ? "rgba(255,255,255,0.7)" : "var(--app-accent-light)" }}>{senderName}</p>
-      <LinkifiedText text={content} className={cn("mt-0.5 truncate text-[11px] leading-snug block", isOwn ? "text-white/50" : "text-zinc-400")} />
+      <p
+        className="text-[10px] font-bold leading-tight"
+        style={{
+          color: isOwn
+            ? "rgba(255,255,255,0.7)"
+            : "var(--app-accent-light)",
+        }}
+      >
+        {senderName}
+      </p>
+      <LinkifiedText
+        text={content}
+        className={cn(
+          "mt-0.5 truncate text-[11px] leading-snug block",
+          isOwn ? "text-white/50" : "text-zinc-400",
+        )}
+      />
     </div>
   );
 }
@@ -363,7 +670,10 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
     }
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
   }, [onClose]);
 
   return (
@@ -371,14 +681,14 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
       onClick={onClose}
     >
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95"
         aria-label="Close"
       >
         <X className="size-5" />
@@ -387,7 +697,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         src={src}
         alt="Full size image"
         className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
@@ -398,33 +708,73 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Reaction Pills (below bubble)                                      */
+/*  Reaction Pills (below bubble, overlapping bottom edge)             */
 /* ------------------------------------------------------------------ */
 
-function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
-  reactions: Record<string, string[]>; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; currentUserId: string;
+function ReactionPills({
+  reactions,
+  isOwn,
+  onReact,
+  currentUserId,
+}: {
+  reactions: Record<string, string[]>;
+  isOwn: boolean;
+  onReact: (emoji: string, add: boolean) => void;
+  currentUserId: string;
 }) {
-  const entries = Object.entries(reactions ?? {}).filter(([, ids]) => ids.length > 0);
+  const entries = Object.entries(reactions ?? {}).filter(
+    ([, ids]) => ids.length > 0,
+  );
   if (entries.length === 0) return null;
   return (
-    <div className={cn("flex flex-wrap gap-1 px-1 relative -bottom-1 mt-[-6px]", isOwn ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "flex flex-wrap gap-1 px-1 relative -mt-1.5",
+        isOwn ? "justify-end" : "justify-start",
+      )}
+    >
       {entries.map(([emoji, ids]) => {
         const isActive = ids.includes(currentUserId);
         return (
-          <button key={emoji} type="button" onClick={() => onReact(emoji, !isActive)}
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onReact(emoji, !isActive)}
             className={cn(
               "reaction-pop flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
               "hover:scale-105 active:scale-95",
-              !isActive && "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
+              !isActive &&
+                "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
             )}
-            style={isActive
-              ? (isOwn
-                ? { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.2)", boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }
-                : { borderColor: "var(--app-accent-light)", backgroundColor: "var(--app-accent-glow)", boxShadow: "0 1px 2px 0 var(--app-accent-glow)" })
-              : undefined
+            style={
+              isActive
+                ? isOwn
+                  ? {
+                      borderColor: "rgba(255,255,255,0.3)",
+                      backgroundColor: "rgba(255,255,255,0.2)",
+                      boxShadow: "0 1px 2px 0 var(--app-accent-glow)",
+                    }
+                  : {
+                      borderColor: "var(--app-accent)",
+                      backgroundColor: "var(--app-accent-subtle)",
+                      boxShadow: "0 1px 2px 0 var(--app-accent-glow)",
+                    }
+                : undefined
             }
           >
-            <span className="text-xs">{emoji}</span><span className="text-[10px] font-medium tabular-nums" style={{ color: isActive ? (isOwn ? "rgba(255,255,255,0.7)" : "var(--app-accent-lighter)") : "rgb(161 161 170)" }}>{ids.length}</span>
+            <span className="text-xs">{emoji}</span>
+            <span
+              className="text-[10px] font-medium tabular-nums"
+              style={{
+                color: isActive
+                  ? isOwn
+                    ? "rgba(255,255,255,0.7)"
+                    : "var(--app-accent-lighter)"
+                  : "rgb(161 161 170)",
+              }}
+            >
+              {ids.length}
+            </span>
           </button>
         );
       })}
@@ -436,213 +786,427 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
 /*  MessageBubble                                                      */
 /* ------------------------------------------------------------------ */
 
-function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, onReact, onDeleteMessage, searchHighlight }: {
-  message: ChatMessage; isOwn: boolean; partnerName: string; partnerAvatar: string | null;
-  onReplyTo?: (msg: ChatMessage) => void; onReact?: (id: string, emoji: string, add: boolean) => void; onDeleteMessage?: (id: string) => void; searchHighlight?: string;
+function MessageBubble({
+  message,
+  isOwn,
+  partnerName,
+  partnerAvatar,
+  currentUserId,
+  onReplyTo,
+  onReact,
+  onDeleteMessage,
+  searchHighlight,
+}: {
+  message: ChatMessage;
+  isOwn: boolean;
+  partnerName: string;
+  partnerAvatar: string | null;
+  currentUserId: string;
+  onReplyTo?: (msg: ChatMessage) => void;
+  onReact?: (id: string, emoji: string, add: boolean) => void;
+  onDeleteMessage?: (id: string) => void;
+  searchHighlight?: string;
 }) {
-  const [showHeart, setShowHeart] = useState(false);
   const [showTapback, setShowTapback] = useState(false);
+  const [showActionSheet, setShowActionSheet] = useState(false);
   const [showLightbox, setShowLightbox] = useState<string | null>(null);
   const [showReplyArrow, setShowReplyArrow] = useState(false);
-  const lastTapRef = useRef(0);
-  const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const bubbleRef = useRef<HTMLDivElement>(null);
-
-  const triggerHeart = useCallback(() => {
-    setShowHeart(true); setTimeout(() => setShowHeart(false), 800);
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
-  }, []);
+  const wasDraggedRef = useRef(false);
 
   const handleClick = useCallback(() => {
     clearTimeout(longPressRef.current);
-    const now = Date.now();
-    if (now - lastTapRef.current < DOUBLE_TAP_MS) triggerHeart();
-    lastTapRef.current = now;
-  }, [triggerHeart]);
+    if (wasDraggedRef.current) {
+      wasDraggedRef.current = false;
+      return;
+    }
+    setShowActionSheet((prev) => {
+      if (!prev) setShowTapback(false);
+      return !prev;
+    });
+  }, []);
 
   const handlePressStart = useCallback(() => {
+    setShowActionSheet(false);
     longPressRef.current = setTimeout(() => {
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator)
+        navigator.vibrate(20);
       setShowTapback(true);
     }, LONG_PRESS_MS);
   }, []);
 
-  const handlePressEnd = useCallback(() => { clearTimeout(longPressRef.current); }, []);
+  const handlePressEnd = useCallback(() => {
+    clearTimeout(longPressRef.current);
+  }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault(); setShowTapback(true);
+    e.preventDefault();
+    setShowActionSheet(false);
+    setShowTapback(true);
   }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(message.content).then(() => {
-      toast({ title: "Copied to clipboard", description: message.content.length > 50 ? message.content.slice(0, 50) + "..." : message.content });
-    }).catch(() => {
-      toast({ title: "Failed to copy", description: "Could not access clipboard", variant: "destructive" });
-    });
+    navigator.clipboard
+      ?.writeText(message.content)
+      .then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description:
+            message.content.length > 50
+              ? message.content.slice(0, 50) + "..."
+              : message.content,
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "Failed to copy",
+          description: "Could not access clipboard",
+          variant: "destructive",
+        });
+      });
     setShowTapback(false);
   }, [message.content]);
 
   const handleDelete = useCallback(() => {
     onDeleteMessage?.(message.id);
     setShowTapback(false);
+    setShowActionSheet(false);
   }, [message.id, onDeleteMessage]);
+
+  const handleActionSheetCopy = useCallback(() => {
+    navigator.clipboard
+      ?.writeText(message.content)
+      .then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description:
+            message.content.length > 50
+              ? message.content.slice(0, 50) + "..."
+              : message.content,
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "Failed to copy",
+          description: "Could not access clipboard",
+          variant: "destructive",
+        });
+      });
+    setShowActionSheet(false);
+  }, [message.content]);
+
+  const handleActionSheetReply = useCallback(() => {
+    onReplyTo?.(message);
+    setShowActionSheet(false);
+  }, [message, onReplyTo]);
+
+  const handleActionSheetForward = useCallback(() => {
+    toast({
+      title: "Forward",
+      description: "Forward coming soon!",
+    });
+    setShowActionSheet(false);
+  }, []);
 
   const isFailed = message.status === "failed";
   const isVoice = message.type === "voice";
   const isText = !isVoice && message.type !== "image";
-  const isNew = message.status === "sending" || Date.now() - new Date(message.created_at).getTime() < 2000;
+  const isNew =
+    message.status === "sending" ||
+    Date.now() - new Date(message.created_at).getTime() < 2000;
 
-  const timestampText = formatDistanceToNow(new Date(message.created_at || Date.now()), { addSuffix: true });
+  const timestampText = formatDistanceToNow(
+    new Date(message.created_at || Date.now()),
+    { addSuffix: true },
+  );
 
   return (
     <>
-    <m.div
-      className={cn("relative flex w-full select-none gap-2.5 px-1.5 sm:px-3", isOwn ? "justify-end" : "justify-start")}
-      initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <HeartBurst show={showHeart} />
-      <AnimatePresence>{showTapback && onReact && (
-        <TapbackDock message={message} isOwn={isOwn} onReact={(emoji, add) => { onReact(message.id, emoji, add); setShowTapback(false); }} onReply={() => { onReplyTo?.(message); setShowTapback(false); }} onCopy={handleCopy} onDelete={isOwn ? handleDelete : undefined} />
-      )}</AnimatePresence>
-
-      {/* Reply arrow indicator for swipe-to-reply */}
       <m.div
         className={cn(
-          "absolute top-1/2 z-10 -translate-y-1/2",
-          isOwn ? "right-1.5 sm:right-3" : "left-1.5 sm:left-3",
+          "relative flex w-full select-none gap-2.5 px-1.5 sm:px-3",
+          isOwn ? "justify-end" : "justify-start",
         )}
-        animate={showReplyArrow ? { scale: 1.2, opacity: 1 } : { scale: 0.5, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 500, damping: 35 }}
-        style={{ pointerEvents: "none" }}
+        initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="flex items-center justify-center rounded-full p-1.5" style={{ backgroundColor: "var(--app-accent)" }}>
-          <Reply className="size-3.5 text-white" />
-        </div>
-      </m.div>
+        <AnimatePresence>
+          {showTapback && onReact && (
+            <TapbackDock
+              message={message}
+              isOwn={isOwn}
+              onReact={(emoji, add) => {
+                onReact(message.id, emoji, add);
+                setShowTapback(false);
+              }}
+              onReply={() => {
+                onReplyTo?.(message);
+                setShowTapback(false);
+              }}
+              onCopy={handleCopy}
+              onDelete={isOwn ? handleDelete : undefined}
+            />
+          )}
+        </AnimatePresence>
 
-      {!isOwn && (
-        <Avatar className="mt-auto size-8 shrink-0 ring-1 ring-muted">
-          {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-          <AvatarFallback className="text-xs font-medium" style={{ background: "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))", color: "var(--app-accent-dark)" }}>{partnerName.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-      )}
-
-      <div className={cn("flex max-w-[75%] flex-col gap-1 select-none", isOwn ? "items-end mr-1.5 sm:mr-3" : "items-start ml-1.5 sm:ml-3")}>
+        {/* Reply arrow indicator for swipe-to-reply */}
         <m.div
-          ref={bubbleRef}
-          drag="x"
-          dragConstraints={{ left: 0, right: 120 }}
-          dragElastic={0.3}
-          onDrag={(_, info) => {
-            if (info.offset.x < 0) return;
-            setShowReplyArrow(info.offset.x > 30);
-          }}
-          onDragEnd={(_, info) => {
-            if (info.offset.x > 60 && onReplyTo) {
-              onReplyTo(message);
-            }
-            setShowReplyArrow(false);
-          }}
-          transition={{ type: "spring", stiffness: 500, damping: 35 }}
-          onClick={handleClick}
-          onPointerDown={handlePressStart}
-          onPointerUp={handlePressEnd}
-          onPointerLeave={handlePressEnd}
-          onContextMenu={handleContextMenu}
           className={cn(
-            "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all duration-200 active:scale-[0.98]",
-            isOwn && "rounded-br-sm text-white",
-            !isOwn && "bg-muted text-foreground rounded-bl-sm shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
-            isFailed && "ring-2 ring-red-400/50",
-            isVoice && "py-2",
-            !isVoice && message.type !== "image" && "md:hover:shadow-md md:hover:-translate-y-0.5",
+            "absolute top-1/2 z-10 -translate-y-1/2",
+            isOwn ? "right-1.5 sm:right-3" : "left-1.5 sm:left-3",
           )}
-          style={{
-            touchCallout: "none",
-            transform: "translate3d(0,0,0)",
-            background: isOwn ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" : undefined,
-            boxShadow: isOwn ? "0 4px 6px -1px var(--app-accent-glow)" : "0 1px 2px 0 var(--app-accent-glow)",
-          } as React.CSSProperties}
+          animate={
+            showReplyArrow
+              ? { scale: 1.2, opacity: 1 }
+              : { scale: 0.5, opacity: 0 }
+          }
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          style={{ pointerEvents: "none" }}
         >
-          {/* Reply quote */}
-          {message.reply_to_id && message.reply_to_content && (
-            <ReplyPreview senderName={message.reply_to_sender_name ?? ""} content={message.reply_to_content} isOwn={isOwn} />
-          )}
-
-          {/* Content */}
-          {isText ? (
-            <div className="flex items-end gap-1.5">
-              <div className="min-w-0 flex-1">
-                <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" highlight={searchHighlight} />
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
-                  <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
-                )}
-                <span className={cn(
-                  "text-[10px] leading-none mt-0.5 whitespace-nowrap",
-                  isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]",
-                  isOwn ? "text-white/50" : "text-muted-foreground/60",
-                )}>{timestampText}</span>
-                {isOwn && <ReceiptIcon status={message.status} />}
-              </div>
-            </div>
-          ) : isVoice ? (
-            message.waveform_data ? (
-              <VoiceBubble message={message} isOwn={isOwn} waveform={message.waveform_data} />
-            ) : <p className="text-white/60 italic">Voice message</p>
-          ) : (
-            <div className="group/img relative cursor-zoom-in" onClick={() => setShowLightbox(message.content)}>
-              <img src={message.content} alt="Shared image" className="max-h-64 rounded-lg object-contain transition-opacity duration-150 group-hover/img:opacity-90" />
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors duration-150 group-hover/img:bg-black/20">
-                <ZoomIn className="size-6 text-white opacity-0 transition-opacity duration-150 group-hover/img:opacity-80" />
-              </div>
-            </div>
-          )}
-
-          {/* Vanish indicator */}
-          {message.vanish_mode && (
-            <div className="mt-1 flex items-center gap-1 text-[10px] text-white/50"><EyeOff className="size-3" /><span>View once</span></div>
-          )}
+          <div
+            className="flex items-center justify-center rounded-full p-1.5"
+            style={{ backgroundColor: "var(--app-accent)" }}
+          >
+            <Reply className="size-3.5 text-white" />
+          </div>
         </m.div>
 
-        {/* Timestamp + receipt for voice/image (text messages have inline timestamp) */}
-        {!isText && (
-          <div className={cn("flex items-center gap-1.5 px-1 text-[10px] text-muted-foreground/60", isOwn && "flex-row-reverse")}>
-            {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
-              <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
+        {!isOwn && (
+          <Avatar className="mt-auto size-8 shrink-0 ring-1 ring-muted">
+            {partnerAvatar && (
+              <AvatarImage src={partnerAvatar} alt={partnerName} />
             )}
-            <span className={cn(isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]")}>{timestampText}</span>
-            {isOwn && <ReceiptIcon status={message.status} />}
-          </div>
+            <AvatarFallback
+              className="text-xs font-medium"
+              style={{
+                background:
+                  "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+                color: "var(--app-accent-dark)",
+              }}
+            >
+              {partnerName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         )}
 
-        {/* Reactions */}
-        {onReact && message.reactions && <ReactionPills reactions={message.reactions} isOwn={isOwn} onReact={(e, a) => onReact(message.id, e, a)} currentUserId={""} />}
-
-        {isFailed && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onDeleteMessage?.(message.id); }}
-            className="mt-1 flex items-center gap-1 px-1 text-[10px] text-red-400 transition-colors hover:text-red-300"
+        <div
+          className={cn(
+            "flex max-w-[75%] flex-col gap-1 select-none",
+            isOwn
+              ? "items-end mr-1.5 sm:mr-3"
+              : "items-start ml-1.5 sm:ml-3",
+          )}
+        >
+          <m.div
+            ref={bubbleRef}
+            drag="x"
+            dragConstraints={{ left: 0, right: 120 }}
+            dragElastic={0.3}
+            dragTransition={{ duration: 0.2, ease: "easeOut" }}
+            onDrag={(_, info) => {
+              if (info.offset.x < 0) return;
+              wasDraggedRef.current = true;
+              setShowReplyArrow(info.offset.x > 30);
+            }}
+            onDragEnd={(_, info) => {
+              if (info.offset.x > 60 && onReplyTo) {
+                onReplyTo(message);
+              }
+              setShowReplyArrow(false);
+            }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            onClick={handleClick}
+            onPointerDown={handlePressStart}
+            onPointerUp={handlePressEnd}
+            onPointerLeave={handlePressEnd}
+            onContextMenu={handleContextMenu}
+            className={cn(
+              "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200 active:scale-95",
+              isOwn && "rounded-br-sm text-white",
+              !isOwn &&
+                "bg-muted text-foreground rounded-bl-sm shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
+              isFailed && "ring-2 ring-red-400/50",
+              isVoice && "py-2",
+              !isVoice &&
+                message.type !== "image" &&
+                "md:hover:shadow-md",
+            )}
+            style={
+              {
+                touchCallout: "none",
+                transform: "translate3d(0,0,0)",
+                background: isOwn
+                  ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))"
+                  : undefined,
+                boxShadow: isOwn
+                  ? "0 4px 6px -1px var(--app-accent-glow)"
+                  : "0 1px 2px 0 var(--app-accent-glow)",
+              } as React.CSSProperties
+            }
           >
-            <AlertCircle className="size-3" />
-            <span>Failed to send &middot; Tap to retry</span>
-          </button>
+            {/* Message Action Sheet (single-tap menu) */}
+            <AnimatePresence>
+              {showActionSheet && (
+                <MessageActionSheet
+                  isOwn={isOwn}
+                  onReply={handleActionSheetReply}
+                  onCopy={handleActionSheetCopy}
+                  onDelete={isOwn ? handleDelete : undefined}
+                  onForward={handleActionSheetForward}
+                />
+              )}
+            </AnimatePresence>
+
+            {/* Reply quote */}
+            {message.reply_to_id && message.reply_to_content && (
+              <ReplyPreview
+                senderName={message.reply_to_sender_name ?? ""}
+                content={message.reply_to_content}
+                isOwn={isOwn}
+              />
+            )}
+
+            {/* Content */}
+            {isText ? (
+              <div className="flex items-end gap-1.5">
+                <div className="min-w-0 flex-1">
+                  <LinkifiedText
+                    text={message.content}
+                    className="whitespace-pre-wrap break-words"
+                    highlight={searchHighlight}
+                  />
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {message.ephemeral_seconds &&
+                    message.ephemeral_seconds > 0 && (
+                      <EphemeralTimer
+                        seconds={message.ephemeral_seconds}
+                        onExpire={() => {
+                          /* trigger vanish */
+                        }}
+                      />
+                    )}
+                  <span
+                    className={cn(
+                      "text-[10px] leading-none mt-0.5 whitespace-nowrap",
+                      isNew &&
+                        "animate-[timestamp-fade_0.4s_ease_0.3s_both]",
+                      isOwn
+                        ? "text-white/50"
+                        : "text-muted-foreground/60",
+                    )}
+                  >
+                    {timestampText}
+                  </span>
+                  {isOwn && <ReceiptIcon status={message.status} />}
+                </div>
+              </div>
+            ) : isVoice ? (
+              message.waveform_data ? (
+                <VoiceBubble
+                  message={message}
+                  isOwn={isOwn}
+                  waveform={message.waveform_data}
+                />
+              ) : (
+                <p className="text-white/60 italic">Voice message</p>
+              )
+            ) : (
+              <div
+                className="group/img relative cursor-zoom-in"
+                onClick={() => setShowLightbox(message.content)}
+              >
+                <img
+                  src={message.content}
+                  alt="Shared image"
+                  className="max-h-64 rounded-lg object-contain transition-opacity duration-150 group-hover/img:opacity-90"
+                />
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors duration-150 group-hover/img:bg-black/20">
+                  <ZoomIn className="size-6 text-white opacity-0 transition-opacity duration-150 group-hover/img:opacity-80" />
+                </div>
+              </div>
+            )}
+
+            {/* Vanish indicator */}
+            {message.vanish_mode && (
+              <div className="mt-1 flex items-center gap-1 text-[10px] text-white/50">
+                <EyeOff className="size-3" />
+                <span>View once</span>
+              </div>
+            )}
+          </m.div>
+
+          {/* Timestamp + receipt for voice/image (text messages have inline timestamp) */}
+          {!isText && (
+            <div
+              className={cn(
+                "flex items-center gap-1.5 px-1 text-[10px] text-muted-foreground/60",
+                isOwn && "flex-row-reverse",
+              )}
+            >
+              {message.ephemeral_seconds &&
+                message.ephemeral_seconds > 0 && (
+                  <EphemeralTimer
+                    seconds={message.ephemeral_seconds}
+                    onExpire={() => {
+                      /* trigger vanish */
+                    }}
+                  />
+                )}
+              <span
+                className={cn(
+                  isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]",
+                )}
+              >
+                {timestampText}
+              </span>
+              {isOwn && <ReceiptIcon status={message.status} />}
+            </div>
+          )}
+
+          {/* Reactions – overlapping bubble bottom edge */}
+          {onReact && message.reactions && (
+            <ReactionPills
+              reactions={message.reactions}
+              isOwn={isOwn}
+              onReact={(e, a) => onReact(message.id, e, a)}
+              currentUserId={currentUserId}
+            />
+          )}
+
+          {isFailed && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteMessage?.(message.id);
+              }}
+              className="mt-1 flex items-center gap-1 px-1 text-[10px] text-red-400 transition-colors hover:text-red-300 active:scale-95"
+            >
+              <AlertCircle className="size-3" />
+              <span>
+                Failed to send &middot; Tap to retry
+              </span>
+            </button>
+          )}
+        </div>
+
+        {isOwn && <div className="w-8 shrink-0" />}
+      </m.div>
+
+      {/* Image Lightbox */}
+      <AnimatePresence>
+        {showLightbox && (
+          <ImageLightbox
+            src={showLightbox}
+            onClose={() => setShowLightbox(null)}
+          />
         )}
-      </div>
-
-      {isOwn && <div className="w-8 shrink-0" />}
-    </m.div>
-
-    {/* Image Lightbox */}
-    <AnimatePresence>
-      {showLightbox && (
-        <ImageLightbox src={showLightbox} onClose={() => setShowLightbox(null)} />
-      )}
-    </AnimatePresence>
+      </AnimatePresence>
     </>
   );
 }
@@ -668,7 +1232,7 @@ function DateSeparator({ date }: { date: string }) {
   return (
     <div className="flex items-center gap-3 px-1.5 sm:px-3 py-2">
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-      <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-border/50">
+      <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-[var(--app-accent-subtle)]">
         {formatDateSeparator(date)}
       </span>
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -680,44 +1244,95 @@ function DateSeparator({ date }: { date: string }) {
 /*  TypingIndicator (smooth wave dots)                                 */
 /* ------------------------------------------------------------------ */
 
-function TypingIndicator({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
-  const initials = partnerName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+function TypingIndicator({
+  partnerName,
+  partnerAvatar,
+}: {
+  partnerName: string;
+  partnerAvatar: string | null;
+}) {
+  const initials = partnerName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
   return (
     <div className="flex items-end gap-2.5 px-1.5 sm:px-3">
       <Avatar className="size-8 shrink-0 ring-1 ring-muted">
-        {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-        <AvatarFallback className="text-xs font-medium" style={{ background: "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))", color: "var(--app-accent-dark)" }}>{initials}</AvatarFallback>
+        {partnerAvatar && (
+          <AvatarImage src={partnerAvatar} alt={partnerName} />
+        )}
+        <AvatarFallback
+          className="text-xs font-medium"
+          style={{
+            background:
+              "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+            color: "var(--app-accent-dark)",
+          }}
+        >
+          {initials}
+        </AvatarFallback>
       </Avatar>
       <m.div
         initial={{ opacity: 0, y: 8, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 4, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.15 }}
         className="flex items-center gap-2.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800"
         style={{ boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }}
       >
         <span className="flex gap-1">
-          <span className="typing-dot size-[7px] rounded-full" style={{ backgroundColor: "var(--app-accent-light)" }} />
-          <span className="typing-dot size-[7px] rounded-full" style={{ backgroundColor: "var(--app-accent-light)" }} />
-          <span className="typing-dot size-[7px] rounded-full" style={{ backgroundColor: "var(--app-accent-light)" }} />
+          <span
+            className="typing-dot size-[7px] rounded-full"
+            style={{ backgroundColor: "var(--app-accent-light)" }}
+          />
+          <span
+            className="typing-dot size-[7px] rounded-full"
+            style={{ backgroundColor: "var(--app-accent-light)" }}
+          />
+          <span
+            className="typing-dot size-[7px] rounded-full"
+            style={{ backgroundColor: "var(--app-accent-light)" }}
+          />
         </span>
-        <span className="text-xs text-muted-foreground">{partnerName} is typing\u2026</span>
+        <span className="text-xs text-muted-foreground">
+          {partnerName} is typing{"\u2026"}
+        </span>
       </m.div>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Skeleton / Empty / NewMsgs                                          */
+/*  Skeleton / Empty / NewMsgs                                         */
 /* ------------------------------------------------------------------ */
 
 function MessageListSkeleton() {
   return (
     <div className="flex flex-col gap-4 px-1.5 sm:px-3 py-2">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className={cn("flex gap-2.5", i % 2 === 0 ? "justify-start" : "justify-end")}>
-          {i % 2 === 0 && <Skeleton className="size-8 shrink-0 rounded-full" />}
-          <Skeleton className={cn("h-16 w-48 rounded-2xl")} style={i % 2 !== 0 ? { background: "linear-gradient(to right, var(--app-accent-glow), transparent)" } : undefined} />
+        <div
+          key={i}
+          className={cn(
+            "flex gap-2.5",
+            i % 2 === 0 ? "justify-start" : "justify-end",
+          )}
+        >
+          {i % 2 === 0 && (
+            <Skeleton className="size-8 shrink-0 rounded-full" />
+          )}
+          <Skeleton
+            className={cn("h-16 w-48 rounded-2xl")}
+            style={
+              i % 2 !== 0
+                ? {
+                    background:
+                      "linear-gradient(to right, var(--app-accent-glow), transparent)",
+                  }
+                : undefined
+            }
+          />
           {i % 2 !== 0 && <div className="w-8 shrink-0" />}
         </div>
       ))}
@@ -725,15 +1340,45 @@ function MessageListSkeleton() {
   );
 }
 
-function NewMessagesButton({ onClick, count }: { onClick: () => void; count: number }) {
+function NewMessagesButton({
+  onClick,
+  count,
+}: {
+  onClick: () => void;
+  count: number;
+}) {
   return (
-    <m.button type="button" onClick={onClick} initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-colors hover:opacity-90 active:scale-95" aria-label={`Scroll to ${count} new`} style={{ transform: "translate3d(0,0,0)", background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))", boxShadow: "0 10px 15px -3px var(--app-accent-glow)" }}>
-      <ArrowDown className="size-3.5" /><span>{count} new message{count > 1 ? "s" : ""}</span>
+    <m.button
+      type="button"
+      onClick={onClick}
+      initial={{ opacity: 0, y: 16, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 16, scale: 0.9 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-colors hover:opacity-90 active:scale-95"
+      aria-label={`Scroll to ${count} new`}
+      style={{
+        transform: "translate3d(0,0,0)",
+        background:
+          "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+        boxShadow: "0 10px 15px -3px var(--app-accent-glow)",
+      }}
+    >
+      <ArrowDown className="size-3.5" />
+      <span>
+        {count} new message{count > 1 ? "s" : ""}
+      </span>
     </m.button>
   );
 }
 
-function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
+function EmptyState({
+  partnerName,
+  partnerAvatar,
+}: {
+  partnerName: string;
+  partnerAvatar: string | null;
+}) {
   const initials = partnerName
     .split(" ")
     .map((w) => w[0])
@@ -743,27 +1388,43 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
-      {/* Decorative large avatar with pulse + glow */}
+      {/* Decorative large avatar with glow */}
       <div className="relative">
         {/* Animated glow ring */}
-        <div className="absolute -inset-3 rounded-full blur-lg animate-[pulse_3s_ease-in-out_infinite]" style={{ background: "linear-gradient(to bottom right, var(--app-accent-glow), var(--app-accent-glow))" }} />
-        <m.div
-          animate={{ scale: [1, 1.02, 1] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="relative"
-        >
-          <Avatar className="size-20 ring-4" style={{ "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties}>
-            {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-            <AvatarFallback className="text-2xl font-bold text-white" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}>
+        <div
+          className="absolute -inset-3 rounded-full blur-lg animate-[pulse_3s_ease-in-out_infinite]"
+          style={{
+            background:
+              "linear-gradient(to bottom right, var(--app-accent-glow), var(--app-accent-glow))",
+          }}
+        />
+        <div className="relative">
+          <Avatar
+            className="size-20 ring-4"
+            style={
+              { "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties
+            }
+          >
+            {partnerAvatar && (
+              <AvatarImage src={partnerAvatar} alt={partnerName} />
+            )}
+            <AvatarFallback
+              className="text-2xl font-bold text-white"
+              style={{
+                background:
+                  "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))",
+              }}
+            >
               {initials}
             </AvatarFallback>
           </Avatar>
-        </m.div>
+        </div>
       </div>
       <div className="text-center">
         <p className="text-sm font-semibold text-foreground">{partnerName}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {"\uD83D\uDC4B"} No messages yet. Say hello to start the conversation!
+          {"\uD83D\uDC4B"} No messages yet. Say hello to start the
+          conversation!
         </p>
       </div>
     </div>
@@ -774,47 +1435,107 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
 /*  MessageFeed (main export)                                          */
 /* ------------------------------------------------------------------ */
 
-export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, backgroundStyle, onMarkAsRead, onVanishMessage, onReplyTo, onDeleteMessage, onReact, scrollToMessageId, onScrolledToMessage, searchHighlight, onClearSearchHighlight, loadMore, hasMore, loadingMore }: MessageFeedProps) {
+export function MessageFeed({
+  messages,
+  isLoading,
+  isPartnerTyping,
+  currentUserId,
+  partnerName,
+  partnerAvatar,
+  backgroundStyle,
+  onMarkAsRead,
+  onVanishMessage,
+  onReplyTo,
+  onDeleteMessage,
+  onReact,
+  scrollToMessageId,
+  onScrolledToMessage,
+  searchHighlight,
+  onClearSearchHighlight,
+  loadMore,
+  hasMore,
+  loadingMore,
+}: MessageFeedProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const isAutoScrollRef = useRef(true);
   const [showNewBtn, setShowNewBtn] = useState(false);
   const unreadRef = useRef(0);
   const prevCountRef = useRef(messages.length);
-  const prevFirstIdRef = useRef(messages.length > 0 ? messages[0].id : null);
+  const prevFirstIdRef = useRef(
+    messages.length > 0 ? messages[0].id : null,
+  );
   const prevScrollHeightRef = useRef(0);
 
-  const totalItems = useMemo(() => messages.length + (isPartnerTyping ? 1 : 0), [messages.length, isPartnerTyping]);
+  const totalItems = useMemo(
+    () => messages.length + (isPartnerTyping ? 1 : 0),
+    [messages.length, isPartnerTyping],
+  );
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
 
-  const virtualizer = useVirtualizer({ count: totalItems, getScrollElement: () => parentRef.current, estimateSize: () => ESTIMATED_ROW_HEIGHT, overscan: OVERSCAN, paddingStart: 16, paddingEnd: 16, gap: 12 });
+  const virtualizer = useVirtualizer({
+    count: totalItems,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: OVERSCAN,
+    paddingStart: 16,
+    paddingEnd: 16,
+    gap: 12,
+  });
 
-  const handleScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (dist <= AUTO_SCROLL_THRESHOLD) { isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0; }
-    else { isAutoScrollRef.current = false; }
-    /* Trigger loadMore when scrolled near top */
-    if (el.scrollTop < 300 && hasMore && !loadingMore) {
-      loadMoreRef.current?.();
-    }
-  }, [hasMore, loadingMore]);
+  const handleScroll = useCallback(
+    (e: UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (dist <= AUTO_SCROLL_THRESHOLD) {
+        isAutoScrollRef.current = true;
+        setShowNewBtn(false);
+        unreadRef.current = 0;
+      } else {
+        isAutoScrollRef.current = false;
+      }
+      /* Trigger loadMore when scrolled near top */
+      if (el.scrollTop < 300 && hasMore && !loadingMore) {
+        loadMoreRef.current?.();
+      }
+    },
+    [hasMore, loadingMore],
+  );
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const el = parentRef.current; if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior });
-    isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0;
-  }, []);
+  const scrollToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      const el = parentRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior });
+      isAutoScrollRef.current = true;
+      setShowNewBtn(false);
+      unreadRef.current = 0;
+    },
+    [],
+  );
 
-  useEffect(() => { if (messages.length > 0) requestAnimationFrame(() => scrollToBottom("instant")); }, [isLoading, scrollToBottom]);
+  useEffect(() => {
+    if (messages.length > 0)
+      requestAnimationFrame(() => scrollToBottom("instant"));
+  }, [isLoading, scrollToBottom]);
 
-  useEffect(() => { if (!onMarkAsRead) return; const unread = messages.filter((m) => m.sender_id !== currentUserId && m.status !== "read"); if (unread.length > 0 && isAutoScrollRef.current) onMarkAsRead(unread.map((m) => m.id)); }, [messages, currentUserId, onMarkAsRead]);
+  useEffect(() => {
+    if (!onMarkAsRead) return;
+    const unread = messages.filter(
+      (m) => m.sender_id !== currentUserId && m.status !== "read",
+    );
+    if (unread.length > 0 && isAutoScrollRef.current)
+      onMarkAsRead(unread.map((m) => m.id));
+  }, [messages, currentUserId, onMarkAsRead]);
 
   /* ---- Scroll to a specific message ----------------------------------- */
   useEffect(() => {
     if (!scrollToMessageId) return;
     const idx = messages.findIndex((m) => m.id === scrollToMessageId);
-    if (idx === -1) { onScrolledToMessage?.(); return; }
+    if (idx === -1) {
+      onScrolledToMessage?.();
+      return;
+    }
     virtualizer.scrollToIndex(idx, { align: "center" });
     onScrolledToMessage?.();
   }, [scrollToMessageId, messages, virtualizer, onScrolledToMessage]);
@@ -824,7 +1545,8 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
     const prev = prevCountRef.current;
     const prevFirstId = prevFirstIdRef.current;
     prevCountRef.current = messages.length;
-    prevFirstIdRef.current = messages.length > 0 ? messages[0].id : null;
+    prevFirstIdRef.current =
+      messages.length > 0 ? messages[0].id : null;
 
     if (messages.length <= prev) return;
 
@@ -849,9 +1571,16 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
     /* New messages appended at the end */
     const last = messages[messages.length - 1];
     const own = last && last.sender_id === currentUserId;
-    if (own) { requestAnimationFrame(() => scrollToBottom("instant")); return; }
-    if (isAutoScrollRef.current) requestAnimationFrame(() => scrollToBottom("smooth"));
-    else { unreadRef.current += messages.length - prev; setShowNewBtn(true); }
+    if (own) {
+      requestAnimationFrame(() => scrollToBottom("instant"));
+      return;
+    }
+    if (isAutoScrollRef.current)
+      requestAnimationFrame(() => scrollToBottom("smooth"));
+    else {
+      unreadRef.current += messages.length - prev;
+      setShowNewBtn(true);
+    }
   }, [messages.length, currentUserId, scrollToBottom]);
 
   /* Track scroll height for scroll preservation */
@@ -862,21 +1591,65 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
   }, [messages.length]);
 
   if (isLoading) return <MessageListSkeleton />;
-  if (messages.length === 0 && !isPartnerTyping) return <EmptyState partnerName={partnerName} partnerAvatar={partnerAvatar} />;
+  if (messages.length === 0 && !isPartnerTyping)
+    return (
+      <EmptyState partnerName={partnerName} partnerAvatar={partnerAvatar} />
+    );
 
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="relative h-full w-full overflow-hidden" style={backgroundStyle}>
-      <div ref={parentRef} onScroll={handleScroll} onClick={() => onClearSearchHighlight?.()} className="h-full w-full select-none overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
-        <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+    <div
+      className="relative h-full w-full overflow-hidden"
+      style={backgroundStyle}
+    >
+      <div
+        ref={parentRef}
+        onScroll={handleScroll}
+        onClick={() => onClearSearchHighlight?.()}
+        className="h-full w-full select-none overflow-y-auto overscroll-contain"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
           {/* Loading more spinner */}
           {loadingMore && (
-            <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "48px", zIndex: 5 }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "48px",
+                zIndex: 5,
+              }}
+            >
               <div className="flex items-center justify-center py-3">
-                <svg className="size-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-label="Loading more messages" style={{ color: "var(--app-accent-light)" }}>
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <svg
+                  className="size-5 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-label="Loading more messages"
+                  style={{ color: "var(--app-accent-light)" }}
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               </div>
             </div>
@@ -885,18 +1658,50 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
             const isTyping = vi.index === messages.length;
             const msg = isTyping ? null : messages[vi.index];
             // Check if we need a date separator before this message
-            const showDateSep = msg && vi.index > 0 && messages[vi.index - 1] && (() => {
-              const prev = new Date(messages[vi.index - 1].created_at);
-              const curr = new Date(msg.created_at);
-              return prev.toDateString() !== curr.toDateString();
-            })();
+            const showDateSep =
+              msg &&
+              vi.index > 0 &&
+              messages[vi.index - 1] &&
+              (() => {
+                const prev = new Date(messages[vi.index - 1].created_at);
+                const curr = new Date(msg.created_at);
+                return prev.toDateString() !== curr.toDateString();
+              })();
             const showFirstDateSep = msg && vi.index === 0;
             return (
-              <div key={vi.key} data-index={vi.index} ref={virtualizer.measureElement} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)` }}>
-                {isTyping ? <TypingIndicator partnerName={partnerName} partnerAvatar={partnerAvatar} /> : msg ? (
+              <div
+                key={vi.key}
+                data-index={vi.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${vi.start}px)`,
+                }}
+              >
+                {isTyping ? (
+                  <TypingIndicator
+                    partnerName={partnerName}
+                    partnerAvatar={partnerAvatar}
+                  />
+                ) : msg ? (
                   <>
-                    {(showDateSep || showFirstDateSep) && <DateSeparator date={msg.created_at} />}
-                    <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} onDeleteMessage={onDeleteMessage} searchHighlight={searchHighlight} />
+                    {(showDateSep || showFirstDateSep) && (
+                      <DateSeparator date={msg.created_at} />
+                    )}
+                    <MessageBubble
+                      message={msg}
+                      isOwn={msg.sender_id === currentUserId}
+                      partnerName={partnerName}
+                      partnerAvatar={partnerAvatar}
+                      currentUserId={currentUserId}
+                      onReplyTo={onReplyTo}
+                      onReact={onReact}
+                      onDeleteMessage={onDeleteMessage}
+                      searchHighlight={searchHighlight}
+                    />
                   </>
                 ) : null}
               </div>
@@ -904,7 +1709,12 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
           })}
         </div>
       </div>
-      {showNewBtn && unreadRef.current > 0 && <NewMessagesButton count={unreadRef.current} onClick={() => scrollToBottom("smooth")} />}
+      {showNewBtn && unreadRef.current > 0 && (
+        <NewMessagesButton
+          count={unreadRef.current}
+          onClick={() => scrollToBottom("smooth")}
+        />
+      )}
     </div>
   );
 }

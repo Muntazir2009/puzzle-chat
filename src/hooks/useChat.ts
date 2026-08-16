@@ -9,6 +9,15 @@ import { getRoomId } from "@/lib/room";
 import type { ChatChannelEvents } from "@/lib/pusher-server";
 import type { Channel } from "pusher-js";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
+import { createBrowserClient } from "@supabase/ssr";
+
+/* ------------------------------------------------------------------ */
+/*  Supabase Realtime client (singleton, module-level)                 */
+/* ------------------------------------------------------------------ */
+const supabaseRealtime = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -295,6 +304,121 @@ export function useChat({
       channelRef.current = undefined;
     };
   }, [channelName, currentUserId]);
+
+  /* ---- Supabase Realtime Fallback -------------------------------- */
+  /*
+   * On Cloudflare Workers the server-side Pusher SDK cannot broadcast,
+   * so messages are persisted but never delivered via Pusher.
+   * This Supabase Realtime subscription catches INSERT / DELETE / UPDATE
+   * events on the messages table so the UI stays live.
+   *
+   * Deduplication (prev.some(m => m.id === incoming.id)) ensures that
+   * messages already delivered via Pusher or the send-response are not
+   * duplicated.
+   */
+  useEffect(() => {
+    if (conversationId.startsWith("temp-")) return;
+
+    const channel = supabaseRealtime
+      .channel(`messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const raw = payload.new as Record<string, unknown>;
+          const incoming: ChatMessage = {
+            id: (raw.id as string) ?? "",
+            conversation_id: (raw.conversation_id as string) ?? "",
+            sender_id: (raw.sender_id as string) ?? "",
+            sender_name: (raw.sender_name as string) ?? "",
+            reply_to_id: (raw.reply_to_id as string) ?? null,
+            reply_to_content: (raw.reply_to_content as string) ?? null,
+            reply_to_sender_name: (raw.reply_to_sender_name as string) ?? null,
+            content: (raw.content as string) ?? "",
+            type: (raw.type as ChatMessage["type"]) ?? "text",
+            status: (raw.status as ChatMessage["status"]) ?? "sent",
+            vanish_mode: Boolean(raw.vanish_mode),
+            ephemeral_seconds: (raw.ephemeral_seconds as number) ?? null,
+            voice_duration: (raw.voice_duration as number) ?? null,
+            waveform_data: Array.isArray(raw.waveform_data)
+              ? (raw.waveform_data as number[])
+              : null,
+            reactions:
+              (raw.reactions && typeof raw.reactions === "object"
+                ? raw.reactions
+                : {}) as Record<string, string[]>,
+            created_at: (raw.created_at as string) ?? new Date().toISOString(),
+          };
+
+          // Deduplicate — Pusher or the send response may have already delivered it
+          setMessages((prev) =>
+            prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]
+          );
+
+          // Auto-mark as read for incoming messages from the other user
+          if (incoming.sender_id !== currentUserId) {
+            fetch("/api/messages/read", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                conversation_id: incoming.conversation_id,
+                message_ids: [incoming.id],
+              }),
+            }).catch(() => {});
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const deletedId = payload.old.id as string;
+          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const raw = payload.new as Record<string, unknown>;
+          const updatedId = raw.id as string;
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== updatedId) return m;
+              const reactions =
+                (raw.reactions && typeof raw.reactions === "object"
+                  ? raw.reactions
+                  : {}) as Record<string, string[]>;
+              return {
+                ...m,
+                reactions,
+                status: (raw.status as ChatMessage["status"]) ?? m.status,
+              };
+            })
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseRealtime.removeChannel(channel);
+    };
+  }, [conversationId, currentUserId]);
 
   /* ---- Send ----------------------------------------------------- */
   const sendMessage = useCallback(

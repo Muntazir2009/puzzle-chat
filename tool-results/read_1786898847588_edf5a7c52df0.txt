@@ -1,0 +1,723 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+     4→     4→import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Loader2, FileText } from "lucide-react";
+     5→     5→import { Button } from "@/components/ui/button";
+     6→     6→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+     7→     7→import { Switch } from "@/components/ui/switch";
+     8→     8→import { Separator } from "@/components/ui/separator";
+     9→     9→import { MessageFeed } from "@/components/chat/MessageFeed";
+    10→    10→import { EmojiPicker } from "@/components/chat/EmojiPicker";
+    11→    11→import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
+    12→    12→import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
+    13→    13→import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+    14→    14→import { useVisualViewport } from "@/hooks/useVisualViewport";
+    15→    15→import { cn } from "@/lib/utils";
+    16→    16→import { m, AnimatePresence } from "framer-motion";
+    17→    17→import { formatDistanceToNow } from "date-fns";
+    18→    18→import { toast } from "@/hooks/use-toast";
+    19→    19→
+    20→    20→/* ------------------------------------------------------------------ */
+    21→    21→/*  Props                                                              */
+    22→    22→/* ------------------------------------------------------------------ */
+    23→    23→
+    24→    24→export interface ChatPartner { id: string; name: string; avatar_url: string | null }
+    25→    25→export interface ChatLayoutProps { currentUserId: string; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
+    26→    26→
+    27→    27→const EPHEMERAL_OPTIONS = [
+    28→    28→  { label: "Off", value: null },
+    29→    29→  { label: "5s", value: 5 },
+    30→    30→  { label: "1m", value: 60 },
+    31→    31→  { label: "1h", value: 3600 },
+    32→    32→];
+    33→    33→
+    34→    34→/* ------------------------------------------------------------------ */
+    35→    35→/*  Constants                                                          */
+    36→    36→/* ------------------------------------------------------------------ */
+    37→    37→
+    38→    38→const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+    39→    39→const ACCEPTED_TYPES = "image/*,video/mp4,.pdf,.txt";
+    40→    40→const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+    41→    41→
+    42→    42→/* ------------------------------------------------------------------ */
+    43→    43→/*  Helpers                                                            */
+    44→    44→/* ------------------------------------------------------------------ */
+    45→    45→
+    46→    46→function formatFileSize(bytes: number): string {
+    47→    47→  if (bytes < 1024) return `${bytes} B`;
+    48→    48→  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    49→    49→  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    50→    50→}
+    51→    51→
+    52→    52→function formatLastSeen(lastSeen: string | null): string {
+    53→    53→  if (!lastSeen) return "Offline";
+    54→    54→  const diffMs = Date.now() - new Date(lastSeen).getTime();
+    55→    55→  const diffSec = Math.floor(diffMs / 1000);
+    56→    56→  if (diffSec < 60) return "Seen just now";
+    57→    57→  const diffMin = Math.floor(diffSec / 60);
+    58→    58→  if (diffMin < 60) return `Seen ${diffMin}m ago`;
+    59→    59→  const diffHr = Math.floor(diffMin / 60);
+    60→    60→  if (diffHr < 24) return `Seen ${diffHr}h ago`;
+    61→    61→  const diffDay = Math.floor(diffHr / 24);
+    62→    62→  if (diffDay < 7) return `Seen ${diffDay}d ago`;
+    63→    63→  return `Seen ${new Date(lastSeen).toLocaleDateString()}`;
+    64→    64→}
+    65→    65→
+    66→    66→function StatusDot({ online, size = "size-2.5" }: { online: boolean; size?: string }) {
+    67→    67→  return (
+    68→    68→    <span
+    69→    69→      className={cn(
+    70→    70→        "inline-block rounded-full",
+    71→    71→        size,
+    72→    72→        online ? "bg-emerald-500" : "bg-muted-foreground/50",
+    73→    73→      )}
+    74→    74→    />
+    75→    75→  );
+    76→    76→}
+    77→    77→
+    78→    78→/* ------------------------------------------------------------------ */
+    79→    79→/*  PartnerInfoPanel                                                   */
+    80→    80→/* ------------------------------------------------------------------ */
+    81→    81→
+    82→    82→function PartnerInfoPanel({
+    83→    83→  partner,
+    84→    84→  partnerStatus,
+    85→    85→  open,
+    86→    86→  onClose,
+    87→    87→}: {
+    88→    88→  partner: ChatPartner;
+    89→    89→  partnerStatus: PartnerStatus;
+    90→    90→  open: boolean;
+    91→    91→  onClose: () => void;
+    92→    92→}) {
+    93→    93→  const [muted, setMuted] = useState(false);
+    94→    94→
+    95→    95→  return (
+    96→    96→    <AnimatePresence>
+    97→    97→      {open && (
+    98→    98→        <>
+    99→    99→          {/* Backdrop */}
+   100→   100→          <m.div
+   101→   101→            key="backdrop"
+   102→   102→            initial={{ opacity: 0 }}
+   103→   103→            animate={{ opacity: 1 }}
+   104→   104→            exit={{ opacity: 0 }}
+   105→   105→            transition={{ duration: 0.2 }}
+   106→   106→            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+   107→   107→            onClick={onClose}
+   108→   108→          />
+   109→   109→          {/* Panel */}
+   110→   110→          <m.aside
+   111→   111→            key="panel"
+   112→   112→            initial={{ x: "100%" }}
+   113→   113→            animate={{ x: 0 }}
+   114→   114→            exit={{ x: "100%" }}
+   115→   115→            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+   116→   116→            className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-background border-l shadow-2xl"
+   117→   117→          >
+   118→   118→            {/* Panel header */}
+   119→   119→            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+   120→   120→              <h3 className="text-sm font-semibold">User Info</h3>
+   121→   121→              <button
+   122→   122→                type="button"
+   123→   123→                onClick={onClose}
+   124→   124→                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
+   125→   125→                aria-label="Close panel"
+   126→   126→              >
+   127→   127→                <X className="size-4" />
+   128→   128→              </button>
+   129→   129→            </div>
+   130→   130→
+   131→   131→            {/* Scrollable content */}
+   132→   132→            <div className="flex-1 overflow-y-auto">
+   133→   133→              {/* Avatar + Name + Status */}
+   134→   134→              <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
+   135→   135→                <div className="relative">
+   136→   136→                  <Avatar className="size-20 ring-4 ring-[var(--app-accent-lighter)]/20 dark:ring-[var(--app-accent)]/30">
+   137→   137→                    {partner.avatar_url && (
+   138→   138→                      <AvatarImage src={partner.avatar_url} alt={partner.name} />
+   139→   139→                    )}
+   140→   140→                    <AvatarFallback
+   141→   141→                      className="text-xl font-bold text-white"
+   142→   142→                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+   143→   143→                    >
+   144→   144→                      {partner.name.slice(0, 2).toUpperCase()}
+   145→   145→                    </AvatarFallback>
+   146→   146→                  </Avatar>
+   147→   147→                  <span
+   148→   148→                    className={cn(
+   149→   149→                      "absolute bottom-1 right-1 size-3.5 rounded-full ring-2 ring-background",
+   150→   150→                      partnerStatus.online ? "bg-emerald-500" : "bg-muted-foreground/50",
+   151→   151→                    )}
+   152→   152→                  />
+   153→   153→                </div>
+   154→   154→                <div className="flex flex-col items-center gap-1">
+   155→   155→                  <span className="text-lg font-semibold">{partner.name}</span>
+   156→   156→                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   157→   157→                    <StatusDot online={partnerStatus.online} size="size-2" />
+   158→   158→                    <span>
+   159→   159→                      {partnerStatus.online
+   160→   160→                        ? "Online"
+   161→   161→                        : formatLastSeen(partnerStatus.last_seen)}
+   162→   162→                    </span>
+   163→   163→                  </div>
+   164→   164→                </div>
+   165→   165→              </div>
+   166→   166→
+   167→   167→              <Separator />
+   168→   168→
+   169→   169→              {/* Shared media (placeholder) */}
+   170→   170→              <button
+   171→   171→                type="button"
+   172→   172→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   173→   173→              >
+   174→   174→                <div className="flex items-center gap-3">
+   175→   175→                  <ImageIcon className="size-4 text-muted-foreground" />
+   176→   176→                  <span>Shared media</span>
+   177→   177→                </div>
+   178→   178→                <ChevronRight className="size-4 text-muted-foreground" />
+   179→   179→              </button>
+   180→   180→
+   181→   181→              <Separator />
+   182→   182→
+   183→   183→              {/* Shared links (placeholder) */}
+   184→   184→              <button
+   185→   185→                type="button"
+   186→   186→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   187→   187→              >
+   188→   188→                <div className="flex items-center gap-3">
+   189→   189→                  <Link2 className="size-4 text-muted-foreground" />
+   190→   190→                  <span>Shared links</span>
+   191→   191→                </div>
+   192→   192→                <ChevronRight className="size-4 text-muted-foreground" />
+   193→   193→              </button>
+   194→   194→
+   195→   195→              <Separator />
+   196→   196→
+   197→   197→              {/* Mute notifications */}
+   198→   198→              <div className="flex items-center justify-between px-5 py-3.5">
+   199→   199→                <span className="text-sm">Mute notifications</span>
+   200→   200→                <Switch
+   201→   201→                  checked={muted}
+   202→   202→                  onCheckedChange={setMuted}
+   203→   203→                />
+   204→   204→              </div>
+   205→   205→
+   206→   206→              <Separator />
+   207→   207→
+   208→   208→              {/* Block user */}
+   209→   209→              <button
+   210→   210→                type="button"
+   211→   211→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   212→   212→              >
+   213→   213→                <Ban className="size-4" />
+   214→   214→                <span>Block user</span>
+   215→   215→              </button>
+   216→   216→
+   217→   217→              <Separator />
+   218→   218→
+   219→   219→              {/* Clear chat */}
+   220→   220→              <button
+   221→   221→                type="button"
+   222→   222→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   223→   223→              >
+   224→   224→                <Trash2 className="size-4" />
+   225→   225→                <span>Clear chat</span>
+   226→   226→              </button>
+   227→   227→            </div>
+   228→   228→          </m.aside>
+   229→   229→        </>
+   230→   230→      )}
+   231→   231→    </AnimatePresence>
+   232→   232→  );
+   233→   233→}
+   234→   234→
+   235→   235→/* ------------------------------------------------------------------ */
+   236→   236→/*  ChatLayout                                                         */
+   237→   237→/* ------------------------------------------------------------------ */
+   238→   238→
+   239→   239→export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
+   240→   240→  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore } =
+   241→   241→    useChat({ currentUserId, otherUserId, conversationId, initialMessages });
+   242→   242→
+   243→   243→  const [draft, setDraft] = useState("");
+   244→   244→  const [sendBtnKey, setSendBtnKey] = useState(0);
+   245→   245→  const [isSending, setIsSending] = useState(false);
+   246→   246→  const [vanishMode, setVanishMode] = useState(false);
+   247→   247→  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+   248→   248→  const [ephemeralOpen, setEphemeralOpen] = useState(false);
+   249→   249→  const [ephemeralSeconds, setEphemeralSeconds] = useState<number | null>(null);
+   250→   250→  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
+   251→   251→  const inputRef = useRef<HTMLTextAreaElement>(null);
+   252→   252→  const viewport = useVisualViewport();
+   253→   253→
+   254→   254→  /* Background theme + wallpaper */
+   255→   255→  const { themeId, theme, selectTheme, wallpaper, setWallpaper } = useChatBackground();
+   256→   256→
+   257→   257→  /* Voice */
+   258→   258→  const voice = useVoiceRecorder();
+   259→   259→  const [showVoiceWaveform, setShowVoiceWaveform] = useState(false);
+   260→   260→
+   261→   261→  /* Attachment */
+   262→   262→  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+   263→   263→  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+   264→   264→  const [isUploading, setIsUploading] = useState(false);
+   265→   265→  const fileInputRef = useRef<HTMLInputElement>(null);
+   266→   266→
+   267→   267→  const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
+   268→   268→  const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
+   269→   269→
+   270→   270→  /* Compute background style — wallpaper overrides theme */
+   271→   271→  const bgStyle = wallpaper
+   272→   272→    ? { backgroundImage: `url(${wallpaper})`, backgroundSize: "cover", backgroundPosition: "center" }
+   273→   273→    : theme.style;
+   274→   274→
+   275→   275→  useEffect(() => { inputRef.current?.focus(); }, []);
+   276→   276→
+   277→   277→  /* Show voice waveform when recording */
+   278→   278→  useEffect(() => { setShowVoiceWaveform(voice.isRecording); }, [voice.isRecording]);
+   279→   279→
+   280→   280→  /* Global keyboard shortcuts */
+   281→   281→  useEffect(() => {
+   282→   282→    function handleGlobalKey(e: KeyboardEvent) {
+   283→   283→      if (e.key === "Escape") {
+   284→   284→        if (replyTo) { setReplyTo(null); e.preventDefault(); }
+   285→   285→        else if (ephemeralOpen) { setEphemeralOpen(false); e.preventDefault(); }
+   286→   286→        else if (infoPanelOpen) { setInfoPanelOpen(false); e.preventDefault(); }
+   287→   287→      }
+   288→   288→    }
+   289→   289→    window.addEventListener("keydown", handleGlobalKey);
+   290→   290→    return () => window.removeEventListener("keydown", handleGlobalKey);
+   291→   291→  }, [replyTo, ephemeralOpen, infoPanelOpen]);
+   292→   292→
+   293→   293→  /* Derived values — MUST be declared before any useCallback that
+   294→   294→     references them in its dependency array to avoid TDZ errors
+   295→   295→     in the production webpack bundle. */
+   296→   296→  const hasAttachment = attachmentFile !== null;
+   297→   297→  const hasText = draft.trim().length > 0;
+   298→   298→
+   299→   299→  /* ---- Attachment upload helpers (declared BEFORE handleSubmit
+   300→   300→     because handleSubmit's dependency array includes uploadAttachment;
+   301→   301→     accessing a const before its declaration causes a TDZ crash in the
+   302→   302→     production webpack bundle deployed to Cloudflare Workers). ---- */
+   303→   303→  const clearAttachment = useCallback(() => {
+   304→   304→    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+   305→   305→    setAttachmentFile(null);
+   306→   306→    setAttachmentPreview(null);
+   307→   307→  }, [attachmentPreview]);
+   308→   308→
+   309→   309→  const uploadAttachment = useCallback(async () => {
+   310→   310→    if (!attachmentFile || isUploading) return;
+   311→   311→    setIsUploading(true);
+   312→   312→    try {
+   313→   313→      const fd = new FormData();
+   314→   314→      fd.append("file", attachmentFile);
+   315→   315→      fd.append("conversation_id", conversationId);
+   316→   316→      if (replyTo?.id) fd.append("reply_to_id", replyTo.id);
+   317→   317→      if (vanishMode) fd.append("vanish_mode", "true");
+   318→   318→      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
+   319→   319→
+   320→   320→      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
+   321→   321→      if (!res.ok) {
+   322→   322→        const data = await res.json().catch(() => ({ error: "Upload failed" }));
+   323→   323→        throw new Error(data.error || `Upload failed: ${res.status}`);
+   324→   324→      }
+   325→   325→      /* Message is inserted server-side and pushed via Pusher;
+   326→   326→         the useChat hook will pick it up automatically. */
+   327→   327→      clearAttachment();
+   328→   328→      setReplyTo(null);
+   329→   329→    } catch (err) {
+   330→   330→      console.error("[ChatLayout] upload error:", err);
+   331→   331→      toast({
+   332→   332→        title: "Upload failed",
+   333→   333→        description: err instanceof Error ? err.message : "Could not send the file.",
+   334→   334→        variant: "destructive",
+   335→   335→      });
+   336→   336→    } finally {
+   337→   337→      setIsUploading(false);
+   338→   338→    }
+   339→   339→  }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
+   340→   340→
+   341→   341→  const handleSubmit = useCallback(async (e: FormEvent) => {
+   342→   342→    e.preventDefault();
+   343→   343→    /* If an attachment is selected, upload it instead of sending text */
+   344→   344→    if (hasAttachment && !hasText) {
+   345→   345→      await uploadAttachment();
+   346→   346→      return;
+   347→   347→    }
+   348→   348→    /* If there's both text and an attachment, send text first, then upload */
+   349→   349→    const trimmed = draft.trim();
+   350→   350→    if (!trimmed || isSending) return;
+   351→   351→    setIsSending(true);
+   352→   352→    const opts: SendMessageOptions = { vanish_mode: vanishMode, ephemeral_seconds: ephemeralSeconds, reply_to_id: replyTo?.id ?? null };
+   353→   353→    setDraft(""); setReplyTo(null);
+   354→   354→    if (inputRef.current) inputRef.current.style.height = "auto";
+   355→   355→    try {
+   356→   356→      await sendMessage(trimmed, opts);
+   357→   357→      setSendBtnKey((k) => k + 1);
+   358→   358→      /* Upload attachment after text is sent */
+   359→   359→      if (hasAttachment) await uploadAttachment();
+   360→   360→    }
+   361→   361→    finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
+   362→   362→  }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo, hasAttachment, uploadAttachment]);
+   363→   363→
+   364→   364→  const handleVoiceSend = useCallback(async () => {
+   365→   365→    const result = await voice.stopRecording();
+   366→   366→    if (!result || result.duration < 1) return;
+   367→   367→    const blob = result.blob;
+   368→   368→    const url = URL.createObjectURL(blob);
+   369→   369→    await sendMessage(url, { type: "voice", voice_duration: result.duration, waveform_data: result.amplitudes, ephemeral_seconds: ephemeralSeconds });
+   370→   370→    URL.revokeObjectURL(url);
+   371→   371→  }, [voice, sendMessage, ephemeralSeconds]);
+   372→   372→
+   373→   373→  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+   374→   374→    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const form = e.currentTarget.closest("form"); if (form) form.requestSubmit(); }
+   375→   375→  }, []);
+   376→   376→
+   377→   377→  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
+   378→   378→  const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
+   379→   379→
+   380→   380→  const canSend = hasText || hasAttachment;
+   381→   381→
+   382→   382→  /* ---- Attachment handlers ---------------------------------------- */
+   383→   383→  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+   384→   384→    const file = e.target.files?.[0] ?? null;
+   385→   385→    if (!file) return;
+   386→   386→    if (file.size > MAX_ATTACHMENT_SIZE) {
+   387→   387→      toast({ title: "File too large", description: "Maximum size is 10 MB.", variant: "destructive" });
+   388→   388→      e.target.value = "";
+   389→   389→      return;
+   390→   390→    }
+   391→   391→    setAttachmentFile(file);
+   392→   392→    /* Generate thumbnail preview for images */
+   393→   393→    if (IMAGE_MIME_TYPES.has(file.type)) {
+   394→   394→      const url = URL.createObjectURL(file);
+   395→   395→      setAttachmentPreview(url);
+   396→   396→    } else {
+   397→   397→      setAttachmentPreview(null);
+   398→   398→    }
+   399→   399→    /* Reset input so the same file can be re-selected */
+   400→   400→    e.target.value = "";
+   401→   401→  }, []);
+   402→   402→
+   403→   403→  const handlePaperclipClick = useCallback(() => {
+   404→   404→    fileInputRef.current?.click();
+   405→   405→  }, []);
+   406→   406→
+   407→   407→  /* Status text for header */
+   408→   408→  const statusText = isPartnerTyping
+   409→   409→    ? "typing\u2026"
+   410→   410→    : partnerStatus.online
+   411→   411→      ? "Online"
+   412→   412→      : formatLastSeen(partnerStatus.last_seen);
+   413→   413→
+   414→   414→  /* ---- Render --------------------------------------------------- */
+   415→   415→
+   416→   416→  return (
+   417→   417→    <div className="flex w-full flex-col bg-background" style={containerStyle}>
+   418→   418→      <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
+   419→   419→        {/* Header - sticky with glassmorphic blur + shadow */}
+   420→   420→        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 px-4">
+   421→   421→          <button
+   422→   422→            type="button"
+   423→   423→            onClick={() => setInfoPanelOpen(true)}
+   424→   424→            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none"
+   425→   425→            aria-label="Open user info"
+   426→   426→          >
+   427→   427→            <Avatar className="size-9 ring-2 ring-[var(--app-accent-lighter)]/30 dark:ring-[var(--app-accent)]/40">
+   428→   428→              {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
+   429→   429→              <AvatarFallback
+   430→   430→                className="text-xs font-semibold text-white"
+   431→   431→                style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+   432→   432→              >{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+   433→   433→            </Avatar>
+   434→   434→            <div className="flex flex-col">
+   435→   435→              <span className="text-sm font-semibold leading-tight">{partner.name}</span>
+   436→   436→              <div className="flex items-center gap-1.5">
+   437→   437→                <StatusDot online={partnerStatus.online} />
+   438→   438→                <span
+   439→   439→                  className={cn("text-xs", isPartnerTyping ? "font-medium" : "text-muted-foreground")}
+   440→   440→                  style={isPartnerTyping ? { color: "var(--app-accent)" } : undefined}
+   441→   441→                >{statusText}</span>
+   442→   442→              </div>
+   443→   443→            </div>
+   444→   444→          </button>
+   445→   445→
+   446→   446→          {/* Right-side header actions */}
+   447→   447→          <div className="ml-auto flex items-center gap-1">
+   448→   448→            <ChatBackgroundPicker themeId={themeId} onSelect={selectTheme} wallpaper={wallpaper} onSetWallpaper={setWallpaper} />
+   449→   449→          </div>
+   450→   450→        </header>
+   451→   451→
+   452→   452→        {/* Feed area – background theme applied via MessageFeed */}
+   453→   453→        <div className="relative min-h-0 flex-1">
+   454→   454→          <MessageFeed
+   455→   455→            messages={messages}
+   456→   456→            isLoading={isLoading}
+   457→   457→            isPartnerTyping={isPartnerTyping}
+   458→   458→            currentUserId={currentUserId}
+   459→   459→            partnerName={partner.name}
+   460→   460→            partnerAvatar={partner.avatar_url}
+   461→   461→            backgroundStyle={bgStyle}
+   462→   462→            onMarkAsRead={markAsRead}
+   463→   463→            onVanishMessage={vanishMessage}
+   464→   464→            onDeleteMessage={deleteMessage}
+   465→   465→            onReplyTo={setReplyTo}
+   466→   466→            onReact={sendReaction}
+   467→   467→            loadMore={loadMore}
+   468→   468→            hasMore={hasMore}
+   469→   469→            loadingMore={loadingMore}
+   470→   470→          />
+   471→   471→        </div>
+   472→   472→
+   473→   473→        {/* Reply preview bar */}
+   474→   474→        <AnimatePresence>
+   475→   475→          {replyTo && (
+   476→   476→            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden backdrop-blur-sm" style={{ backgroundColor: "var(--app-accent-subtle)", borderLeft: "2px solid var(--app-accent)" }}>
+   477→   477→              <div className="flex items-center gap-2 px-4 py-2">
+   478→   478→                <div className="w-1 h-8 rounded-full" style={{ background: "linear-gradient(to bottom, var(--app-accent-from), var(--app-accent-to))" }} />
+   479→   479→                <div className="min-w-0 flex-1">
+   480→   480→                  <p className="text-[11px] font-semibold" style={{ color: "var(--app-accent)" }}>{replyTo.sender_name || "Unknown"}</p>
+   481→   481→                  <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
+   482→   482→                </div>
+   483→   483→                <div className="flex items-center gap-1.5">
+   484→   484→                  <button type="button" onClick={() => setReplyTo(null)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>
+   485→   485→                  <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
+   486→   486→                </div>
+   487→   487→              </div>
+   488→   488→            </m.div>
+   489→   489→          )}
+   490→   490→        </AnimatePresence>
+   491→   491→
+   492→   492→        {/* Attachment preview bar */}
+   493→   493→        <AnimatePresence>
+   494→   494→          {attachmentFile && (
+   495→   495→            <m.div
+   496→   496→              initial={{ height: 0, opacity: 0 }}
+   497→   497→              animate={{ height: "auto", opacity: 1 }}
+   498→   498→              exit={{ height: 0, opacity: 0 }}
+   499→   499→              transition={{ duration: 0.2 }}
+   500→   500→              className="overflow-hidden backdrop-blur-sm rounded-xl border"
+   501→   501→              style={{ backgroundColor: "var(--app-accent-subtle)", borderColor: "var(--app-accent-subtle)" }}
+   502→   502→            >
+   503→   503→              <div className="flex items-center gap-3 px-4 py-2.5">
+   504→   504→                {attachmentPreview ? (
+   505→   505→                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg" style={{ boxShadow: `0 0 0 2px var(--app-accent-subtle)` }}>
+   506→   506→                    {/* eslint-disable-next-line @next/next/no-img-element */}
+   507→   507→                    <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
+   508→   508→                  </div>
+   509→   509→                ) : (
+   510→   510→                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)" }}>
+   511→   511→                    {attachmentFile.type === "application/pdf" ? (
+   512→   512→                      <FileText className="size-5" />
+   513→   513→                    ) : attachmentFile.type.startsWith("video/") ? (
+   514→   514→                      <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+   515→   515→                    ) : (
+   516→   516→                      <FileText className="size-5" />
+   517→   517→                    )}
+   518→   518→                  </div>
+   519→   519→                )}
+   520→   520→                <div className="min-w-0 flex-1">
+   521→   521→                  <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
+   522→   522→                  <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
+   523→   523→                </div>
+   524→   524→                {isUploading ? (
+   525→   525→                  <Loader2 className="size-5 shrink-0 animate-spin" style={{ color: "var(--app-accent)" }} />
+   526→   526→                ) : (
+   527→   527→                  <m.button
+   528→   528→                    type="button"
+   529→   529→                    onClick={clearAttachment}
+   530→   530→                    whileTap={{ scale: 0.85 }}
+   531→   531→                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+   532→   532→                    aria-label="Remove attachment"
+   533→   533→                  >
+   534→   534→                    <X className="size-4" />
+   535→   535→                  </m.button>
+   536→   536→                )}
+   537→   537→              </div>
+   538→   538→            </m.div>
+   539→   539→          )}
+   540→   540→        </AnimatePresence>
+   541→   541→
+   542→   542→        {/* Voice waveform overlay */}
+   543→   543→        <AnimatePresence>
+   544→   544→          {showVoiceWaveform && (
+   545→   545→            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
+   546→   546→              <div className="flex items-center gap-3 px-4 py-3">
+   547→   547→                <div className="flex size-10 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+   548→   548→                  {voice.isRecording ? <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex size-3 rounded-full bg-red-500" /></span> : null}
+   549→   549→                </div>
+   550→   550→                <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 40 }}>
+   551→   551→                  {voice.amplitudes.slice(-60).map((amp, i) => (
+   552→   552→                    <div key={i} className="w-[2px] rounded-full transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px`, backgroundColor: "var(--app-accent)", opacity: 0.7 }} />
+   553→   553→                  ))}
+   554→   554→                </div>
+   555→   555→                <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}</span>
+   556→   556→                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full text-white" style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }} aria-label="Send voice">
+   557→   557→                  <ArrowUp className="size-4" />
+   558→   558→                </m.button>
+   559→   559→              </div>
+   560→   560→            </m.div>
+   561→   561→          )}
+   562→   562→        </AnimatePresence>
+   563→   563→
+   564→   564→        {/* Input bar */}
+   565→   565→        <div className="shrink-0 border-t border-white/10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl px-3 py-2.5 sm:px-4 sm:py-3">
+   566→   566→          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+   567→   567→            {/* Vanish toggle - compact with smooth transition */}
+   568→   568→            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }}
+   569→   569→              className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200")}
+   570→   570→              style={vanishMode
+   571→   571→                ? { backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)", boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }
+   572→   572→                : undefined}
+   573→   573→              aria-label="Vanish mode"
+   574→   574→            >
+   575→   575→              {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+   576→   576→            </m.button>
+   577→   577→
+   578→   578→            {/* Ephemeral timer dropdown - compact */}
+   579→   579→            <div className="relative">
+   580→   580→              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }}
+   581→   581→                className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200")}
+   582→   582→                style={ephemeralSeconds
+   583→   583→                  ? { backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b" }
+   584→   584→                  : undefined}
+   585→   585→                aria-label="Ephemeral timer"
+   586→   586→              >
+   587→   587→                <Clock className="size-3.5" />
+   588→   588→              </m.button>
+   589→   589→              <AnimatePresence>
+   590→   590→                {ephemeralOpen && (
+   591→   591→                  <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-32 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl shadow-black/10">
+   592→   592→                    {EPHEMERAL_OPTIONS.map((opt) => (
+   593→   593→                      <button key={opt.label} type="button" onClick={() => { setEphemeralSeconds(opt.value); setEphemeralOpen(false); }}
+   594→   594→                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all duration-150")}
+   595→   595→                        style={ephemeralSeconds === opt.value
+   596→   596→                          ? { backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)", fontWeight: 600 }
+   597→   597→                          : undefined}
+   598→   598→                      >
+   599→   599→                        <Clock className="size-3 opacity-60" />{opt.label}
+   600→   600→                      </button>
+   601→   601→                    ))}
+   602→   602→                  </m.div>
+   603→   603→                )}
+   604→   604→              </AnimatePresence>
+   605→   605→            </div>
+   606→   606→
+   607→   607→            {/* Text input (hidden when recording) - pill shaped with gradient border on focus */}
+   608→   608→            {!showVoiceWaveform && (
+   609→   609→              <div className="relative flex-1">
+   610→   610→                <textarea ref={inputRef} value={draft} onChange={handleInputChange} onKeyDown={handleKeyDown} onInput={handleInput}
+   611→   611→                  placeholder={vanishMode ? "Send a disappearing message\u2026" : replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message\u2026"}
+   612→   612→                  rows={1} className={cn(
+   613→   613→                    "w-full resize-none rounded-2xl border bg-muted/50 px-4 py-3 text-sm",
+   614→   614→                    "placeholder:text-muted-foreground",
+   615→   615→                    "focus-visible:outline-none",
+   616→   616→                    "max-h-32 overflow-y-auto",
+   617→   617→                    "transition-all duration-300",
+   618→   618→                    "shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]",
+   619→   619→                    "focus-visible:border-transparent focus-visible:ring-2",
+   620→   620→                    vanishMode && "vanish-input-glow",
+   621→   621→                  )}
+   622→   622→                  style={vanishMode
+   623→   623→                    ? { borderColor: 'var(--app-accent-subtle)' }
+   624→   624→                    : undefined}
+   625→   625→                  onFocus={(e) => { e.currentTarget.style.setProperty('--tw-ring-color', 'var(--app-accent-ring)'); }}
+   626→   626→                />
+   627→   627→              </div>
+   628→   628→            )}
+   629→   629→
+   630→   630→            {/* Hidden file input for attachments */}
+   631→   631→            <input
+   632→   632→              ref={fileInputRef}
+   633→   633→              type="file"
+   634→   634→              accept={ACCEPTED_TYPES}
+   635→   635→              onChange={handleFileSelect}
+   636→   636→              className="hidden"
+   637→   637→              aria-hidden="true"
+   638→   638→            />
+   639→   639→
+   640→   640→            {/* Attachment button */}
+   641→   641→            {!showVoiceWaveform && (
+   642→   642→              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }}
+   643→   643→                className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200")}
+   644→   644→                style={hasAttachment
+   645→   645→                  ? { color: "var(--app-accent)", backgroundColor: "var(--app-accent-subtle)" }
+   646→   646→                  : undefined}
+   647→   647→                aria-label="Attach file"
+   648→   648→              >
+   649→   649→                <Paperclip className="size-4" />
+   650→   650→              </m.button>
+   651→   651→            )}
+   652→   652→
+   653→   653→            {/* Emoji button with picker */}
+   654→   654→            {!showVoiceWaveform && (
+   655→   655→              <EmojiPicker
+   656→   656→                onSelect={(emoji) => {
+   657→   657→                  const ta = inputRef.current;
+   658→   658→                  if (!ta) return;
+   659→   659→                  const start = ta.selectionStart ?? draft.length;
+   660→   660→                  const end = ta.selectionEnd ?? draft.length;
+   661→   661→                  const before = draft.slice(0, start);
+   662→   662→                  const after = draft.slice(end);
+   663→   663→                  setDraft(before + emoji + after);
+   664→   664→                  requestAnimationFrame(() => {
+   665→   665→                    const pos = start + emoji.length;
+   666→   666→                    ta.focus();
+   667→   667→                    ta.setSelectionRange(pos, pos);
+   668→   668→                  });
+   669→   669→                }}
+   670→   670→              >
+   671→   671→                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-muted" aria-label="Emoji">
+   672→   672→                  <Smile className="size-4" />
+   673→   673→                </m.button>
+   674→   674→              </EmojiPicker>
+   675→   675→            )}
+   676→   676→
+   677→   677→            {/* Send button (shown when there's text or attachment) */}
+   678→   678→            {!showVoiceWaveform && canSend && (
+   679→   679→              <AnimatePresence>
+   680→   680→                <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
+   681→   681→                  <Button type="submit" size="icon" disabled={isSending || isUploading}
+   682→   682→                    className="size-9 shrink-0 rounded-xl text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
+   683→   683→                    style={{
+   684→   684→                      background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+   685→   685→                      boxShadow: `0 10px 15px -3px var(--app-accent-glow)`,
+   686→   686→                    }}
+   687→   687→                    aria-label="Send message"><ArrowUp className="size-4" /></Button>
+   688→   688→                </m.div>
+   689→   689→              </AnimatePresence>
+   690→   690→            )}
+   691→   691→
+   692→   692→            {/* Mic button (shown when input is empty and no attachment) */}
+   693→   693→            {!showVoiceWaveform && !canSend && (
+   694→   694→              <AnimatePresence>
+   695→   695→                <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
+   696→   696→                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-muted" aria-label="Record voice">
+   697→   697→                    <Mic className="size-4" />
+   698→   698→                  </m.button>
+   699→   699→                </m.div>
+   700→   700→              </AnimatePresence>
+   701→   701→            )}
+   702→   702→
+   703→   703→            {/* Cancel recording button */}
+   704→   704→            {showVoiceWaveform && (
+   705→   705→              <m.button type="button" onClick={async () => { await voice.stopRecording(); setShowVoiceWaveform(false); }} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-xl text-red-500 hover:bg-red-500/10" aria-label="Cancel recording">
+   706→   706→                <MicOff className="size-4" />
+   707→   707→              </m.button>
+   708→   708→            )}
+   709→   709→          </form>
+   710→   710→        </div>
+   711→   711→      </div>
+   712→   712→
+   713→   713→      {/* Partner Info Panel */}
+   714→   714→      <PartnerInfoPanel
+   715→   715→        partner={partner}
+   716→   716→        partnerStatus={partnerStatus}
+   717→   717→        open={infoPanelOpen}
+   718→   718→        onClose={() => setInfoPanelOpen(false)}
+   719→   719→      />
+   720→   720→    </div>
+   721→   721→  );
+   722→   722→}
+   723→   723→
