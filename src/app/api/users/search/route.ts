@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
         id: u.id,
         name: u.name,
         avatar_url: u.avatar_url,
-        email: null,
       })),
     });
   } catch (err) {

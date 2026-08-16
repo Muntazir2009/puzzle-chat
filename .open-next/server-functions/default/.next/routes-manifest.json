@@ -47,12 +47,6 @@
       "namedRegex": "^/api(?:/)?$"
     },
     {
-      "page": "/api/auth/resolve-username",
-      "regex": "^/api/auth/resolve\\-username(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/api/auth/resolve\\-username(?:/)?$"
-    },
-    {
       "page": "/api/conversations",
       "regex": "^/api/conversations(?:/)?$",
       "routeKeys": {},

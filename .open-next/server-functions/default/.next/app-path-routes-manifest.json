@@ -1,7 +1,6 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
-  "/api/auth/resolve-username/route": "/api/auth/resolve-username",
   "/api/conversations/create/route": "/api/conversations/create",
   "/api/conversations/delete/route": "/api/conversations/delete",
   "/api/conversations/route": "/api/conversations",

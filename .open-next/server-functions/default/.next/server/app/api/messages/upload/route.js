@@ -1,6 +1,6 @@
 var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/messages/upload/route.js")
-R.c("server/chunks/[root-of-the-server]__db4cdec1._.js")
-R.c("server/chunks/_54566c02._.js")
+R.c("server/chunks/[root-of-the-server]__f18549a4._.js")
+R.c("server/chunks/_3adbf0dd._.js")
 R.c("server/chunks/node_modules_e95b3bed._.js")
 R.c("server/chunks/[root-of-the-server]__38d471a4._.js")
 R.c("server/chunks/node_modules_@supabase_supabase-js_dist_index_mjs_669a44bf._.js")
