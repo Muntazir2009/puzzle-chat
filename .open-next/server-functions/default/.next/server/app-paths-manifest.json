@@ -8,5 +8,7 @@
   "/api/messages/vanish/route": "app/api/messages/vanish/route.js",
   "/api/pusher/auth/route": "app/api/pusher/auth/route.js",
   "/api/route": "app/api/route.js",
+  "/auth/callback/route": "app/auth/callback/route.js",
+  "/login/page": "app/login/page.js",
   "/page": "app/page.js"
 }

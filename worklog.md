@@ -351,3 +351,66 @@ Stage Summary:
 
 ## Unresolved / Next Phase
 - Conversation list sidebar, auth integration, conversation switching, online/offline presence indicators.
+
+---
+Task ID: env-setup
+Agent: Main
+Task: Environment setup, GitHub repo creation, Cloudflare deployment
+
+Work Log:
+- Created .env.local with all 6 credentials (Supabase URL, Anon Key, Pusher App Key, Cluster, App ID, Secret)
+- Fixed env var mismatch: NEXT_PUBLIC_PUSHER_KEY → NEXT_PUBLIC_PUSHER_APP_KEY across 3 files
+- Updated wrangler.jsonc with real public vars
+- Added CF build/deploy scripts to package.json (build:cf, deploy:cf, preview:cf)
+- Created GitHub repo: Muntazir2009/puzzle-chat
+- Pushed all code to GitHub
+- Deployed to Cloudflare Workers: https://puzzle.killermunu.workers.dev
+
+Stage Summary:
+- Project live at puzzle.killermunu.workers.dev
+- All env vars configured, build passes cleanly
+
+---
+Task ID: auth-fix
+Agent: Main
+Task: Fix 401 Send failed error in production
+
+Work Log:
+- Root cause: demo page used hardcoded UUIDs but all API routes called supabase.auth.getUser() with no session cookie
+- Created src/lib/auth.ts with getAuthUser() helper (Supabase session → demo header fallback)
+- Updated all 6 API routes to use getAuthUser(req) instead of direct supabase.auth.getUser()
+- Updated useChat hook to send x-demo-user-id header on every fetch call
+- Updated pusher-client.ts with setDemoUserId() for Pusher channel auth
+- Redeployed to Cloudflare Workers
+
+Stage Summary:
+- 401 resolved via dual-path auth (Supabase cookie + demo header fallback)
+- 9 files changed, deployed to production
+
+---
+Task ID: phase-0
+Agent: Main
+Task: Phase 0 – Authentication & Protection
+
+Work Log:
+- Created glassmorphic /login page with email/password + magic link tabs, animated transitions, error states
+- Created /auth/callback route for magic link code exchange
+- Created src/middleware.ts with Supabase session refresh, route protection (unauthenticated → /login, authenticated away from /login), user ID injection into headers
+- Added DB trigger (handle_new_user) to auto-create public.users row on auth.users INSERT
+- Removed demo header fallback from auth.ts (now Supabase-only)
+- Removed x-demo-user-id headers from useChat hook
+- Removed setDemoUserId from pusher-client.ts
+- Updated page.tsx to server component: fetches authenticated user, ensures users row exists, shows welcome state
+- Relaxed CSS: moved height-locking from global html/body to .chat-locked class
+- Fixed Turbopack JSX comment parse issue in page.tsx
+- Built, deployed to Cloudflare Workers (Version: 61b610f4)
+
+Stage Summary:
+- Phase 0 complete. Full auth flow: login page → Supabase Auth → session cookie → middleware guard → protected routes
+- All API routes now authenticate via Supabase session only (no more demo headers)
+- Auto user creation via DB trigger on signup
+- **REQUIRED ACTION**: Run the new trigger SQL in Supabase Dashboard → SQL Editor, and add redirect URL https://puzzle.killermunu.workers.dev/auth/callback in Authentication → URL Configuration
+
+## Unresolved / Next Phase
+- Phase 1-3: Schema upgrades (attachment_url), premium UI overhaul (bottom nav, glassmorphic input, DM list), Pusher Presence, Supabase Storage uploads
+- Phase 1-3 are BLOCKED until the auth trigger SQL is run in Supabase Dashboard

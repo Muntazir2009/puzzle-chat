@@ -8,5 +8,7 @@
   "/api/messages/vanish/route": "/api/messages/vanish",
   "/api/pusher/auth/route": "/api/pusher/auth",
   "/api/route": "/api",
+  "/auth/callback/route": "/auth/callback",
+  "/login/page": "/login",
   "/page": "/"
 }

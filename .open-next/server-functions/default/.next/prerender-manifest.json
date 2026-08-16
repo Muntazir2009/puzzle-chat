@@ -50,7 +50,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/": {
+    "/login": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -63,8 +63,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/",
-      "dataRoute": "/index.rsc",
+      "srcRoute": "/login",
+      "dataRoute": "/login.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -78,8 +78,8 @@
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "43b0190811886c51a2658dd0f31b602c",
-    "previewModeSigningKey": "8691fda6b53b070cf4a1d81c659bf5a172deebe669aaf1f8031ba72b268b9fc2",
-    "previewModeEncryptionKey": "7b026c106a240011851f804ab0d4cc33d2a04e557c22c7a89ece6a422dde5d87"
+    "previewModeId": "7af308a869284e70702d6aa636f9c13e",
+    "previewModeSigningKey": "1cab581e1a2307a8d79a734950f4f37ade4692d13238aded3ba19851ad17291b",
+    "previewModeEncryptionKey": "7395416f903a206a33336f2625f7abe5e8f98d61554a1a95dd6692ce87a524e5"
   }
 }
