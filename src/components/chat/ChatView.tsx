@@ -109,19 +109,31 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
   }, []);
 
   const handleNewChat = useCallback(
-    (partnerId: string, partnerName: string, partnerAvatar: string | null) => {
+    async (partnerId: string, partnerName: string, partnerAvatar: string | null) => {
       const existing = conversations.find((c) => c.partner.id === partnerId);
       if (existing) { setActiveConv(existing); return; }
-      const newConv: ConversationItem = {
-        id: `temp-${partnerId}`,
-        partner: { id: partnerId, name: partnerName, avatar_url: partnerAvatar },
-        last_message: null, unread_count: 0,
-      };
-      setConversations((prev) => [newConv, ...prev]);
-      setActiveConv(newConv);
-      fetchConversations();
+
+      /* Create conversation on the server */
+      try {
+        const res = await fetch("/api/conversations/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ partner_id: partnerId }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const realConv: ConversationItem = {
+          id: data.conversation_id,
+          partner: { id: data.partner.id, name: data.partner.name, avatar_url: data.partner.avatar_url },
+          last_message: null, unread_count: 0,
+        };
+        setConversations((prev) => [realConv, ...prev]);
+        setActiveConv(realConv);
+      } catch (err) {
+        console.error("[ChatView] create conversation error:", err);
+      }
     },
-    [conversations, fetchConversations],
+    [conversations],
   );
 
   const handleDeleteConversation = useCallback(async (convId: string) => {
@@ -148,11 +160,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
     router.refresh();
   }, [supabase, router]);
 
-  useEffect(() => {
-    if (!activeConv || !activeConv.id.startsWith("temp-")) return;
-    const real = conversations.find((c) => c.partner.id === activeConv.partner.id);
-    if (real && real.id !== activeConv.id) setActiveConv(real);
-  }, [conversations, activeConv]);
+
 
   const userInitials = localUserName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
@@ -302,25 +310,6 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                   <ConversationList {...listProps} activeId={null} />
                 </div>
               </m.div>
-            ) : activeConv.id.startsWith("temp-") ? (
-              <m.div
-                key="mobile-loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-3"
-              >
-                <button
-                  type="button"
-                  onClick={() => setActiveConv(null)}
-                  className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-colors hover:bg-muted"
-                  aria-label="Back to chats"
-                >
-                  <ArrowLeft className="size-4" />
-                </button>
-                <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Opening chat…</p>
-              </m.div>
             ) : (
               <m.div
                 key="mobile-chat"
@@ -358,7 +347,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
         {/* Desktop: chat area or empty state */}
         <main className="hidden min-h-0 flex-1 flex-col sm:flex">
           <AnimatePresence mode="wait">
-            {activeConv && !activeConv.id.startsWith("temp-") ? (
+            {activeConv ? (
               <m.div
                 key={activeConv.id}
                 initial={{ opacity: 0, y: 8 }}
