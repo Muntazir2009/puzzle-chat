@@ -20,6 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ThemeProvider, useAppTheme, type AppTheme } from "@/lib/theme-context";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -33,13 +34,54 @@ export interface ChatViewProps {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Theme selector circles                                             */
+/* ------------------------------------------------------------------ */
+
+const THEME_OPTIONS: { id: AppTheme; label: string; color: string }[] = [
+  { id: "default", label: "Violet", color: "#8b5cf6" },
+  { id: "golden", label: "Golden", color: "#f59e0b" },
+  { id: "crimson", label: "Crimson", color: "#e11d48" },
+];
+
+function ThemeSelector() {
+  const { theme, setTheme } = useAppTheme();
+  return (
+    <div className="flex items-center justify-center gap-2 px-2 py-1.5">
+      {THEME_OPTIONS.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => setTheme(opt.id)}
+          title={opt.label}
+          aria-label={`Theme: ${opt.label}`}
+          className={cn(
+            "size-5 rounded-full transition-all duration-200",
+          )}
+          style={{
+            backgroundColor: opt.color,
+            boxShadow: theme === opt.id ? `0 0 0 2px var(--background), 0 0 0 3.5px ${opt.color}` : "none",
+            transform: theme === opt.id ? "scale(1.15)" : "scale(1)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Puzzle Logo                                                        */
 /* ------------------------------------------------------------------ */
 
 function PuzzleLogo({ unreadCount }: { unreadCount: number }) {
   return (
     <div className="relative flex items-center gap-2.5">
-      <div className="relative flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm shadow-violet-500/20">
+      <div
+        className="relative flex size-8 items-center justify-center rounded-xl text-white"
+        style={{
+          background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))",
+          boxShadow: `0 4px 6px -1px var(--app-accent-glow)`,
+        }}
+      >
         <svg className="size-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
@@ -160,8 +202,6 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
     router.refresh();
   }, [supabase, router]);
 
-
-
   const userInitials = localUserName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   /* ---- User menu --------------------------------------------------- */
@@ -175,10 +215,13 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
       <DropdownMenuContent align="end" className="w-56">
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-sm" />
-            <Avatar className="relative size-11 ring-2 ring-violet-100 dark:ring-violet-900/50">
+            <div className="absolute -inset-1 rounded-full blur-sm" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", opacity: 0.3 }} />
+            <Avatar className="relative size-11 ring-2 ring-[var(--app-accent-lighter)]/30 dark:ring-[var(--app-accent)]/40">
               {localUserAvatar && <AvatarImage src={localUserAvatar} alt={localUserName} />}
-              <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white">
+              <AvatarFallback
+                className="text-sm font-bold text-white"
+                style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+              >
                 {userInitials}
               </AvatarFallback>
             </Avatar>
@@ -188,6 +231,8 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
             {userEmail && <p className="truncate text-xs text-muted-foreground">{userEmail}</p>}
           </div>
         </div>
+        <DropdownMenuSeparator />
+        <ThemeSelector />
         <DropdownMenuSeparator />
         <ProfileDialog
           userId={userId}
@@ -249,9 +294,9 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
   const emptyState = (
     <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
       <div className="relative">
-        <div className="absolute -inset-3 rounded-3xl bg-gradient-to-br from-violet-500/15 to-purple-600/15 blur-xl" />
-        <div className="relative flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
-          <svg className="size-9 text-violet-400/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <div className="absolute -inset-3 rounded-3xl blur-xl" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", opacity: 0.15 }} />
+        <div className="relative flex size-20 items-center justify-center rounded-3xl" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", opacity: 0.1 }}>
+          <svg className="size-9" style={{ color: "var(--app-accent-light)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </div>
@@ -277,6 +322,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
 
   /* ---- Render ----------------------------------------------------- */
   return (
+    <ThemeProvider>
     <div className="flex h-dvh w-full flex-col bg-background">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
         {/* Desktop sidebar */}
@@ -384,5 +430,6 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
         </main>
       </div>
     </div>
+    </ThemeProvider>
   );
 }

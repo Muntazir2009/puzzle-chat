@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { m, AnimatePresence, type PanInfo } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import type { ChatMessage } from "@/hooks/useChat";
 import { toast } from "@/hooks/use-toast";
 
@@ -27,7 +27,6 @@ const ESTIMATED_ROW_HEIGHT = 72;
 const OVERSCAN = 8;
 const DOUBLE_TAP_MS = 300;
 const LONG_PRESS_MS = 500;
-const SWIPE_REPLY_THRESHOLD = 80;
 const REACTION_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}", "\u{1F622}", "\u{1F64F}", "\u{1F525}", "\u{1F389}"];
 
 /* ------------------------------------------------------------------ */
@@ -61,12 +60,11 @@ export interface MessageFeedProps {
 /* ------------------------------------------------------------------ */
 
 function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
-  if (status === "sending") return <svg className="size-3.5 animate-spin text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9" /></svg>;
-  if (status === "failed") return <AlertCircle className="size-3.5 text-red-500" />;
-  const color = status === "read" ? "text-violet-400" : "text-muted-foreground/50";
+  if (status === "sending") return <svg className="size-3 animate-spin text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9" /></svg>;
+  if (status === "failed") return <AlertCircle className="size-3 text-red-500" />;
   const double = status !== "sent";
   return (
-    <svg className={cn("size-3.5", color)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-label={status}>
+    <svg className="size-3 opacity-60 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-label={status} style={{ color: status === "read" ? "var(--app-accent-light)" : undefined }}>
       {double && <polyline points="18 6 7 17 2 12" />}
       <polyline points="20 6 9 17 4 12" />
     </svg>
@@ -110,9 +108,9 @@ function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () =
   const offset = circ * (1 - pct);
 
   return (
-    <svg className="size-4 shrink-0 ephemeral-timer-pulse" viewBox="0 0 18 18" aria-label={`${remaining}s remaining`}>
+    <svg className="size-3.5 shrink-0 ephemeral-timer-pulse" viewBox="0 0 18 18" aria-label={`${remaining}s remaining`}>
       <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20" />
-      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className="text-violet-300" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 1s linear" }} />
+      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ color: "var(--app-accent-lighter)", transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 1s linear" }} />
     </svg>
   );
 }
@@ -241,8 +239,6 @@ function VoiceBubble({ message, isOwn, waveform }: {
     return Array.from({ length: count }, (_, i) => waveform[i * step] ?? 0.1);
   }, [waveform]);
 
-  const barColor = isOwn ? "bg-white/50" : "bg-zinc-400/70";
-  const progressColor = isOwn ? "bg-white" : "bg-violet-400";
   const progressIdx = Math.floor(progress * bars.length);
 
   return (
@@ -252,7 +248,7 @@ function VoiceBubble({ message, isOwn, waveform }: {
       </button>
       <div className="flex items-center gap-[2px]" style={{ height: 32 }}>
         {bars.map((amp, i) => (
-          <div key={i} className={cn("w-[2.5px] rounded-full transition-all duration-100", i < progressIdx ? progressColor : barColor)} style={{ height: `${Math.max(4, amp * 32)}px` }} />
+          <div key={i} className="w-[2.5px] rounded-full transition-all duration-100" style={{ height: `${Math.max(4, amp * 32)}px`, backgroundColor: i < progressIdx ? (isOwn ? "rgba(255,255,255,1)" : "var(--app-accent-light)") : (isOwn ? "rgba(255,255,255,0.5)" : "rgba(161,161,170,0.7)") }} />
         ))}
       </div>
       <button type="button" onClick={cycleSpeed} className={cn("shrink-0 text-[11px] font-semibold tabular-nums transition-colors hover:opacity-80", isOwn ? "text-white/70" : "text-zinc-400")}>{speed}x</button>
@@ -290,7 +286,7 @@ function parseUrls(text: string): TextSegment[] {
 /** Split a plain-text string into highlighted / non-highlighted fragments */
 function highlightText(text: string, query: string): React.ReactNode[] {
   if (!query) return [text];
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$");
   const re = new RegExp(`(${escaped})`, "gi");
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -323,7 +319,8 @@ export const LinkifiedText = React.memo(function LinkifiedText({ text, className
             href={seg.value}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-violet-400/50 underline-offset-2 hover:decoration-violet-400 transition-colors"
+            className="underline underline-offset-2 transition-colors"
+            style={{ textDecorationColor: "var(--app-accent-light)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {seg.value}
@@ -342,13 +339,14 @@ export const LinkifiedText = React.memo(function LinkifiedText({ text, className
 
 function ReplyPreview({ senderName, content, isOwn }: { senderName: string; content: string; isOwn: boolean }) {
   return (
-    <div className={cn(
-      "mb-1.5 rounded-lg px-2.5 py-1.5",
-      isOwn
-        ? "border-l-2 border-l-white/50 bg-white/[0.08]"
-        : "border-l-2 border-l-violet-400/70 bg-violet-500/[0.08]",
-    )}>
-      <p className={cn("text-[10px] font-bold leading-tight", isOwn ? "text-white/70" : "text-violet-400")}>{senderName}</p>
+    <div
+      className="mb-1.5 rounded-lg border-l-2 px-2.5 py-1.5"
+      style={isOwn
+        ? { borderLeftColor: "rgba(255,255,255,0.5)", backgroundColor: "rgba(255,255,255,0.08)" }
+        : { borderLeftColor: "var(--app-accent-light)", backgroundColor: "var(--app-accent-glow)" }
+      }
+    >
+      <p className="text-[10px] font-bold leading-tight" style={{ color: isOwn ? "rgba(255,255,255,0.7)" : "var(--app-accent-light)" }}>{senderName}</p>
       <LinkifiedText text={content} className={cn("mt-0.5 truncate text-[11px] leading-snug block", isOwn ? "text-white/50" : "text-zinc-400")} />
     </div>
   );
@@ -409,20 +407,24 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
   const entries = Object.entries(reactions ?? {}).filter(([, ids]) => ids.length > 0);
   if (entries.length === 0) return null;
   return (
-    <div className={cn("flex flex-wrap gap-1 px-1 pt-0.5", isOwn ? "justify-end" : "justify-start")}>
+    <div className={cn("flex flex-wrap gap-1 px-1 relative -bottom-1 mt-[-6px]", isOwn ? "justify-end" : "justify-start")}>
       {entries.map(([emoji, ids]) => {
         const isActive = ids.includes(currentUserId);
         return (
           <button key={emoji} type="button" onClick={() => onReact(emoji, !isActive)}
             className={cn(
-              "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
+              "reaction-pop flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
               "hover:scale-105 active:scale-95",
-              "animate-[reaction-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)_both]",
-              isActive
-                ? (isOwn ? "border-white/30 bg-white/20 shadow-sm shadow-violet-500/20" : "border-violet-400/40 bg-violet-500/15 shadow-sm shadow-violet-500/20")
-                : "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
-            )}>
-            <span className="text-xs">{emoji}</span><span className={cn("text-[10px] font-medium tabular-nums", isActive ? (isOwn ? "text-white/70" : "text-violet-300") : "text-zinc-400")}>{ids.length}</span>
+              !isActive && "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
+            )}
+            style={isActive
+              ? (isOwn
+                ? { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.2)", boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }
+                : { borderColor: "var(--app-accent-light)", backgroundColor: "var(--app-accent-glow)", boxShadow: "0 1px 2px 0 var(--app-accent-glow)" })
+              : undefined
+            }
+          >
+            <span className="text-xs">{emoji}</span><span className="text-[10px] font-medium tabular-nums" style={{ color: isActive ? (isOwn ? "rgba(255,255,255,0.7)" : "var(--app-accent-lighter)") : "rgb(161 161 170)" }}>{ids.length}</span>
           </button>
         );
       })}
@@ -441,6 +443,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
   const [showHeart, setShowHeart] = useState(false);
   const [showTapback, setShowTapback] = useState(false);
   const [showLightbox, setShowLightbox] = useState<string | null>(null);
+  const [showReplyArrow, setShowReplyArrow] = useState(false);
   const lastTapRef = useRef(0);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -484,21 +487,17 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
     setShowTapback(false);
   }, [message.id, onDeleteMessage]);
 
-  const handleSwipeEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > SWIPE_REPLY_THRESHOLD && info.velocity.x > 200) {
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
-      onReplyTo?.(message);
-    }
-  }, [message, onReplyTo]);
-
   const isFailed = message.status === "failed";
   const isVoice = message.type === "voice";
+  const isText = !isVoice && message.type !== "image";
   const isNew = message.status === "sending" || Date.now() - new Date(message.created_at).getTime() < 2000;
+
+  const timestampText = formatDistanceToNow(new Date(message.created_at || Date.now()), { addSuffix: true });
 
   return (
     <>
     <m.div
-      className={cn("relative flex w-full gap-2.5 px-4", isOwn ? "justify-end" : "justify-start")}
+      className={cn("relative flex w-full select-none gap-2.5 px-1.5 sm:px-3", isOwn ? "justify-end" : "justify-start")}
       initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -508,20 +507,45 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
         <TapbackDock message={message} isOwn={isOwn} onReact={(emoji, add) => { onReact(message.id, emoji, add); setShowTapback(false); }} onReply={() => { onReplyTo?.(message); setShowTapback(false); }} onCopy={handleCopy} onDelete={isOwn ? handleDelete : undefined} />
       )}</AnimatePresence>
 
+      {/* Reply arrow indicator for swipe-to-reply */}
+      <m.div
+        className={cn(
+          "absolute top-1/2 z-10 -translate-y-1/2",
+          isOwn ? "right-1.5 sm:right-3" : "left-1.5 sm:left-3",
+        )}
+        animate={showReplyArrow ? { scale: 1.2, opacity: 1 } : { scale: 0.5, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 500, damping: 35 }}
+        style={{ pointerEvents: "none" }}
+      >
+        <div className="flex items-center justify-center rounded-full p-1.5" style={{ backgroundColor: "var(--app-accent)" }}>
+          <Reply className="size-3.5 text-white" />
+        </div>
+      </m.div>
+
       {!isOwn && (
         <Avatar className="mt-auto size-8 shrink-0 ring-1 ring-muted">
           {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-          <AvatarFallback className="bg-gradient-to-br from-violet-100 to-purple-200 text-xs font-medium text-violet-700 dark:from-violet-500 dark:to-purple-600 dark:text-white">{partnerName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="text-xs font-medium" style={{ background: "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))", color: "var(--app-accent-dark)" }}>{partnerName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
       )}
 
-      <div className={cn("flex max-w-[75%] flex-col gap-1", isOwn ? "items-end" : "items-start")}>
+      <div className={cn("flex max-w-[75%] flex-col gap-1 select-none", isOwn ? "items-end mr-1.5 sm:mr-3" : "items-start ml-1.5 sm:ml-3")}>
         <m.div
           ref={bubbleRef}
           drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0, right: 0.35 }}
-          onDragEnd={handleSwipeEnd}
+          dragConstraints={{ left: 0, right: 120 }}
+          dragElastic={0.3}
+          onDrag={(_, info) => {
+            if (info.offset.x < 0) return;
+            setShowReplyArrow(info.offset.x > 30);
+          }}
+          onDragEnd={(_, info) => {
+            if (info.offset.x > 60 && onReplyTo) {
+              onReplyTo(message);
+            }
+            setShowReplyArrow(false);
+          }}
+          transition={{ type: "spring", stiffness: 500, damping: 35 }}
           onClick={handleClick}
           onPointerDown={handlePressStart}
           onPointerUp={handlePressEnd}
@@ -529,15 +553,18 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           onContextMenu={handleContextMenu}
           className={cn(
             "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all duration-200 active:scale-[0.98]",
-            // Own messages: vibrant violet-purple gradient with subtle shadow
-            isOwn && "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md shadow-md shadow-violet-500/15",
-            // Partner messages: softer background with shadow
-            !isOwn && "bg-muted text-foreground rounded-bl-md shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-violet-950/20",
+            isOwn && "rounded-br-sm text-white",
+            !isOwn && "bg-muted text-foreground rounded-bl-sm shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
             isFailed && "ring-2 ring-red-400/50",
             isVoice && "py-2",
-            !isVoice && message.type !== "image" && "md:hover:shadow-md md:hover:-translate-y-0.5"
+            !isVoice && message.type !== "image" && "md:hover:shadow-md md:hover:-translate-y-0.5",
           )}
-          style={{ transform: "translate3d(0,0,0)" }}
+          style={{
+            touchCallout: "none",
+            transform: "translate3d(0,0,0)",
+            background: isOwn ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" : undefined,
+            boxShadow: isOwn ? "0 4px 6px -1px var(--app-accent-glow)" : "0 1px 2px 0 var(--app-accent-glow)",
+          } as React.CSSProperties}
         >
           {/* Reply quote */}
           {message.reply_to_id && message.reply_to_content && (
@@ -545,19 +572,34 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           )}
 
           {/* Content */}
-          {isVoice ? (
+          {isText ? (
+            <div className="flex items-end gap-1.5">
+              <div className="min-w-0 flex-1">
+                <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" highlight={searchHighlight} />
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
+                  <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
+                )}
+                <span className={cn(
+                  "text-[10px] leading-none mt-0.5 whitespace-nowrap",
+                  isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]",
+                  isOwn ? "text-white/50" : "text-muted-foreground/60",
+                )}>{timestampText}</span>
+                {isOwn && <ReceiptIcon status={message.status} />}
+              </div>
+            </div>
+          ) : isVoice ? (
             message.waveform_data ? (
               <VoiceBubble message={message} isOwn={isOwn} waveform={message.waveform_data} />
             ) : <p className="text-white/60 italic">Voice message</p>
-          ) : message.type === "image" ? (
+          ) : (
             <div className="group/img relative cursor-zoom-in" onClick={() => setShowLightbox(message.content)}>
               <img src={message.content} alt="Shared image" className="max-h-64 rounded-lg object-contain transition-opacity duration-150 group-hover/img:opacity-90" />
               <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors duration-150 group-hover/img:bg-black/20">
                 <ZoomIn className="size-6 text-white opacity-0 transition-opacity duration-150 group-hover/img:opacity-80" />
               </div>
             </div>
-          ) : (
-            <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" highlight={searchHighlight} />
           )}
 
           {/* Vanish indicator */}
@@ -566,14 +608,16 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           )}
         </m.div>
 
-        {/* Timestamp + receipt + ephemeral timer */}
-        <div className={cn("flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground", isOwn && "flex-row-reverse")}>
-          {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
-            <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
-          )}
-          <span className={cn(isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]")}>{formatDistanceToNow(new Date(message.created_at || Date.now()), { addSuffix: true })}</span>
-          {isOwn && <ReceiptIcon status={message.status} />}
-        </div>
+        {/* Timestamp + receipt for voice/image (text messages have inline timestamp) */}
+        {!isText && (
+          <div className={cn("flex items-center gap-1.5 px-1 text-[10px] text-muted-foreground/60", isOwn && "flex-row-reverse")}>
+            {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
+              <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
+            )}
+            <span className={cn(isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]")}>{timestampText}</span>
+            {isOwn && <ReceiptIcon status={message.status} />}
+          </div>
+        )}
 
         {/* Reactions */}
         {onReact && message.reactions && <ReactionPills reactions={message.reactions} isOwn={isOwn} onReact={(e, a) => onReact(message.id, e, a)} currentUserId={""} />}
@@ -622,7 +666,7 @@ function formatDateSeparator(dateStr: string): string {
 
 function DateSeparator({ date }: { date: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2">
+    <div className="flex items-center gap-3 px-1.5 sm:px-3 py-2">
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
       <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-border/50">
         {formatDateSeparator(date)}
@@ -639,22 +683,23 @@ function DateSeparator({ date }: { date: string }) {
 function TypingIndicator({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
   const initials = partnerName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   return (
-    <div className="flex items-end gap-2.5 px-4">
+    <div className="flex items-end gap-2.5 px-1.5 sm:px-3">
       <Avatar className="size-8 shrink-0 ring-1 ring-muted">
         {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-        <AvatarFallback className="bg-gradient-to-br from-violet-100 to-purple-200 text-xs font-medium text-violet-700 dark:from-violet-500 dark:to-purple-600 dark:text-white">{initials}</AvatarFallback>
+        <AvatarFallback className="text-xs font-medium" style={{ background: "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))", color: "var(--app-accent-dark)" }}>{initials}</AvatarFallback>
       </Avatar>
       <m.div
         initial={{ opacity: 0, y: 8, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 4, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="flex items-center gap-2.5 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20"
+        className="flex items-center gap-2.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800"
+        style={{ boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }}
       >
         <span className="flex gap-1">
-          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
-          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
-          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
+          <span className="typing-dot size-[7px] rounded-full" style={{ backgroundColor: "var(--app-accent-light)" }} />
+          <span className="typing-dot size-[7px] rounded-full" style={{ backgroundColor: "var(--app-accent-light)" }} />
+          <span className="typing-dot size-[7px] rounded-full" style={{ backgroundColor: "var(--app-accent-light)" }} />
         </span>
         <span className="text-xs text-muted-foreground">{partnerName} is typing\u2026</span>
       </m.div>
@@ -668,11 +713,11 @@ function TypingIndicator({ partnerName, partnerAvatar }: { partnerName: string; 
 
 function MessageListSkeleton() {
   return (
-    <div className="flex flex-col gap-4 px-4 py-2">
+    <div className="flex flex-col gap-4 px-1.5 sm:px-3 py-2">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className={cn("flex gap-2.5", i % 2 === 0 ? "justify-start" : "justify-end")}>
           {i % 2 === 0 && <Skeleton className="size-8 shrink-0 rounded-full" />}
-          <Skeleton className={cn("h-16 w-48 rounded-2xl", i % 2 !== 0 && "bg-gradient-to-r from-violet-500/20 to-purple-600/20")} />
+          <Skeleton className={cn("h-16 w-48 rounded-2xl")} style={i % 2 !== 0 ? { background: "linear-gradient(to right, var(--app-accent-glow), transparent)" } : undefined} />
           {i % 2 !== 0 && <div className="w-8 shrink-0" />}
         </div>
       ))}
@@ -682,7 +727,7 @@ function MessageListSkeleton() {
 
 function NewMessagesButton({ onClick, count }: { onClick: () => void; count: number }) {
   return (
-    <m.button type="button" onClick={onClick} initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-violet-500/20 transition-colors hover:from-violet-600 hover:to-purple-700 active:scale-95" aria-label={`Scroll to ${count} new`} style={{ transform: "translate3d(0,0,0)" }}>
+    <m.button type="button" onClick={onClick} initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-colors hover:opacity-90 active:scale-95" aria-label={`Scroll to ${count} new`} style={{ transform: "translate3d(0,0,0)", background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))", boxShadow: "0 10px 15px -3px var(--app-accent-glow)" }}>
       <ArrowDown className="size-3.5" /><span>{count} new message{count > 1 ? "s" : ""}</span>
     </m.button>
   );
@@ -701,15 +746,15 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
       {/* Decorative large avatar with pulse + glow */}
       <div className="relative">
         {/* Animated glow ring */}
-        <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-lg animate-[pulse_3s_ease-in-out_infinite]" />
+        <div className="absolute -inset-3 rounded-full blur-lg animate-[pulse_3s_ease-in-out_infinite]" style={{ background: "linear-gradient(to bottom right, var(--app-accent-glow), var(--app-accent-glow))" }} />
         <m.div
           animate={{ scale: [1, 1.02, 1] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           className="relative"
         >
-          <Avatar className="size-20 ring-4 ring-violet-100 dark:ring-violet-900/50">
+          <Avatar className="size-20 ring-4" style={{ "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties}>
             {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
-            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-2xl font-bold text-white">
+            <AvatarFallback className="text-2xl font-bold text-white" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}>
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -718,7 +763,7 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
       <div className="text-center">
         <p className="text-sm font-semibold text-foreground">{partnerName}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {"👋"} No messages yet. Say hello to start the conversation!
+          {"\uD83D\uDC4B"} No messages yet. Say hello to start the conversation!
         </p>
       </div>
     </div>
@@ -823,13 +868,13 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
 
   return (
     <div className="relative h-full w-full overflow-hidden" style={backgroundStyle}>
-      <div ref={parentRef} onScroll={handleScroll} onClick={() => onClearSearchHighlight?.()} className="h-full w-full overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div ref={parentRef} onScroll={handleScroll} onClick={() => onClearSearchHighlight?.()} className="h-full w-full select-none overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
           {/* Loading more spinner */}
           {loadingMore && (
             <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "48px", zIndex: 5 }}>
               <div className="flex items-center justify-center py-3">
-                <svg className="size-5 animate-spin text-violet-400" viewBox="0 0 24 24" fill="none" aria-label="Loading more messages">
+                <svg className="size-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-label="Loading more messages" style={{ color: "var(--app-accent-light)" }}>
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>

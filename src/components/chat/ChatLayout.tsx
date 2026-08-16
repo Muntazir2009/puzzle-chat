@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Search, Loader2, FileText } from "lucide-react";
+import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -76,136 +76,6 @@ function StatusDot({ online, size = "size-2.5" }: { online: boolean; size?: stri
 }
 
 /* ------------------------------------------------------------------ */
-/*  SearchPanel                                                        */
-/* ------------------------------------------------------------------ */
-
-function SearchPanel({
-  conversationId,
-  onResultClick,
-  onClose,
-}: {
-  conversationId: string;
-  onResultClick: (messageId: string, query: string) => void;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ChatMessage[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  /* Auto-focus on open */
-  useEffect(() => {
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }, []);
-
-  /* Escape key to close */
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  /* Debounced search */
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) { setResults([]); setIsSearching(false); return; }
-    setIsSearching(true);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/messages/search?conversation_id=${conversationId}&q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data: ChatMessage[] = await res.json();
-          setResults(data);
-        }
-      } catch (_err) {
-        /* silent */
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query, conversationId]);
-
-  /** Highlight matching text in a snippet */
-  function highlightedSnippet(text: string, q: string, maxLen = 60): React.ReactNode {
-    if (!q) return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
-    const idx = text.toLowerCase().indexOf(q.toLowerCase());
-    if (idx === -1) return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
-    const before = text.slice(Math.max(0, idx - 20), idx);
-    const match = text.slice(idx, idx + q.length);
-    const after = text.slice(idx + q.length, idx + q.length + maxLen - 20 - q.length);
-    return (
-      <>
-        {before.length > 0 && idx > 20 && "..."}{before}
-        <mark className="bg-yellow-300/60 dark:bg-yellow-400/40 rounded-sm px-0.5">{match}</mark>
-        {after}{text.length > idx + q.length + maxLen - 20 - q.length && "..."}
-      </>
-    );
-  }
-
-  return (
-    <div
-      className="overflow-hidden border-b bg-background/80 backdrop-blur-xl"
-    >
-      <div className="flex items-center gap-2 px-4 py-2.5">
-        <Search className="size-4 shrink-0 text-muted-foreground" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search messages..."
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          aria-label="Search messages"
-        />
-        {isSearching ? (
-          <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-        ) : (
-          <button
-            type="button"
-            onClick={() => { setQuery(""); onClose(); }}
-            className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
-            aria-label="Close search"
-          >
-            <X className="size-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Results list */}
-      {results.length > 0 && (
-        <div className="max-h-[200px] overflow-y-auto border-t px-2 pb-2">
-          {results.map((msg) => (
-            <button
-              key={msg.id}
-              type="button"
-              onClick={() => onResultClick(msg.id, query)}
-              className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
-            >
-              <p className="truncate text-sm text-foreground">
-                {highlightedSnippet(msg.content, query)}
-              </p>
-              <span className="text-[11px] text-muted-foreground">
-                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {query.trim() && !isSearching && results.length === 0 && (
-        <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
-          No results found
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  PartnerInfoPanel                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -263,11 +133,14 @@ function PartnerInfoPanel({
               {/* Avatar + Name + Status */}
               <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
                 <div className="relative">
-                  <Avatar className="size-20 ring-4 ring-violet-100 dark:ring-violet-900/40">
+                  <Avatar className="size-20 ring-4 ring-[var(--app-accent-lighter)]/20 dark:ring-[var(--app-accent)]/30">
                     {partner.avatar_url && (
                       <AvatarImage src={partner.avatar_url} alt={partner.name} />
                     )}
-                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xl font-bold text-white">
+                    <AvatarFallback
+                      className="text-xl font-bold text-white"
+                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+                    >
                       {partner.name.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -375,14 +248,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const [ephemeralOpen, setEphemeralOpen] = useState(false);
   const [ephemeralSeconds, setEphemeralSeconds] = useState<number | null>(null);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchHighlight, setSearchHighlight] = useState<string | undefined>(undefined);
-  const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const viewport = useVisualViewport();
 
-  /* Background theme */
-  const { themeId, theme, selectTheme } = useChatBackground();
+  /* Background theme + wallpaper */
+  const { themeId, theme, selectTheme, wallpaper, setWallpaper } = useChatBackground();
 
   /* Voice */
   const voice = useVoiceRecorder();
@@ -397,6 +267,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
   const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
 
+  /* Compute background style — wallpaper overrides theme */
+  const bgStyle = wallpaper
+    ? { backgroundImage: `url(${wallpaper})`, backgroundSize: "cover", backgroundPosition: "center" }
+    : theme.style;
+
   useEffect(() => { inputRef.current?.focus(); }, []);
 
   /* Show voice waveform when recording */
@@ -409,12 +284,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         if (replyTo) { setReplyTo(null); e.preventDefault(); }
         else if (ephemeralOpen) { setEphemeralOpen(false); e.preventDefault(); }
         else if (infoPanelOpen) { setInfoPanelOpen(false); e.preventDefault(); }
-        else if (searchOpen) { setSearchOpen(false); e.preventDefault(); }
       }
     }
     window.addEventListener("keydown", handleGlobalKey);
     return () => window.removeEventListener("keydown", handleGlobalKey);
-  }, [replyTo, ephemeralOpen, infoPanelOpen, searchOpen]);
+  }, [replyTo, ephemeralOpen, infoPanelOpen]);
 
   /* Derived values — MUST be declared before any useCallback that
      references them in its dependency array to avoid TDZ errors
@@ -500,25 +374,10 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const form = e.currentTarget.closest("form"); if (form) form.requestSubmit(); }
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); if (searchHighlight) setSearchHighlight(undefined); }, [onTyping, searchHighlight]);
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
 
   const canSend = hasText || hasAttachment;
-
-  /* Search result click → scroll to message & apply highlight */
-  const handleSearchResultClick = useCallback((messageId: string, query: string) => {
-    setScrollToMessageId(messageId);
-    setSearchHighlight(query);
-    setSearchOpen(false);
-  }, []);
-
-  const handleClearSearchHighlight = useCallback(() => {
-    setSearchHighlight(undefined);
-  }, []);
-
-  const handleScrolledToMessage = useCallback(() => {
-    setScrollToMessageId(null);
-  }, []);
 
   /* ---- Attachment handlers ---------------------------------------- */
   const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -562,54 +421,33 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
-            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none"
             aria-label="Open user info"
           >
-            <Avatar className="size-9 ring-2 ring-violet-100 dark:ring-violet-900/50">
+            <Avatar className="size-9 ring-2 ring-[var(--app-accent-lighter)]/30 dark:ring-[var(--app-accent)]/40">
               {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
-              <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback
+                className="text-xs font-semibold text-white"
+                style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+              >{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
               <span className="text-sm font-semibold leading-tight">{partner.name}</span>
               <div className="flex items-center gap-1.5">
                 <StatusDot online={partnerStatus.online} />
-                <span className={cn(
-                  "text-xs",
-                  isPartnerTyping ? "text-violet-500" : "text-muted-foreground",
-                )}>{statusText}</span>
+                <span
+                  className={cn("text-xs", isPartnerTyping ? "font-medium" : "text-muted-foreground")}
+                  style={isPartnerTyping ? { color: "var(--app-accent)" } : undefined}
+                >{statusText}</span>
               </div>
             </div>
           </button>
 
           {/* Right-side header actions */}
           <div className="ml-auto flex items-center gap-1">
-            <ChatBackgroundPicker themeId={themeId} onSelect={selectTheme} />
-            <button
-              type="button"
-              onClick={() => setSearchOpen((v) => !v)}
-              className={cn(
-                "flex size-9 items-center justify-center rounded-lg transition-colors",
-                searchOpen
-                  ? "bg-violet-500/15 text-violet-500"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-              aria-label={searchOpen ? "Close search" : "Search messages"}
-            >
-              <Search className="size-4" />
-            </button>
+            <ChatBackgroundPicker themeId={themeId} onSelect={selectTheme} wallpaper={wallpaper} onSetWallpaper={setWallpaper} />
           </div>
         </header>
-
-        {/* Search panel (animated slide-down) */}
-        <AnimatePresence>
-          {searchOpen && (
-            <SearchPanel
-              conversationId={conversationId}
-              onResultClick={handleSearchResultClick}
-              onClose={() => setSearchOpen(false)}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Feed area – background theme applied via MessageFeed */}
         <div className="relative min-h-0 flex-1">
@@ -620,16 +458,12 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             currentUserId={currentUserId}
             partnerName={partner.name}
             partnerAvatar={partner.avatar_url}
-            backgroundStyle={theme.style}
+            backgroundStyle={bgStyle}
             onMarkAsRead={markAsRead}
             onVanishMessage={vanishMessage}
             onDeleteMessage={deleteMessage}
             onReplyTo={setReplyTo}
             onReact={sendReaction}
-            scrollToMessageId={scrollToMessageId}
-            onScrolledToMessage={handleScrolledToMessage}
-            searchHighlight={searchHighlight}
-            onClearSearchHighlight={handleClearSearchHighlight}
             loadMore={loadMore}
             hasMore={hasMore}
             loadingMore={loadingMore}
@@ -639,11 +473,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         {/* Reply preview bar */}
         <AnimatePresence>
           {replyTo && (
-            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden bg-violet-500/5 backdrop-blur-sm border-l-2 border-l-violet-500">
+            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden backdrop-blur-sm" style={{ backgroundColor: "var(--app-accent-subtle)", borderLeft: "2px solid var(--app-accent)" }}>
               <div className="flex items-center gap-2 px-4 py-2">
-                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-500 to-purple-600" />
+                <div className="w-1 h-8 rounded-full" style={{ background: "linear-gradient(to bottom, var(--app-accent-from), var(--app-accent-to))" }} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-violet-500">{replyTo.sender_name || "Unknown"}</p>
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--app-accent)" }}>{replyTo.sender_name || "Unknown"}</p>
                   <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -663,16 +497,17 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden bg-violet-500/5 backdrop-blur-sm rounded-xl border border-violet-500/10"
+              className="overflow-hidden backdrop-blur-sm rounded-xl border"
+              style={{ backgroundColor: "var(--app-accent-subtle)", borderColor: "var(--app-accent-subtle)" }}
             >
               <div className="flex items-center gap-3 px-4 py-2.5">
                 {attachmentPreview ? (
-                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg ring-2 ring-violet-500/20">
+                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg" style={{ boxShadow: `0 0 0 2px var(--app-accent-subtle)` }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
                   </div>
                 ) : (
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)" }}>
                     {attachmentFile.type === "application/pdf" ? (
                       <FileText className="size-5" />
                     ) : attachmentFile.type.startsWith("video/") ? (
@@ -687,7 +522,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
                 </div>
                 {isUploading ? (
-                  <Loader2 className="size-5 shrink-0 animate-spin text-violet-500" />
+                  <Loader2 className="size-5 shrink-0 animate-spin" style={{ color: "var(--app-accent)" }} />
                 ) : (
                   <m.button
                     type="button"
@@ -714,11 +549,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                 </div>
                 <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 40 }}>
                   {voice.amplitudes.slice(-60).map((amp, i) => (
-                    <div key={i} className="w-[2px] rounded-full bg-violet-500/70 transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px` }} />
+                    <div key={i} className="w-[2px] rounded-full transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px`, backgroundColor: "var(--app-accent)", opacity: 0.7 }} />
                   ))}
                 </div>
                 <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}</span>
-                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white" aria-label="Send voice">
+                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full text-white" style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }} aria-label="Send voice">
                   <ArrowUp className="size-4" />
                 </m.button>
               </div>
@@ -730,13 +565,25 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         <div className="shrink-0 border-t border-white/10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl px-3 py-2.5 sm:px-4 sm:py-3">
           <form onSubmit={handleSubmit} className="flex items-end gap-2">
             {/* Vanish toggle - compact with smooth transition */}
-            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", vanishMode ? "bg-violet-500/15 text-violet-500 shadow-sm shadow-violet-500/10" : "text-muted-foreground hover:bg-violet-500/10")} aria-label="Vanish mode">
+            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }}
+              className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200")}
+              style={vanishMode
+                ? { backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)", boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }
+                : undefined}
+              aria-label="Vanish mode"
+            >
               {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             </m.button>
 
             {/* Ephemeral timer dropdown - compact */}
             <div className="relative">
-              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-violet-500/10")} aria-label="Ephemeral timer">
+              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }}
+                className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200")}
+                style={ephemeralSeconds
+                  ? { backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b" }
+                  : undefined}
+                aria-label="Ephemeral timer"
+              >
                 <Clock className="size-3.5" />
               </m.button>
               <AnimatePresence>
@@ -744,7 +591,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-32 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl shadow-black/10">
                     {EPHEMERAL_OPTIONS.map((opt) => (
                       <button key={opt.label} type="button" onClick={() => { setEphemeralSeconds(opt.value); setEphemeralOpen(false); }}
-                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all duration-150", ephemeralSeconds === opt.value ? "bg-violet-500/10 text-violet-500 font-semibold" : "text-foreground hover:bg-muted")}>
+                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all duration-150")}
+                        style={ephemeralSeconds === opt.value
+                          ? { backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)", fontWeight: 600 }
+                          : undefined}
+                      >
                         <Clock className="size-3 opacity-60" />{opt.label}
                       </button>
                     ))}
@@ -765,12 +616,13 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                     "max-h-32 overflow-y-auto",
                     "transition-all duration-300",
                     "shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]",
-                    // Glow effect on focus
                     "focus-visible:border-transparent focus-visible:ring-2",
-                    vanishMode
-                      ? "border-violet-500/30 focus-visible:ring-violet-500/30 focus-visible:shadow-[0_0_0_3px_rgba(139,92,246,0.1)] vanish-input-glow"
-                      : "focus-visible:ring-violet-500/30 focus-visible:shadow-[0_0_0_3px_rgba(139,92,246,0.1)]",
+                    vanishMode && "vanish-input-glow",
                   )}
+                  style={vanishMode
+                    ? { borderColor: 'var(--app-accent-subtle)' }
+                    : undefined}
+                  onFocus={(e) => { e.currentTarget.style.setProperty('--tw-ring-color', 'var(--app-accent-ring)'); }}
                 />
               </div>
             )}
@@ -787,7 +639,13 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
 
             {/* Attachment button */}
             {!showVoiceWaveform && (
-              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }} className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200", hasAttachment ? "text-violet-500 bg-violet-500/15" : "text-muted-foreground hover:bg-violet-500/10")} aria-label="Attach file">
+              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }}
+                className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200")}
+                style={hasAttachment
+                  ? { color: "var(--app-accent)", backgroundColor: "var(--app-accent-subtle)" }
+                  : undefined}
+                aria-label="Attach file"
+              >
                 <Paperclip className="size-4" />
               </m.button>
             )}
@@ -810,7 +668,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   });
                 }}
               >
-                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-violet-500/10" aria-label="Emoji">
+                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-muted" aria-label="Emoji">
                   <Smile className="size-4" />
                 </m.button>
               </EmojiPicker>
@@ -821,7 +679,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               <AnimatePresence>
                 <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
                   <Button type="submit" size="icon" disabled={isSending || isUploading}
-                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105 active:scale-95")}
+                    className="size-9 shrink-0 rounded-xl text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
+                    style={{
+                      background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+                      boxShadow: `0 10px 15px -3px var(--app-accent-glow)`,
+                    }}
                     aria-label="Send message"><ArrowUp className="size-4" /></Button>
                 </m.div>
               </AnimatePresence>
@@ -831,7 +693,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             {!showVoiceWaveform && !canSend && (
               <AnimatePresence>
                 <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
-                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-violet-500/10" aria-label="Record voice">
+                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-muted" aria-label="Record voice">
                     <Mic className="size-4" />
                   </m.button>
                 </m.div>

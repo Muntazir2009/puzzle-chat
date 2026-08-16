@@ -118,6 +118,72 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ================================================================== */
+/*  App Theme Engine — accent color variables per theme                 */
+/* ================================================================== */
+
+:root,
+[data-theme="default"] {
+  --app-accent-from: #8b5cf6;
+  --app-accent-to: #9333ea;
+  --app-accent: #8b5cf6;
+  --app-accent-light: #a78bfa;
+  --app-accent-lighter: #c4b5fd;
+  --app-accent-dark: #7c3aed;
+  --app-accent-ring: rgba(139, 92, 246, 0.5);
+  --app-accent-glow: rgba(139, 92, 246, 0.3);
+  --app-accent-subtle: rgba(139, 92, 246, 0.08);
+  --app-accent-text: oklch(0.55 0.24 285);
+}
+
+[data-theme="golden"] {
+  --app-accent-from: #f59e0b;
+  --app-accent-to: #d97706;
+  --app-accent: #f59e0b;
+  --app-accent-light: #fbbf24;
+  --app-accent-lighter: #fde68a;
+  --app-accent-dark: #b45309;
+  --app-accent-ring: rgba(245, 158, 11, 0.5);
+  --app-accent-glow: rgba(245, 158, 11, 0.3);
+  --app-accent-subtle: rgba(245, 158, 11, 0.08);
+  --app-accent-text: oklch(0.75 0.17 75);
+}
+
+[data-theme="crimson"] {
+  --app-accent-from: #e11d48;
+  --app-accent-to: #b91c1c;
+  --app-accent: #e11d48;
+  --app-accent-light: #fb7185;
+  --app-accent-lighter: #fda4af;
+  --app-accent-dark: #9f1239;
+  --app-accent-ring: rgba(225, 29, 72, 0.5);
+  --app-accent-glow: rgba(225, 29, 72, 0.3);
+  --app-accent-subtle: rgba(225, 29, 72, 0.08);
+  --app-accent-text: oklch(0.6 0.22 20);
+}
+
+/* Theme transition for smooth switching */
+[data-theme] * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.15s ease;
+}
+
+/* Conversation list item hover accents */
+.conversation-item-row {
+  border-left: 3px solid transparent;
+  padding-left: 1rem;
+  transition: all 0.3s ease-out;
+}
+.conversation-item-row:hover {
+  border-left-color: var(--app-accent-light);
+  background: linear-gradient(to right, var(--app-accent-subtle), transparent);
+  padding-left: 1.125rem;
+}
+.conversation-item-row.active {
+  border-left-color: var(--app-accent);
+  background: linear-gradient(to right, var(--app-accent-subtle), transparent);
+  padding-left: 1.125rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

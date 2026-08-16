@@ -140,7 +140,15 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setQuery(""); setResults([]); } }}>
       <DialogTrigger asChild>
-        <Button size="icon" className="size-9 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700" aria-label="New chat">
+        <Button
+          size="icon"
+          className="size-9 rounded-xl text-white transition-all hover:opacity-80"
+          style={{
+            background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+            boxShadow: `0 4px 6px -1px var(--app-accent-glow)`,
+          }}
+          aria-label="New chat"
+        >
           <Plus className="size-4" />
         </Button>
       </DialogTrigger>
@@ -168,7 +176,10 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
                 <button key={user.id} type="button" disabled={creating === user.id} onClick={() => handleStartChat(user.id, user.name, user.avatar_url)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:opacity-50">
                   <Avatar className="size-9 shrink-0">
                     {user.avatar_url && <AvatarImage src={user.avatar_url} alt={user.name} />}
-                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{getInitials(user.name)}</AvatarFallback>
+                    <AvatarFallback
+                      className="text-xs font-semibold text-white"
+                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+                    >{getInitials(user.name)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{user.name}</p>
@@ -234,7 +245,12 @@ const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { t
             href={seg.value}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-violet-400/50 underline-offset-2 hover:decoration-violet-400 transition-colors"
+            className="underline underline-offset-2 transition-colors"
+            style={{
+              textDecorationColor: "var(--app-accent-lighter)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.textDecorationColor = "var(--app-accent-light)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.textDecorationColor = "var(--app-accent-lighter)"; }}
             onClick={(e) => e.stopPropagation()}
           >
             {seg.value}
@@ -262,6 +278,7 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
 }) {
   const isRecent = conv.last_message ? isWithin5Min(conv.last_message.created_at) : false;
   const previewText = conv.last_message ? formatPreview(conv.last_message.content) : "";
+  const isActive = activeId === conv.id;
 
   return (
     <>
@@ -278,23 +295,19 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
       onContextMenu={(e) => onContextMenu(e, conv)}
       className={cn(
         "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all duration-300 ease-out",
-        // Left border accent with gradient effect on hover
-        "border-l-[3px] border-l-transparent",
-        "hover:border-l-violet-400/70 hover:bg-gradient-to-r hover:from-violet-500/[0.06] hover:to-transparent hover:pl-[18px]",
-        // Active state with violet gradient left border
-        activeId === conv.id && [
-          "bg-gradient-to-r from-violet-500/[0.10] to-transparent",
-          "border-l-violet-500",
-          "pl-[18px]",
-        ],
+        "conversation-item-row",
+        isActive && "active",
         // Mobile touch feedback
         "active:scale-[0.98]",
       )}
     >
       <div className="relative shrink-0">
-        <Avatar className="size-11 ring-2 ring-transparent transition-all duration-200 group-hover:ring-violet-200/30 dark:group-hover:ring-violet-500/20">
+        <Avatar className="size-11 ring-2 ring-transparent transition-all duration-200">
           {conv.partner.avatar_url && <AvatarImage src={conv.partner.avatar_url} alt={conv.partner.name} />}
-          <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{getInitials(conv.partner.name)}</AvatarFallback>
+          <AvatarFallback
+            className="text-xs font-semibold text-white"
+            style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+          >{getInitials(conv.partner.name)}</AvatarFallback>
         </Avatar>
         {isOnline && (
           <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 ring-2 ring-background" />
@@ -304,17 +317,30 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1 truncate text-sm transition-colors duration-200">
             {conv.partner.name}
-            {isRecent && <Pin className="size-3 shrink-0 text-violet-400" />}
+            {isRecent && <Pin className="size-3 shrink-0" style={{ color: "var(--app-accent-light)" }} />}
           </span>
           {conv.last_message && (
-            <span className={cn("shrink-0 text-[11px] tabular-nums transition-colors duration-200", activeId === conv.id ? "text-foreground/40" : "text-muted-foreground/70", conv.unread_count > 0 && "font-medium text-violet-500")}>{timeAgo(conv.last_message.created_at)}</span>
+            <span
+              className={cn(
+                "shrink-0 text-[11px] tabular-nums transition-colors duration-200",
+                isActive ? "text-foreground/40" : "text-muted-foreground/70",
+                conv.unread_count > 0 && "font-medium",
+              )}
+              style={conv.unread_count > 0 ? { color: "var(--app-accent)" } : undefined}
+            >{timeAgo(conv.last_message.created_at)}</span>
           )}
         </div>
         {conv.last_message && (
           <div className="mt-1 flex items-center justify-between gap-2">
-            <span className={cn("truncate text-xs", activeId === conv.id && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}<LinkifiedText text={previewText} /></span>
+            <span className={cn("truncate text-xs", isActive && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}<LinkifiedText text={previewText} /></span>
             {conv.unread_count > 0 && (
-              <span className="unread-badge-pulse flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-[10px] font-bold text-white shadow-sm shadow-violet-500/30 ring-2 ring-background">{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
+              <span
+                className="unread-badge-pulse flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-2 ring-background"
+                style={{
+                  background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+                  boxShadow: `0 1px 2px 0 var(--app-accent-glow)`,
+                }}
+              >{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
           </div>
         )}
@@ -332,7 +358,6 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   const [ctxConv, setCtxConv] = useState<ConversationItem | null>(null);
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
   const [onlineMap, setOnlineMap] = useState<OnlineMap>({});
-  const [filter, setFilter] = useState("");
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const emptyContainerRef = useRef<HTMLDivElement>(null);
 
@@ -390,15 +415,6 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
     }
   }, [onDelete]);
 
-  const filteredConversations = useMemo(() => {
-    if (!filter.trim()) return conversations;
-    const q = filter.toLowerCase();
-    return conversations.filter((c) =>
-      c.partner.name.toLowerCase().includes(q) ||
-      (c.last_message?.content.toLowerCase().includes(q) ?? false)
-    );
-  }, [conversations, filter]);
-
   return (
     <div className="flex h-full flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
@@ -406,38 +422,8 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
         <NewChatDialog onSelect={onNewChat} />
       </header>
 
-      {/* Conversation search/filter */}
-      {conversations.length > 3 && (
-        <div className="relative shrink-0 border-b px-3 py-2">
-          <Search className="absolute left-5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
-          <input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter chats..."
-            className="h-8 w-full rounded-lg bg-muted/60 pl-8 pr-8 text-xs outline-none placeholder:text-muted-foreground/50 focus:bg-muted/80 focus:ring-1 focus:ring-violet-500/20 transition-all"
-            aria-label="Filter conversations"
-          />
-          {filter && (
-            <button
-              type="button"
-              onClick={() => setFilter("")}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-              aria-label="Clear filter"
-            >
-              <X className="size-3" />
-            </button>
-          )}
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto">
-        {filteredConversations.length === 0 && conversations.length > 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <Search className="size-6 text-muted-foreground/40" />
-            <p className="text-xs text-muted-foreground">No matching conversations</p>
-          </div>
-        ) : filteredConversations.length === 0 ? (
+        {conversations.length === 0 ? (
           <div
             ref={emptyContainerRef}
             className="flex h-full min-h-[200px] flex-col items-center justify-center gap-5 px-6 text-center"
@@ -455,16 +441,16 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             {/* Illustration: layered chat bubbles */}
             <div className="relative">
               {/* Background decorative ring */}
-              <div className="absolute -inset-6 rounded-full bg-gradient-to-br from-violet-500/5 to-purple-600/5" />
-              <div className="relative flex size-24 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
-                <MessageCircle className="size-12 text-violet-400/40" />
+              <div className="absolute -inset-6 rounded-full" style={{ background: "radial-gradient(circle, var(--app-accent-subtle), transparent 70%)" }} />
+              <div className="relative flex size-24 items-center justify-center rounded-3xl" style={{ background: "radial-gradient(circle, var(--app-accent-subtle), transparent 70%)" }}>
+                <MessageCircle className="size-12" style={{ color: "var(--app-accent-light)" }} />
               </div>
               {/* Floating action badge with parallax (desktop only) */}
               <m.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)` }}
-                className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 ring-4 ring-background max-lg:!transform-none"
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))', boxShadow: '0 10px 15px -3px var(--app-accent-glow)' }}
+                className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full text-white ring-4 ring-background max-lg:!transform-none"
               >
                 <Plus className="size-4 text-white" />
               </m.div>
@@ -472,13 +458,13 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             <div className="space-y-1.5">
               <p className="text-sm font-semibold">No conversations yet</p>
               <p className="max-w-[200px] text-xs leading-relaxed text-muted-foreground">
-                Tap the <strong className="text-violet-500">+</strong> button above to find someone and start chatting.
+                Tap the <strong style={{ color: "var(--app-accent)" }}>+</strong> button above to find someone and start chatting.
               </p>
             </div>
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {filteredConversations.map((conv, idx) => (
+            {conversations.map((conv, idx) => (
               <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} index={idx} />
             ))}
           </AnimatePresence>
