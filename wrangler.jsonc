@@ -1,0 +1,27 @@
+{
+  //
+  // Puzzle – 1-on-1 Direct Messaging
+  // Cloudflare Workers / Pages configuration for OpenNext
+  //
+
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "puzzle",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // Environment variables required at deploy-time.
+  // Runtime secrets (SUPABASE_SERVICE_ROLE_KEY, etc.) should be set via
+  // `wrangler secret put` rather than committed here.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co"
+  },
+
+  // Uncomment and populate these via `wrangler secret put`:
+  // "secrets": ["SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"]
+}
