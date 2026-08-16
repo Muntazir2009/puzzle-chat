@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 
+/**
+ * Server-side Supabase client.
+ *
+ * Validates env vars at call-time (not import-time) so the module
+ * tree can be statically analysed and the UI still renders when
+ * credentials are not yet configured.
+ */
 export async function createClient() {
   const cookieStore = await cookies();
 
