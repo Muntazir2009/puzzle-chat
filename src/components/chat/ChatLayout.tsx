@@ -416,6 +416,12 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     return () => window.removeEventListener("keydown", handleGlobalKey);
   }, [replyTo, ephemeralOpen, infoPanelOpen, searchOpen]);
 
+  /* Derived values — MUST be declared before any useCallback that
+     references them in its dependency array to avoid TDZ errors
+     in the production webpack bundle. */
+  const hasAttachment = attachmentFile !== null;
+  const hasText = draft.trim().length > 0;
+
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     /* If an attachment is selected, upload it instead of sending text */
@@ -455,7 +461,6 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); if (searchHighlight) setSearchHighlight(undefined); }, [onTyping, searchHighlight]);
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
 
-  const hasText = draft.trim().length > 0;
   const canSend = hasText || hasAttachment;
 
   /* Search result click → scroll to message & apply highlight */
@@ -535,8 +540,6 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const handlePaperclipClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
-
-  const hasAttachment = attachmentFile !== null;
 
   /* Status text for header */
   const statusText = isPartnerTyping
