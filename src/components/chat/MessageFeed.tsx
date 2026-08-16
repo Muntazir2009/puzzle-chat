@@ -41,6 +41,7 @@ export interface MessageFeedProps {
   currentUserId: string;
   partnerName: string;
   partnerAvatar: string | null;
+  backgroundStyle?: React.CSSProperties;
   onMarkAsRead?: (ids: string[]) => void;
   onVanishMessage?: (id: string) => void;
   onReplyTo?: (message: ChatMessage) => void;
@@ -48,6 +49,11 @@ export interface MessageFeedProps {
   onReact?: (messageId: string, emoji: string, add: boolean) => void;
   scrollToMessageId?: string | null;
   onScrolledToMessage?: () => void;
+  searchHighlight?: string;
+  onClearSearchHighlight?: () => void;
+  loadMore?: () => Promise<void>;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -281,7 +287,32 @@ function parseUrls(text: string): TextSegment[] {
   return segments;
 }
 
-const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { text: string; className?: string }) {
+/** Split a plain-text string into highlighted / non-highlighted fragments */
+function highlightText(text: string, query: string): React.ReactNode[] {
+  if (!query) return [text];
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(${escaped})`, "gi");
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <mark key={match.index} className="bg-yellow-300/60 dark:bg-yellow-400/40 rounded-sm px-0.5">
+        {match[1]}
+      </mark>,
+    );
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts;
+}
+
+export const LinkifiedText = React.memo(function LinkifiedText({ text, className, highlight }: { text: string; className?: string; highlight?: string }) {
   const segments = useMemo(() => parseUrls(text), [text]);
   return (
     <span className={className}>
@@ -298,7 +329,7 @@ const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { t
             {seg.value}
           </a>
         ) : (
-          <span key={i}>{seg.value}</span>
+          <span key={i}>{highlight ? highlightText(seg.value, highlight) : seg.value}</span>
         ),
       )}
     </span>
@@ -386,6 +417,7 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
             className={cn(
               "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
               "hover:scale-105 active:scale-95",
+              "animate-[reaction-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)_both]",
               isActive
                 ? (isOwn ? "border-white/30 bg-white/20 shadow-sm shadow-violet-500/20" : "border-violet-400/40 bg-violet-500/15 shadow-sm shadow-violet-500/20")
                 : "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
@@ -402,9 +434,9 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
 /*  MessageBubble                                                      */
 /* ------------------------------------------------------------------ */
 
-function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, onReact, onDeleteMessage }: {
+function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, onReact, onDeleteMessage, searchHighlight }: {
   message: ChatMessage; isOwn: boolean; partnerName: string; partnerAvatar: string | null;
-  onReplyTo?: (msg: ChatMessage) => void; onReact?: (id: string, emoji: string, add: boolean) => void; onDeleteMessage?: (id: string) => void;
+  onReplyTo?: (msg: ChatMessage) => void; onReact?: (id: string, emoji: string, add: boolean) => void; onDeleteMessage?: (id: string) => void; searchHighlight?: string;
 }) {
   const [showHeart, setShowHeart] = useState(false);
   const [showTapback, setShowTapback] = useState(false);
@@ -464,6 +496,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
   const isNew = message.status === "sending" || Date.now() - new Date(message.created_at).getTime() < 2000;
 
   return (
+    <>
     <m.div
       className={cn("relative flex w-full gap-2.5 px-4", isOwn ? "justify-end" : "justify-start")}
       initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
@@ -495,13 +528,14 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           onPointerLeave={handlePressEnd}
           onContextMenu={handleContextMenu}
           className={cn(
-            "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-transform duration-100 active:scale-[0.98]",
+            "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-all duration-200 active:scale-[0.98]",
             // Own messages: vibrant violet-purple gradient with subtle shadow
             isOwn && "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md shadow-md shadow-violet-500/15",
             // Partner messages: softer background with shadow
             !isOwn && "bg-muted text-foreground rounded-bl-md shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-violet-950/20",
             isFailed && "ring-2 ring-red-400/50",
-            isVoice && "py-2"
+            isVoice && "py-2",
+            !isVoice && message.type !== "image" && "md:hover:shadow-md md:hover:-translate-y-0.5"
           )}
           style={{ transform: "translate3d(0,0,0)" }}
         >
@@ -523,7 +557,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
               </div>
             </div>
           ) : (
-            <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" />
+            <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" highlight={searchHighlight} />
           )}
 
           {/* Vanish indicator */}
@@ -537,7 +571,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
           {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
             <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
           )}
-          <span>{formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}</span>
+          <span className={cn(isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]")}>{formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}</span>
           {isOwn && <ReceiptIcon status={message.status} />}
         </div>
 
@@ -565,6 +599,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
         <ImageLightbox src={showLightbox} onClose={() => setShowLightbox(null)} />
       )}
     </AnimatePresence>
+    </>
   );
 }
 
@@ -694,28 +729,36 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
 /*  MessageFeed (main export)                                          */
 /* ------------------------------------------------------------------ */
 
-export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, onMarkAsRead, onVanishMessage, onReplyTo, onDeleteMessage, onReact, scrollToMessageId, onScrolledToMessage }: MessageFeedProps) {
+export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, backgroundStyle, onMarkAsRead, onVanishMessage, onReplyTo, onDeleteMessage, onReact, scrollToMessageId, onScrolledToMessage, searchHighlight, onClearSearchHighlight, loadMore, hasMore, loadingMore }: MessageFeedProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const isAutoScrollRef = useRef(true);
   const [showNewBtn, setShowNewBtn] = useState(false);
   const unreadRef = useRef(0);
   const prevCountRef = useRef(messages.length);
+  const prevFirstIdRef = useRef(messages.length > 0 ? messages[0].id : null);
+  const prevScrollHeightRef = useRef(0);
 
   const totalItems = useMemo(() => messages.length + (isPartnerTyping ? 1 : 0), [messages.length, isPartnerTyping]);
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
 
   const virtualizer = useVirtualizer({ count: totalItems, getScrollElement: () => parentRef.current, estimateSize: () => ESTIMATED_ROW_HEIGHT, overscan: OVERSCAN, paddingStart: 16, paddingEnd: 16, gap: 12 });
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const el = parentRef.current; if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior });
-    isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0;
-  }, []);
 
   const handleScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (dist <= AUTO_SCROLL_THRESHOLD) { isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0; }
     else { isAutoScrollRef.current = false; }
+    /* Trigger loadMore when scrolled near top */
+    if (el.scrollTop < 300 && hasMore && !loadingMore) {
+      loadMoreRef.current?.();
+    }
+  }, [hasMore, loadingMore]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const el = parentRef.current; if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+    isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0;
   }, []);
 
   useEffect(() => { if (messages.length > 0) requestAnimationFrame(() => scrollToBottom("instant")); }, [isLoading, scrollToBottom]);
@@ -731,14 +774,47 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
     onScrolledToMessage?.();
   }, [scrollToMessageId, messages, virtualizer, onScrolledToMessage]);
 
+  /* ---- Handle message count changes (new or prepended) ------------ */
   useEffect(() => {
-    const prev = prevCountRef.current; const next = messages.length; prevCountRef.current = next;
-    if (next <= prev) return;
-    const last = messages[next - 1]; const own = last && last.sender_id === currentUserId;
+    const prev = prevCountRef.current;
+    const prevFirstId = prevFirstIdRef.current;
+    prevCountRef.current = messages.length;
+    prevFirstIdRef.current = messages.length > 0 ? messages[0].id : null;
+
+    if (messages.length <= prev) return;
+
+    /* Check if older messages were prepended (first message changed) */
+    const firstId = messages[0]?.id;
+    const wasPrepended = firstId !== prevFirstId && prevFirstId !== null;
+
+    if (wasPrepended) {
+      /* Older messages prepended – preserve scroll position */
+      const el = parentRef.current;
+      if (el) {
+        const oldHeight = prevScrollHeightRef.current;
+        prevScrollHeightRef.current = el.scrollHeight;
+        requestAnimationFrame(() => {
+          const newHeight = el.scrollHeight;
+          el.scrollTop += newHeight - oldHeight;
+        });
+      }
+      return;
+    }
+
+    /* New messages appended at the end */
+    const last = messages[messages.length - 1];
+    const own = last && last.sender_id === currentUserId;
     if (own) { requestAnimationFrame(() => scrollToBottom("instant")); return; }
     if (isAutoScrollRef.current) requestAnimationFrame(() => scrollToBottom("smooth"));
-    else { unreadRef.current += next - prev; setShowNewBtn(true); }
+    else { unreadRef.current += messages.length - prev; setShowNewBtn(true); }
   }, [messages.length, currentUserId, scrollToBottom]);
+
+  /* Track scroll height for scroll preservation */
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    prevScrollHeightRef.current = el.scrollHeight;
+  }, [messages.length]);
 
   if (isLoading) return <MessageListSkeleton />;
   if (messages.length === 0 && !isPartnerTyping) return <EmptyState partnerName={partnerName} partnerAvatar={partnerAvatar} />;
@@ -746,9 +822,20 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      <div ref={parentRef} onScroll={handleScroll} className="h-full w-full overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+    <div className="relative h-full w-full overflow-hidden" style={backgroundStyle}>
+      <div ref={parentRef} onScroll={handleScroll} onClick={() => onClearSearchHighlight?.()} className="h-full w-full overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+          {/* Loading more spinner */}
+          {loadingMore && (
+            <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "48px", zIndex: 5 }}>
+              <div className="flex items-center justify-center py-3">
+                <svg className="size-5 animate-spin text-violet-400" viewBox="0 0 24 24" fill="none" aria-label="Loading more messages">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            </div>
+          )}
           {virtualItems.map((vi) => {
             const isTyping = vi.index === messages.length;
             const msg = isTyping ? null : messages[vi.index];
@@ -764,7 +851,7 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
                 {isTyping ? <TypingIndicator partnerName={partnerName} partnerAvatar={partnerAvatar} /> : msg ? (
                   <>
                     {(showDateSep || showFirstDateSep) && <DateSeparator date={msg.created_at} />}
-                    <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} onDeleteMessage={onDeleteMessage} />
+                    <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} onDeleteMessage={onDeleteMessage} searchHighlight={searchHighlight} />
                   </>
                 ) : null}
               </div>

@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { MessageFeed } from "@/components/chat/MessageFeed";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
+import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
 import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
@@ -29,8 +30,6 @@ const EPHEMERAL_OPTIONS = [
   { label: "1m", value: 60 },
   { label: "1h", value: 3600 },
 ];
-
-const DOT_PATTERN = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.7' fill='%239ca3af' opacity='0.15'/%3E%3C/svg%3E")`;
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -86,7 +85,7 @@ function SearchPanel({
   onClose,
 }: {
   conversationId: string;
-  onResultClick: (messageId: string) => void;
+  onResultClick: (messageId: string, query: string) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -130,6 +129,23 @@ function SearchPanel({
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, conversationId]);
 
+  /** Highlight matching text in a snippet */
+  function highlightedSnippet(text: string, q: string, maxLen = 60): React.ReactNode {
+    if (!q) return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
+    const before = text.slice(Math.max(0, idx - 20), idx);
+    const match = text.slice(idx, idx + q.length);
+    const after = text.slice(idx + q.length, idx + q.length + maxLen - 20 - q.length);
+    return (
+      <>
+        {before.length > 0 && idx > 20 && "..."}{before}
+        <mark className="bg-yellow-300/60 dark:bg-yellow-400/40 rounded-sm px-0.5">{match}</mark>
+        {after}{text.length > idx + q.length + maxLen - 20 - q.length && "..."}
+      </>
+    );
+  }
+
   return (
     <div
       className="overflow-hidden border-b bg-background/80 backdrop-blur-xl"
@@ -166,11 +182,11 @@ function SearchPanel({
             <button
               key={msg.id}
               type="button"
-              onClick={() => onResultClick(msg.id)}
+              onClick={() => onResultClick(msg.id, query)}
               className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
             >
               <p className="truncate text-sm text-foreground">
-                {msg.content.length > 60 ? msg.content.slice(0, 60) + "..." : msg.content}
+                {highlightedSnippet(msg.content, query)}
               </p>
               <span className="text-[11px] text-muted-foreground">
                 {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
@@ -348,7 +364,7 @@ function PartnerInfoPanel({
 /* ------------------------------------------------------------------ */
 
 export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
-  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction } =
+  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore } =
     useChat({ currentUserId, otherUserId, conversationId, initialMessages });
 
   const [draft, setDraft] = useState("");
@@ -360,9 +376,13 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const [ephemeralSeconds, setEphemeralSeconds] = useState<number | null>(null);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchHighlight, setSearchHighlight] = useState<string | undefined>(undefined);
   const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const viewport = useVisualViewport();
+
+  /* Background theme */
+  const { themeId, theme, selectTheme } = useChatBackground();
 
   /* Voice */
   const voice = useVoiceRecorder();
@@ -432,16 +452,21 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const form = e.currentTarget.closest("form"); if (form) form.requestSubmit(); }
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); if (searchHighlight) setSearchHighlight(undefined); }, [onTyping, searchHighlight]);
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
 
   const hasText = draft.trim().length > 0;
   const canSend = hasText || hasAttachment;
 
-  /* Search result click → scroll to message */
-  const handleSearchResultClick = useCallback((messageId: string) => {
+  /* Search result click → scroll to message & apply highlight */
+  const handleSearchResultClick = useCallback((messageId: string, query: string) => {
     setScrollToMessageId(messageId);
+    setSearchHighlight(query);
     setSearchOpen(false);
+  }, []);
+
+  const handleClearSearchHighlight = useCallback(() => {
+    setSearchHighlight(undefined);
   }, []);
 
   const handleScrolledToMessage = useCallback(() => {
@@ -549,8 +574,9 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             </div>
           </button>
 
-          {/* Search icon button - right side of header */}
-          <div className="ml-auto">
+          {/* Right-side header actions */}
+          <div className="ml-auto flex items-center gap-1">
+            <ChatBackgroundPicker themeId={themeId} onSelect={selectTheme} />
             <button
               type="button"
               onClick={() => setSearchOpen((v) => !v)}
@@ -578,18 +604,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
           )}
         </AnimatePresence>
 
-        {/* Feed with dot pattern background */}
+        {/* Feed area – background theme applied via MessageFeed */}
         <div className="relative min-h-0 flex-1">
-          {/* Subtle dot pattern behind messages */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              backgroundImage: DOT_PATTERN,
-              backgroundRepeat: "repeat",
-              backgroundSize: "20px 20px",
-            }}
-            aria-hidden="true"
-          />
           <MessageFeed
             messages={messages}
             isLoading={isLoading}
@@ -597,6 +613,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             currentUserId={currentUserId}
             partnerName={partner.name}
             partnerAvatar={partner.avatar_url}
+            backgroundStyle={theme.style}
             onMarkAsRead={markAsRead}
             onVanishMessage={vanishMessage}
             onDeleteMessage={deleteMessage}
@@ -604,13 +621,18 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             onReact={sendReaction}
             scrollToMessageId={scrollToMessageId}
             onScrolledToMessage={handleScrolledToMessage}
+            searchHighlight={searchHighlight}
+            onClearSearchHighlight={handleClearSearchHighlight}
+            loadMore={loadMore}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
           />
         </div>
 
         {/* Reply preview bar */}
         <AnimatePresence>
           {replyTo && (
-            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden border-t bg-muted/30">
+            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden bg-violet-500/5 backdrop-blur-sm border-l-2 border-l-violet-500">
               <div className="flex items-center gap-2 px-4 py-2">
                 <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-500 to-purple-600" />
                 <div className="min-w-0 flex-1">
@@ -634,7 +656,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden border-t border-violet-500/20 bg-violet-500/5"
+              className="overflow-hidden bg-violet-500/5 backdrop-blur-sm rounded-xl border border-violet-500/10"
             >
               <div className="flex items-center gap-3 px-4 py-2.5">
                 {attachmentPreview ? (
@@ -698,16 +720,16 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         </AnimatePresence>
 
         {/* Input bar */}
-        <div className="shrink-0 border-t bg-background px-3 py-2.5 sm:px-4 sm:py-3">
+        <div className="shrink-0 border-t border-white/10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl px-3 py-2.5 sm:px-4 sm:py-3">
           <form onSubmit={handleSubmit} className="flex items-end gap-2">
             {/* Vanish toggle - compact with smooth transition */}
-            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200", vanishMode ? "bg-violet-500/15 text-violet-500 shadow-sm shadow-violet-500/10" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
+            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", vanishMode ? "bg-violet-500/15 text-violet-500 shadow-sm shadow-violet-500/10" : "text-muted-foreground hover:bg-violet-500/10")} aria-label="Vanish mode">
               {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             </m.button>
 
             {/* Ephemeral timer dropdown - compact */}
             <div className="relative">
-              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-muted")} aria-label="Ephemeral timer">
+              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-violet-500/10")} aria-label="Ephemeral timer">
                 <Clock className="size-3.5" />
               </m.button>
               <AnimatePresence>
@@ -735,11 +757,12 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                     "focus-visible:outline-none",
                     "max-h-32 overflow-y-auto",
                     "transition-all duration-300",
+                    "shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]",
                     // Glow effect on focus
                     "focus-visible:border-transparent focus-visible:ring-2",
                     vanishMode
-                      ? "border-violet-500/30 focus-visible:ring-violet-400/40 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.15)] vanish-input-glow"
-                      : "focus-visible:ring-violet-400/30 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.08)]",
+                      ? "border-violet-500/30 focus-visible:ring-violet-500/30 focus-visible:shadow-[0_0_0_3px_rgba(139,92,246,0.1)] vanish-input-glow"
+                      : "focus-visible:ring-violet-500/30 focus-visible:shadow-[0_0_0_3px_rgba(139,92,246,0.1)]",
                   )}
                 />
               </div>
@@ -757,7 +780,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
 
             {/* Attachment button */}
             {!showVoiceWaveform && (
-              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }} className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors", hasAttachment ? "text-violet-500 bg-violet-500/15" : "text-muted-foreground hover:bg-muted")} aria-label="Attach file">
+              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }} className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200", hasAttachment ? "text-violet-500 bg-violet-500/15" : "text-muted-foreground hover:bg-violet-500/10")} aria-label="Attach file">
                 <Paperclip className="size-4" />
               </m.button>
             )}
@@ -780,7 +803,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   });
                 }}
               >
-                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Emoji">
+                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-violet-500/10" aria-label="Emoji">
                   <Smile className="size-4" />
                 </m.button>
               </EmojiPicker>
@@ -791,7 +814,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               <AnimatePresence>
                 <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
                   <Button type="submit" size="icon" disabled={isSending || isUploading}
-                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105")}
+                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105 active:scale-95")}
                     aria-label="Send message"><ArrowUp className="size-4" /></Button>
                 </m.div>
               </AnimatePresence>
@@ -801,7 +824,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             {!showVoiceWaveform && !canSend && (
               <AnimatePresence>
                 <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
-                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Record voice">
+                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-200 hover:bg-violet-500/10" aria-label="Record voice">
                     <Mic className="size-4" />
                   </m.button>
                 </m.div>

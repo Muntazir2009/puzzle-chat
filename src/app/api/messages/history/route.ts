@@ -51,19 +51,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    /* Fetch messages */
+    /* Fetch messages – fetch limit+1 to determine has_more */
     let query = supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversation_id)
       .order("created_at", { ascending: true })
-      .limit(limit);
+      .limit(limit + 1);
 
     if (before) {
       query = query.lt("created_at", before);
     }
 
-    const { data: messages, error: msgErr } = await query;
+    const { data: rows, error: msgErr } = await query;
 
     if (msgErr) {
       console.error("[messages/history] query error:", msgErr);
@@ -73,7 +73,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(messages ?? []);
+    const hasMore = (rows?.length ?? 0) > limit;
+    const messages = hasMore ? (rows ?? []).slice(0, limit) : (rows ?? []);
+    const oldestMessage = messages.length > 0 ? messages[0] : null;
+
+    return NextResponse.json({
+      messages,
+      has_more: hasMore,
+      next_cursor: oldestMessage ? oldestMessage.created_at : null,
+    });
   } catch (err) {
     console.error("[messages/history] error:", err);
     return NextResponse.json(

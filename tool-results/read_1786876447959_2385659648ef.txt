@@ -1,0 +1,831 @@
+     1→"use client";
+     2→
+     3→import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+     4→import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Search, Loader2, FileText } from "lucide-react";
+     5→import { Button } from "@/components/ui/button";
+     6→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+     7→import { Switch } from "@/components/ui/switch";
+     8→import { Separator } from "@/components/ui/separator";
+     9→import { MessageFeed } from "@/components/chat/MessageFeed";
+    10→import { EmojiPicker } from "@/components/chat/EmojiPicker";
+    11→import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
+    12→import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+    13→import { useVisualViewport } from "@/hooks/useVisualViewport";
+    14→import { cn } from "@/lib/utils";
+    15→import { m, AnimatePresence } from "framer-motion";
+    16→import { formatDistanceToNow } from "date-fns";
+    17→import { toast } from "@/hooks/use-toast";
+    18→
+    19→/* ------------------------------------------------------------------ */
+    20→/*  Props                                                              */
+    21→/* ------------------------------------------------------------------ */
+    22→
+    23→export interface ChatPartner { id: string; name: string; avatar_url: string | null }
+    24→export interface ChatLayoutProps { currentUserId: string; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
+    25→
+    26→const EPHEMERAL_OPTIONS = [
+    27→  { label: "Off", value: null },
+    28→  { label: "5s", value: 5 },
+    29→  { label: "1m", value: 60 },
+    30→  { label: "1h", value: 3600 },
+    31→];
+    32→
+    33→const DOT_PATTERN = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.7' fill='%239ca3af' opacity='0.15'/%3E%3C/svg%3E")`;
+    34→
+    35→/* ------------------------------------------------------------------ */
+    36→/*  Constants                                                          */
+    37→/* ------------------------------------------------------------------ */
+    38→
+    39→const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+    40→const ACCEPTED_TYPES = "image/*,video/mp4,.pdf,.txt";
+    41→const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+    42→
+    43→/* ------------------------------------------------------------------ */
+    44→/*  Helpers                                                            */
+    45→/* ------------------------------------------------------------------ */
+    46→
+    47→function formatFileSize(bytes: number): string {
+    48→  if (bytes < 1024) return `${bytes} B`;
+    49→  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    50→  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    51→}
+    52→
+    53→function formatLastSeen(lastSeen: string | null): string {
+    54→  if (!lastSeen) return "Offline";
+    55→  const diffMs = Date.now() - new Date(lastSeen).getTime();
+    56→  const diffSec = Math.floor(diffMs / 1000);
+    57→  if (diffSec < 60) return "Seen just now";
+    58→  const diffMin = Math.floor(diffSec / 60);
+    59→  if (diffMin < 60) return `Seen ${diffMin}m ago`;
+    60→  const diffHr = Math.floor(diffMin / 60);
+    61→  if (diffHr < 24) return `Seen ${diffHr}h ago`;
+    62→  const diffDay = Math.floor(diffHr / 24);
+    63→  if (diffDay < 7) return `Seen ${diffDay}d ago`;
+    64→  return `Seen ${new Date(lastSeen).toLocaleDateString()}`;
+    65→}
+    66→
+    67→function StatusDot({ online, size = "size-2.5" }: { online: boolean; size?: string }) {
+    68→  return (
+    69→    <span
+    70→      className={cn(
+    71→        "inline-block rounded-full",
+    72→        size,
+    73→        online ? "bg-emerald-500" : "bg-muted-foreground/50",
+    74→      )}
+    75→    />
+    76→  );
+    77→}
+    78→
+    79→/* ------------------------------------------------------------------ */
+    80→/*  SearchPanel                                                        */
+    81→/* ------------------------------------------------------------------ */
+    82→
+    83→function SearchPanel({
+    84→  conversationId,
+    85→  onResultClick,
+    86→  onClose,
+    87→}: {
+    88→  conversationId: string;
+    89→  onResultClick: (messageId: string) => void;
+    90→  onClose: () => void;
+    91→}) {
+    92→  const [query, setQuery] = useState("");
+    93→  const [results, setResults] = useState<ChatMessage[]>([]);
+    94→  const [isSearching, setIsSearching] = useState(false);
+    95→  const inputRef = useRef<HTMLInputElement>(null);
+    96→  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    97→
+    98→  /* Auto-focus on open */
+    99→  useEffect(() => {
+   100→    requestAnimationFrame(() => inputRef.current?.focus());
+   101→  }, []);
+   102→
+   103→  /* Escape key to close */
+   104→  useEffect(() => {
+   105→    function handleKeyDown(e: KeyboardEvent) {
+   106→      if (e.key === "Escape") onClose();
+   107→    }
+   108→    window.addEventListener("keydown", handleKeyDown);
+   109→    return () => window.removeEventListener("keydown", handleKeyDown);
+   110→  }, [onClose]);
+   111→
+   112→  /* Debounced search */
+   113→  useEffect(() => {
+   114→    if (debounceRef.current) clearTimeout(debounceRef.current);
+   115→    if (!query.trim()) { setResults([]); setIsSearching(false); return; }
+   116→    setIsSearching(true);
+   117→    debounceRef.current = setTimeout(async () => {
+   118→      try {
+   119→        const res = await fetch(`/api/messages/search?conversation_id=${conversationId}&q=${encodeURIComponent(query)}`);
+   120→        if (res.ok) {
+   121→          const data: ChatMessage[] = await res.json();
+   122→          setResults(data);
+   123→        }
+   124→      } catch (_err) {
+   125→        /* silent */
+   126→      } finally {
+   127→        setIsSearching(false);
+   128→      }
+   129→    }, 300);
+   130→    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+   131→  }, [query, conversationId]);
+   132→
+   133→  return (
+   134→    <div
+   135→      className="overflow-hidden border-b bg-background/80 backdrop-blur-xl"
+   136→    >
+   137→      <div className="flex items-center gap-2 px-4 py-2.5">
+   138→        <Search className="size-4 shrink-0 text-muted-foreground" />
+   139→        <input
+   140→          ref={inputRef}
+   141→          type="text"
+   142→          value={query}
+   143→          onChange={(e) => setQuery(e.target.value)}
+   144→          placeholder="Search messages..."
+   145→          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+   146→          aria-label="Search messages"
+   147→        />
+   148→        {isSearching ? (
+   149→          <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+   150→        ) : (
+   151→          <button
+   152→            type="button"
+   153→            onClick={() => { setQuery(""); onClose(); }}
+   154→            className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+   155→            aria-label="Close search"
+   156→          >
+   157→            <X className="size-3.5" />
+   158→          </button>
+   159→        )}
+   160→      </div>
+   161→
+   162→      {/* Results list */}
+   163→      {results.length > 0 && (
+   164→        <div className="max-h-[200px] overflow-y-auto border-t px-2 pb-2">
+   165→          {results.map((msg) => (
+   166→            <button
+   167→              key={msg.id}
+   168→              type="button"
+   169→              onClick={() => onResultClick(msg.id)}
+   170→              className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+   171→            >
+   172→              <p className="truncate text-sm text-foreground">
+   173→                {msg.content.length > 60 ? msg.content.slice(0, 60) + "..." : msg.content}
+   174→              </p>
+   175→              <span className="text-[11px] text-muted-foreground">
+   176→                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+   177→              </span>
+   178→            </button>
+   179→          ))}
+   180→        </div>
+   181→      )}
+   182→
+   183→      {query.trim() && !isSearching && results.length === 0 && (
+   184→        <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
+   185→          No results found
+   186→        </div>
+   187→      )}
+   188→    </div>
+   189→  );
+   190→}
+   191→
+   192→/* ------------------------------------------------------------------ */
+   193→/*  PartnerInfoPanel                                                   */
+   194→/* ------------------------------------------------------------------ */
+   195→
+   196→function PartnerInfoPanel({
+   197→  partner,
+   198→  partnerStatus,
+   199→  open,
+   200→  onClose,
+   201→}: {
+   202→  partner: ChatPartner;
+   203→  partnerStatus: PartnerStatus;
+   204→  open: boolean;
+   205→  onClose: () => void;
+   206→}) {
+   207→  const [muted, setMuted] = useState(false);
+   208→
+   209→  return (
+   210→    <AnimatePresence>
+   211→      {open && (
+   212→        <>
+   213→          {/* Backdrop */}
+   214→          <m.div
+   215→            key="backdrop"
+   216→            initial={{ opacity: 0 }}
+   217→            animate={{ opacity: 1 }}
+   218→            exit={{ opacity: 0 }}
+   219→            transition={{ duration: 0.2 }}
+   220→            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+   221→            onClick={onClose}
+   222→          />
+   223→          {/* Panel */}
+   224→          <m.aside
+   225→            key="panel"
+   226→            initial={{ x: "100%" }}
+   227→            animate={{ x: 0 }}
+   228→            exit={{ x: "100%" }}
+   229→            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+   230→            className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-background border-l shadow-2xl"
+   231→          >
+   232→            {/* Panel header */}
+   233→            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+   234→              <h3 className="text-sm font-semibold">User Info</h3>
+   235→              <button
+   236→                type="button"
+   237→                onClick={onClose}
+   238→                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
+   239→                aria-label="Close panel"
+   240→              >
+   241→                <X className="size-4" />
+   242→              </button>
+   243→            </div>
+   244→
+   245→            {/* Scrollable content */}
+   246→            <div className="flex-1 overflow-y-auto">
+   247→              {/* Avatar + Name + Status */}
+   248→              <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
+   249→                <div className="relative">
+   250→                  <Avatar className="size-20 ring-4 ring-violet-100 dark:ring-violet-900/40">
+   251→                    {partner.avatar_url && (
+   252→                      <AvatarImage src={partner.avatar_url} alt={partner.name} />
+   253→                    )}
+   254→                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xl font-bold text-white">
+   255→                      {partner.name.slice(0, 2).toUpperCase()}
+   256→                    </AvatarFallback>
+   257→                  </Avatar>
+   258→                  <span
+   259→                    className={cn(
+   260→                      "absolute bottom-1 right-1 size-3.5 rounded-full ring-2 ring-background",
+   261→                      partnerStatus.online ? "bg-emerald-500" : "bg-muted-foreground/50",
+   262→                    )}
+   263→                  />
+   264→                </div>
+   265→                <div className="flex flex-col items-center gap-1">
+   266→                  <span className="text-lg font-semibold">{partner.name}</span>
+   267→                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   268→                    <StatusDot online={partnerStatus.online} size="size-2" />
+   269→                    <span>
+   270→                      {partnerStatus.online
+   271→                        ? "Online"
+   272→                        : formatLastSeen(partnerStatus.last_seen)}
+   273→                    </span>
+   274→                  </div>
+   275→                </div>
+   276→              </div>
+   277→
+   278→              <Separator />
+   279→
+   280→              {/* Shared media (placeholder) */}
+   281→              <button
+   282→                type="button"
+   283→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   284→              >
+   285→                <div className="flex items-center gap-3">
+   286→                  <ImageIcon className="size-4 text-muted-foreground" />
+   287→                  <span>Shared media</span>
+   288→                </div>
+   289→                <ChevronRight className="size-4 text-muted-foreground" />
+   290→              </button>
+   291→
+   292→              <Separator />
+   293→
+   294→              {/* Shared links (placeholder) */}
+   295→              <button
+   296→                type="button"
+   297→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   298→              >
+   299→                <div className="flex items-center gap-3">
+   300→                  <Link2 className="size-4 text-muted-foreground" />
+   301→                  <span>Shared links</span>
+   302→                </div>
+   303→                <ChevronRight className="size-4 text-muted-foreground" />
+   304→              </button>
+   305→
+   306→              <Separator />
+   307→
+   308→              {/* Mute notifications */}
+   309→              <div className="flex items-center justify-between px-5 py-3.5">
+   310→                <span className="text-sm">Mute notifications</span>
+   311→                <Switch
+   312→                  checked={muted}
+   313→                  onCheckedChange={setMuted}
+   314→                />
+   315→              </div>
+   316→
+   317→              <Separator />
+   318→
+   319→              {/* Block user */}
+   320→              <button
+   321→                type="button"
+   322→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   323→              >
+   324→                <Ban className="size-4" />
+   325→                <span>Block user</span>
+   326→              </button>
+   327→
+   328→              <Separator />
+   329→
+   330→              {/* Clear chat */}
+   331→              <button
+   332→                type="button"
+   333→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   334→              >
+   335→                <Trash2 className="size-4" />
+   336→                <span>Clear chat</span>
+   337→              </button>
+   338→            </div>
+   339→          </m.aside>
+   340→        </>
+   341→      )}
+   342→    </AnimatePresence>
+   343→  );
+   344→}
+   345→
+   346→/* ------------------------------------------------------------------ */
+   347→/*  ChatLayout                                                         */
+   348→/* ------------------------------------------------------------------ */
+   349→
+   350→export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
+   351→  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction } =
+   352→    useChat({ currentUserId, otherUserId, conversationId, initialMessages });
+   353→
+   354→  const [draft, setDraft] = useState("");
+   355→  const [sendBtnKey, setSendBtnKey] = useState(0);
+   356→  const [isSending, setIsSending] = useState(false);
+   357→  const [vanishMode, setVanishMode] = useState(false);
+   358→  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+   359→  const [ephemeralOpen, setEphemeralOpen] = useState(false);
+   360→  const [ephemeralSeconds, setEphemeralSeconds] = useState<number | null>(null);
+   361→  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
+   362→  const [searchOpen, setSearchOpen] = useState(false);
+   363→  const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
+   364→  const inputRef = useRef<HTMLTextAreaElement>(null);
+   365→  const viewport = useVisualViewport();
+   366→
+   367→  /* Voice */
+   368→  const voice = useVoiceRecorder();
+   369→  const [showVoiceWaveform, setShowVoiceWaveform] = useState(false);
+   370→
+   371→  /* Attachment */
+   372→  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+   373→  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+   374→  const [isUploading, setIsUploading] = useState(false);
+   375→  const fileInputRef = useRef<HTMLInputElement>(null);
+   376→
+   377→  const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
+   378→  const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
+   379→
+   380→  useEffect(() => { inputRef.current?.focus(); }, []);
+   381→
+   382→  /* Show voice waveform when recording */
+   383→  useEffect(() => { setShowVoiceWaveform(voice.isRecording); }, [voice.isRecording]);
+   384→
+   385→  /* Global keyboard shortcuts */
+   386→  useEffect(() => {
+   387→    function handleGlobalKey(e: KeyboardEvent) {
+   388→      if (e.key === "Escape") {
+   389→        if (replyTo) { setReplyTo(null); e.preventDefault(); }
+   390→        else if (ephemeralOpen) { setEphemeralOpen(false); e.preventDefault(); }
+   391→        else if (infoPanelOpen) { setInfoPanelOpen(false); e.preventDefault(); }
+   392→        else if (searchOpen) { setSearchOpen(false); e.preventDefault(); }
+   393→      }
+   394→    }
+   395→    window.addEventListener("keydown", handleGlobalKey);
+   396→    return () => window.removeEventListener("keydown", handleGlobalKey);
+   397→  }, [replyTo, ephemeralOpen, infoPanelOpen, searchOpen]);
+   398→
+   399→  const handleSubmit = useCallback(async (e: FormEvent) => {
+   400→    e.preventDefault();
+   401→    /* If an attachment is selected, upload it instead of sending text */
+   402→    if (hasAttachment && !hasText) {
+   403→      await uploadAttachment();
+   404→      return;
+   405→    }
+   406→    /* If there's both text and an attachment, send text first, then upload */
+   407→    const trimmed = draft.trim();
+   408→    if (!trimmed || isSending) return;
+   409→    setIsSending(true);
+   410→    const opts: SendMessageOptions = { vanish_mode: vanishMode, ephemeral_seconds: ephemeralSeconds, reply_to_id: replyTo?.id ?? null };
+   411→    setDraft(""); setReplyTo(null);
+   412→    if (inputRef.current) inputRef.current.style.height = "auto";
+   413→    try {
+   414→      await sendMessage(trimmed, opts);
+   415→      setSendBtnKey((k) => k + 1);
+   416→      /* Upload attachment after text is sent */
+   417→      if (hasAttachment) await uploadAttachment();
+   418→    }
+   419→    finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
+   420→  }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo, hasAttachment, uploadAttachment]);
+   421→
+   422→  const handleVoiceSend = useCallback(async () => {
+   423→    const result = await voice.stopRecording();
+   424→    if (!result || result.duration < 1) return;
+   425→    const blob = result.blob;
+   426→    const url = URL.createObjectURL(blob);
+   427→    await sendMessage(url, { type: "voice", voice_duration: result.duration, waveform_data: result.amplitudes, ephemeral_seconds: ephemeralSeconds });
+   428→    URL.revokeObjectURL(url);
+   429→  }, [voice, sendMessage, ephemeralSeconds]);
+   430→
+   431→  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+   432→    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const form = e.currentTarget.closest("form"); if (form) form.requestSubmit(); }
+   433→  }, []);
+   434→
+   435→  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
+   436→  const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
+   437→
+   438→  const hasText = draft.trim().length > 0;
+   439→  const canSend = hasText || hasAttachment;
+   440→
+   441→  /* Search result click → scroll to message */
+   442→  const handleSearchResultClick = useCallback((messageId: string) => {
+   443→    setScrollToMessageId(messageId);
+   444→    setSearchOpen(false);
+   445→  }, []);
+   446→
+   447→  const handleScrolledToMessage = useCallback(() => {
+   448→    setScrollToMessageId(null);
+   449→  }, []);
+   450→
+   451→  /* ---- Attachment handlers ---------------------------------------- */
+   452→  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+   453→    const file = e.target.files?.[0] ?? null;
+   454→    if (!file) return;
+   455→    if (file.size > MAX_ATTACHMENT_SIZE) {
+   456→      toast({ title: "File too large", description: "Maximum size is 10 MB.", variant: "destructive" });
+   457→      e.target.value = "";
+   458→      return;
+   459→    }
+   460→    setAttachmentFile(file);
+   461→    /* Generate thumbnail preview for images */
+   462→    if (IMAGE_MIME_TYPES.has(file.type)) {
+   463→      const url = URL.createObjectURL(file);
+   464→      setAttachmentPreview(url);
+   465→    } else {
+   466→      setAttachmentPreview(null);
+   467→    }
+   468→    /* Reset input so the same file can be re-selected */
+   469→    e.target.value = "";
+   470→  }, []);
+   471→
+   472→  const clearAttachment = useCallback(() => {
+   473→    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+   474→    setAttachmentFile(null);
+   475→    setAttachmentPreview(null);
+   476→  }, [attachmentPreview]);
+   477→
+   478→  const uploadAttachment = useCallback(async () => {
+   479→    if (!attachmentFile || isUploading) return;
+   480→    setIsUploading(true);
+   481→    try {
+   482→      const fd = new FormData();
+   483→      fd.append("file", attachmentFile);
+   484→      fd.append("conversation_id", conversationId);
+   485→      if (replyTo?.id) fd.append("reply_to_id", replyTo.id);
+   486→      if (vanishMode) fd.append("vanish_mode", "true");
+   487→      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
+   488→
+   489→      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
+   490→      if (!res.ok) {
+   491→        const data = await res.json().catch(() => ({ error: "Upload failed" }));
+   492→        throw new Error(data.error || `Upload failed: ${res.status}`);
+   493→      }
+   494→      /* Message is inserted server-side and pushed via Pusher;
+   495→         the useChat hook will pick it up automatically. */
+   496→      clearAttachment();
+   497→      setReplyTo(null);
+   498→    } catch (err) {
+   499→      console.error("[ChatLayout] upload error:", err);
+   500→      toast({
+   501→        title: "Upload failed",
+   502→        description: err instanceof Error ? err.message : "Could not send the file.",
+   503→        variant: "destructive",
+   504→      });
+   505→    } finally {
+   506→      setIsUploading(false);
+   507→    }
+   508→  }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
+   509→
+   510→  const handlePaperclipClick = useCallback(() => {
+   511→    fileInputRef.current?.click();
+   512→  }, []);
+   513→
+   514→  const hasAttachment = attachmentFile !== null;
+   515→
+   516→  /* Status text for header */
+   517→  const statusText = isPartnerTyping
+   518→    ? "typing\u2026"
+   519→    : partnerStatus.online
+   520→      ? "Online"
+   521→      : formatLastSeen(partnerStatus.last_seen);
+   522→
+   523→  /* ---- Render --------------------------------------------------- */
+   524→
+   525→  return (
+   526→    <div className="flex w-full flex-col bg-background" style={containerStyle}>
+   527→      <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
+   528→        {/* Header - sticky with glassmorphic blur + shadow */}
+   529→        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 px-4">
+   530→          <button
+   531→            type="button"
+   532→            onClick={() => setInfoPanelOpen(true)}
+   533→            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+   534→            aria-label="Open user info"
+   535→          >
+   536→            <Avatar className="size-9 ring-2 ring-violet-100 dark:ring-violet-900/50">
+   537→              {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
+   538→              <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+   539→            </Avatar>
+   540→            <div className="flex flex-col">
+   541→              <span className="text-sm font-semibold leading-tight">{partner.name}</span>
+   542→              <div className="flex items-center gap-1.5">
+   543→                <StatusDot online={partnerStatus.online} />
+   544→                <span className={cn(
+   545→                  "text-xs",
+   546→                  isPartnerTyping ? "text-violet-500" : "text-muted-foreground",
+   547→                )}>{statusText}</span>
+   548→              </div>
+   549→            </div>
+   550→          </button>
+   551→
+   552→          {/* Search icon button - right side of header */}
+   553→          <div className="ml-auto">
+   554→            <button
+   555→              type="button"
+   556→              onClick={() => setSearchOpen((v) => !v)}
+   557→              className={cn(
+   558→                "flex size-9 items-center justify-center rounded-lg transition-colors",
+   559→                searchOpen
+   560→                  ? "bg-violet-500/15 text-violet-500"
+   561→                  : "text-muted-foreground hover:bg-muted",
+   562→              )}
+   563→              aria-label={searchOpen ? "Close search" : "Search messages"}
+   564→            >
+   565→              <Search className="size-4" />
+   566→            </button>
+   567→          </div>
+   568→        </header>
+   569→
+   570→        {/* Search panel (animated slide-down) */}
+   571→        <AnimatePresence>
+   572→          {searchOpen && (
+   573→            <SearchPanel
+   574→              conversationId={conversationId}
+   575→              onResultClick={handleSearchResultClick}
+   576→              onClose={() => setSearchOpen(false)}
+   577→            />
+   578→          )}
+   579→        </AnimatePresence>
+   580→
+   581→        {/* Feed with dot pattern background */}
+   582→        <div className="relative min-h-0 flex-1">
+   583→          {/* Subtle dot pattern behind messages */}
+   584→          <div
+   585→            className="pointer-events-none absolute inset-0"
+   586→            style={{
+   587→              backgroundImage: DOT_PATTERN,
+   588→              backgroundRepeat: "repeat",
+   589→              backgroundSize: "20px 20px",
+   590→            }}
+   591→            aria-hidden="true"
+   592→          />
+   593→          <MessageFeed
+   594→            messages={messages}
+   595→            isLoading={isLoading}
+   596→            isPartnerTyping={isPartnerTyping}
+   597→            currentUserId={currentUserId}
+   598→            partnerName={partner.name}
+   599→            partnerAvatar={partner.avatar_url}
+   600→            onMarkAsRead={markAsRead}
+   601→            onVanishMessage={vanishMessage}
+   602→            onDeleteMessage={deleteMessage}
+   603→            onReplyTo={setReplyTo}
+   604→            onReact={sendReaction}
+   605→            scrollToMessageId={scrollToMessageId}
+   606→            onScrolledToMessage={handleScrolledToMessage}
+   607→          />
+   608→        </div>
+   609→
+   610→        {/* Reply preview bar */}
+   611→        <AnimatePresence>
+   612→          {replyTo && (
+   613→            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden border-t bg-muted/30">
+   614→              <div className="flex items-center gap-2 px-4 py-2">
+   615→                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-500 to-purple-600" />
+   616→                <div className="min-w-0 flex-1">
+   617→                  <p className="text-[11px] font-semibold text-violet-500">{replyTo.sender_name || "Unknown"}</p>
+   618→                  <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
+   619→                </div>
+   620→                <div className="flex items-center gap-1.5">
+   621→                  <button type="button" onClick={() => setReplyTo(null)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>
+   622→                  <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
+   623→                </div>
+   624→              </div>
+   625→            </m.div>
+   626→          )}
+   627→        </AnimatePresence>
+   628→
+   629→        {/* Attachment preview bar */}
+   630→        <AnimatePresence>
+   631→          {attachmentFile && (
+   632→            <m.div
+   633→              initial={{ height: 0, opacity: 0 }}
+   634→              animate={{ height: "auto", opacity: 1 }}
+   635→              exit={{ height: 0, opacity: 0 }}
+   636→              transition={{ duration: 0.2 }}
+   637→              className="overflow-hidden border-t border-violet-500/20 bg-violet-500/5"
+   638→            >
+   639→              <div className="flex items-center gap-3 px-4 py-2.5">
+   640→                {attachmentPreview ? (
+   641→                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg ring-2 ring-violet-500/20">
+   642→                    {/* eslint-disable-next-line @next/next/no-img-element */}
+   643→                    <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
+   644→                  </div>
+   645→                ) : (
+   646→                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+   647→                    {attachmentFile.type === "application/pdf" ? (
+   648→                      <FileText className="size-5" />
+   649→                    ) : attachmentFile.type.startsWith("video/") ? (
+   650→                      <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+   651→                    ) : (
+   652→                      <FileText className="size-5" />
+   653→                    )}
+   654→                  </div>
+   655→                )}
+   656→                <div className="min-w-0 flex-1">
+   657→                  <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
+   658→                  <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
+   659→                </div>
+   660→                {isUploading ? (
+   661→                  <Loader2 className="size-5 shrink-0 animate-spin text-violet-500" />
+   662→                ) : (
+   663→                  <m.button
+   664→                    type="button"
+   665→                    onClick={clearAttachment}
+   666→                    whileTap={{ scale: 0.85 }}
+   667→                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+   668→                    aria-label="Remove attachment"
+   669→                  >
+   670→                    <X className="size-4" />
+   671→                  </m.button>
+   672→                )}
+   673→              </div>
+   674→            </m.div>
+   675→          )}
+   676→        </AnimatePresence>
+   677→
+   678→        {/* Voice waveform overlay */}
+   679→        <AnimatePresence>
+   680→          {showVoiceWaveform && (
+   681→            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
+   682→              <div className="flex items-center gap-3 px-4 py-3">
+   683→                <div className="flex size-10 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+   684→                  {voice.isRecording ? <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex size-3 rounded-full bg-red-500" /></span> : null}
+   685→                </div>
+   686→                <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 40 }}>
+   687→                  {voice.amplitudes.slice(-60).map((amp, i) => (
+   688→                    <div key={i} className="w-[2px] rounded-full bg-violet-500/70 transition-all duration-75" style={{ height: `${Math.max(3, amp * 40)}px` }} />
+   689→                  ))}
+   690→                </div>
+   691→                <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}</span>
+   692→                <m.button type="button" onClick={handleVoiceSend} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white" aria-label="Send voice">
+   693→                  <ArrowUp className="size-4" />
+   694→                </m.button>
+   695→              </div>
+   696→            </m.div>
+   697→          )}
+   698→        </AnimatePresence>
+   699→
+   700→        {/* Input bar */}
+   701→        <div className="shrink-0 border-t bg-background px-3 py-2.5 sm:px-4 sm:py-3">
+   702→          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+   703→            {/* Vanish toggle - compact with smooth transition */}
+   704→            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200", vanishMode ? "bg-violet-500/15 text-violet-500 shadow-sm shadow-violet-500/10" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
+   705→              {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+   706→            </m.button>
+   707→
+   708→            {/* Ephemeral timer dropdown - compact */}
+   709→            <div className="relative">
+   710→              <m.button type="button" onClick={() => setEphemeralOpen((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", ephemeralSeconds ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground hover:bg-muted")} aria-label="Ephemeral timer">
+   711→                <Clock className="size-3.5" />
+   712→              </m.button>
+   713→              <AnimatePresence>
+   714→                {ephemeralOpen && (
+   715→                  <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-32 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl shadow-black/10">
+   716→                    {EPHEMERAL_OPTIONS.map((opt) => (
+   717→                      <button key={opt.label} type="button" onClick={() => { setEphemeralSeconds(opt.value); setEphemeralOpen(false); }}
+   718→                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all duration-150", ephemeralSeconds === opt.value ? "bg-violet-500/10 text-violet-500 font-semibold" : "text-foreground hover:bg-muted")}>
+   719→                        <Clock className="size-3 opacity-60" />{opt.label}
+   720→                      </button>
+   721→                    ))}
+   722→                  </m.div>
+   723→                )}
+   724→              </AnimatePresence>
+   725→            </div>
+   726→
+   727→            {/* Text input (hidden when recording) - pill shaped with gradient border on focus */}
+   728→            {!showVoiceWaveform && (
+   729→              <div className="relative flex-1">
+   730→                <textarea ref={inputRef} value={draft} onChange={handleInputChange} onKeyDown={handleKeyDown} onInput={handleInput}
+   731→                  placeholder={vanishMode ? "Send a disappearing message\u2026" : replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message\u2026"}
+   732→                  rows={1} className={cn(
+   733→                    "w-full resize-none rounded-2xl border bg-muted/50 px-4 py-3 text-sm",
+   734→                    "placeholder:text-muted-foreground",
+   735→                    "focus-visible:outline-none",
+   736→                    "max-h-32 overflow-y-auto",
+   737→                    "transition-all duration-300",
+   738→                    // Glow effect on focus
+   739→                    "focus-visible:border-transparent focus-visible:ring-2",
+   740→                    vanishMode
+   741→                      ? "border-violet-500/30 focus-visible:ring-violet-400/40 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.15)] vanish-input-glow"
+   742→                      : "focus-visible:ring-violet-400/30 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.08)]",
+   743→                  )}
+   744→                />
+   745→              </div>
+   746→            )}
+   747→
+   748→            {/* Hidden file input for attachments */}
+   749→            <input
+   750→              ref={fileInputRef}
+   751→              type="file"
+   752→              accept={ACCEPTED_TYPES}
+   753→              onChange={handleFileSelect}
+   754→              className="hidden"
+   755→              aria-hidden="true"
+   756→            />
+   757→
+   758→            {/* Attachment button */}
+   759→            {!showVoiceWaveform && (
+   760→              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }} className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors", hasAttachment ? "text-violet-500 bg-violet-500/15" : "text-muted-foreground hover:bg-muted")} aria-label="Attach file">
+   761→                <Paperclip className="size-4" />
+   762→              </m.button>
+   763→            )}
+   764→
+   765→            {/* Emoji button with picker */}
+   766→            {!showVoiceWaveform && (
+   767→              <EmojiPicker
+   768→                onSelect={(emoji) => {
+   769→                  const ta = inputRef.current;
+   770→                  if (!ta) return;
+   771→                  const start = ta.selectionStart ?? draft.length;
+   772→                  const end = ta.selectionEnd ?? draft.length;
+   773→                  const before = draft.slice(0, start);
+   774→                  const after = draft.slice(end);
+   775→                  setDraft(before + emoji + after);
+   776→                  requestAnimationFrame(() => {
+   777→                    const pos = start + emoji.length;
+   778→                    ta.focus();
+   779→                    ta.setSelectionRange(pos, pos);
+   780→                  });
+   781→                }}
+   782→              >
+   783→                <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Emoji">
+   784→                  <Smile className="size-4" />
+   785→                </m.button>
+   786→              </EmojiPicker>
+   787→            )}
+   788→
+   789→            {/* Send button (shown when there's text or attachment) */}
+   790→            {!showVoiceWaveform && canSend && (
+   791→              <AnimatePresence>
+   792→                <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
+   793→                  <Button type="submit" size="icon" disabled={isSending || isUploading}
+   794→                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105")}
+   795→                    aria-label="Send message"><ArrowUp className="size-4" /></Button>
+   796→                </m.div>
+   797→              </AnimatePresence>
+   798→            )}
+   799→
+   800→            {/* Mic button (shown when input is empty and no attachment) */}
+   801→            {!showVoiceWaveform && !canSend && (
+   802→              <AnimatePresence>
+   803→                <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
+   804→                  <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Record voice">
+   805→                    <Mic className="size-4" />
+   806→                  </m.button>
+   807→                </m.div>
+   808→              </AnimatePresence>
+   809→            )}
+   810→
+   811→            {/* Cancel recording button */}
+   812→            {showVoiceWaveform && (
+   813→              <m.button type="button" onClick={async () => { await voice.stopRecording(); setShowVoiceWaveform(false); }} whileTap={{ scale: 0.9 }} className="flex size-10 shrink-0 items-center justify-center rounded-xl text-red-500 hover:bg-red-500/10" aria-label="Cancel recording">
+   814→                <MicOff className="size-4" />
+   815→              </m.button>
+   816→            )}
+   817→          </form>
+   818→        </div>
+   819→      </div>
+   820→
+   821→      {/* Partner Info Panel */}
+   822→      <PartnerInfoPanel
+   823→        partner={partner}
+   824→        partnerStatus={partnerStatus}
+   825→        open={infoPanelOpen}
+   826→        onClose={() => setInfoPanelOpen(false)}
+   827→      />
+   828→    </div>
+   829→  );
+   830→}
+   831→

@@ -1,0 +1,782 @@
+     1→"use client";
+     2→
+     3→import React, {
+     4→  type UIEvent,
+     5→  useCallback,
+     6→  useEffect,
+     7→  useMemo,
+     8→  useRef,
+     9→  useState,
+    10→} from "react";
+    11→import { useVirtualizer } from "@tanstack/react-virtual";
+    12→import { ArrowDown, AlertCircle, EyeOff, Reply, Play, Pause, Copy, Trash2, X, ZoomIn } from "lucide-react";
+    13→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+    14→import { Skeleton } from "@/components/ui/skeleton";
+    15→import { cn } from "@/lib/utils";
+    16→import { formatDistanceToNow } from "date-fns";
+    17→import { m, AnimatePresence, type PanInfo } from "framer-motion";
+    18→import type { ChatMessage } from "@/hooks/useChat";
+    19→import { toast } from "@/hooks/use-toast";
+    20→
+    21→/* ------------------------------------------------------------------ */
+    22→/*  Constants                                                          */
+    23→/* ------------------------------------------------------------------ */
+    24→
+    25→const AUTO_SCROLL_THRESHOLD = 120;
+    26→const ESTIMATED_ROW_HEIGHT = 72;
+    27→const OVERSCAN = 8;
+    28→const DOUBLE_TAP_MS = 300;
+    29→const LONG_PRESS_MS = 500;
+    30→const SWIPE_REPLY_THRESHOLD = 80;
+    31→const REACTION_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}", "\u{1F622}", "\u{1F64F}", "\u{1F525}", "\u{1F389}"];
+    32→
+    33→/* ------------------------------------------------------------------ */
+    34→/*  Props                                                              */
+    35→/* ------------------------------------------------------------------ */
+    36→
+    37→export interface MessageFeedProps {
+    38→  messages: ChatMessage[];
+    39→  isLoading: boolean;
+    40→  isPartnerTyping: boolean;
+    41→  currentUserId: string;
+    42→  partnerName: string;
+    43→  partnerAvatar: string | null;
+    44→  backgroundStyle?: React.CSSProperties;
+    45→  onMarkAsRead?: (ids: string[]) => void;
+    46→  onVanishMessage?: (id: string) => void;
+    47→  onReplyTo?: (message: ChatMessage) => void;
+    48→  onDeleteMessage?: (id: string) => void;
+    49→  onReact?: (messageId: string, emoji: string, add: boolean) => void;
+    50→  scrollToMessageId?: string | null;
+    51→  onScrolledToMessage?: () => void;
+    52→}
+    53→
+    54→/* ------------------------------------------------------------------ */
+    55→/*  ReceiptIcon                                                        */
+    56→/* ------------------------------------------------------------------ */
+    57→
+    58→function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
+    59→  if (status === "sending") return <svg className="size-3.5 animate-spin text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9" /></svg>;
+    60→  if (status === "failed") return <AlertCircle className="size-3.5 text-red-500" />;
+    61→  const color = status === "read" ? "text-violet-400" : "text-muted-foreground/50";
+    62→  const double = status !== "sent";
+    63→  return (
+    64→    <svg className={cn("size-3.5", color)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-label={status}>
+    65→      {double && <polyline points="18 6 7 17 2 12" />}
+    66→      <polyline points="20 6 9 17 4 12" />
+    67→    </svg>
+    68→  );
+    69→}
+    70→
+    71→/* ------------------------------------------------------------------ */
+    72→/*  Heart Burst                                                        */
+    73→/* ------------------------------------------------------------------ */
+    74→
+    75→function HeartBurst({ show }: { show: boolean }) {
+    76→  return (
+    77→    <AnimatePresence>
+    78→      {show && (
+    79→        <m.span key="heart" initial={{ opacity: 0, scale: 0.2, y: 8 }} animate={{ opacity: 1, scale: 1.2, y: -56 }} exit={{ opacity: 0, scale: 0.5, y: -80 }} transition={{ type: "spring", stiffness: 420, damping: 18, mass: 0.7 }} className="pointer-events-none absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 select-none text-4xl drop-shadow-lg" style={{ willChange: "transform, opacity", transform: "translate3d(0,0,0)" }} aria-hidden>\u2764\uFE0F</m.span>
+    80→      )}
+    81→    </AnimatePresence>
+    82→  );
+    83→}
+    84→
+    85→/* ------------------------------------------------------------------ */
+    86→/*  Ephemeral Timer (circular SVG countdown)                           */
+    87→/* ------------------------------------------------------------------ */
+    88→
+    89→function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () => void }) {
+    90→  const [remaining, setRemaining] = useState(seconds);
+    91→  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+    92→
+    93→  useEffect(() => {
+    94→    intervalRef.current = setInterval(() => {
+    95→      setRemaining((r) => {
+    96→        if (r <= 1) { clearInterval(intervalRef.current); onExpire(); return 0; }
+    97→        return r - 1;
+    98→      });
+    99→    }, 1000);
+   100→    return () => clearInterval(intervalRef.current);
+   101→  }, [seconds, onExpire]);
+   102→
+   103→  const pct = remaining / seconds;
+   104→  const circ = 2 * Math.PI * 7;
+   105→  const offset = circ * (1 - pct);
+   106→
+   107→  return (
+   108→    <svg className="size-4 shrink-0 ephemeral-timer-pulse" viewBox="0 0 18 18" aria-label={`${remaining}s remaining`}>
+   109→      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20" />
+   110→      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className="text-violet-300" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 1s linear" }} />
+   111→    </svg>
+   112→  );
+   113→}
+   114→
+   115→/* ------------------------------------------------------------------ */
+   116→/*  Tapback Dock (iMessage long-press reactions)                        */
+   117→/* ------------------------------------------------------------------ */
+   118→
+   119→function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
+   120→  message: ChatMessage; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; onReply: () => void; onCopy: () => void; onDelete?: () => void;
+   121→}) {
+   122→  const [showMore, setShowMore] = useState(false);
+   123→  const primaryEmojis = REACTION_EMOJIS.slice(0, 4);
+   124→  const extraEmojis = REACTION_EMOJIS.slice(4);
+   125→  return (
+   126→    <m.div
+   127→      initial={{ opacity: 0, scale: 0.8, y: 4 }}
+   128→      animate={{ opacity: 1, scale: 1, y: 0 }}
+   129→      exit={{ opacity: 0, scale: 0.8, y: 4 }}
+   130→      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+   131→      className={cn(
+   132→        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl",
+   133→        isOwn ? "right-2" : "left-2",
+   134→        "-bottom-12"
+   135→      )}
+   136→      style={{ willChange: "transform, opacity" }}
+   137→    >
+   138→      {primaryEmojis.map((emoji) => (
+   139→        <button
+   140→          key={emoji}
+   141→          type="button"
+   142→          onClick={(e) => { e.stopPropagation(); onReact(emoji, true); }}
+   143→          className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-90"
+   144→          aria-label={`React ${emoji}`}
+   145→        >{emoji}</button>
+   146→      ))}
+   147→      {extraEmojis.length > 0 && (
+   148→        <div className="relative">
+   149→          <button
+   150→            type="button"
+   151→            onClick={(e) => { e.stopPropagation(); setShowMore((v) => !v); }}
+   152→            className="flex size-8 items-center justify-center rounded-xl text-xs font-bold text-zinc-400 transition-all duration-150 hover:bg-white/10"
+   153→            aria-label="More reactions"
+   154→          >+</button>
+   155→          <AnimatePresence>
+   156→            {showMore && (
+   157→              <m.div
+   158→                initial={{ opacity: 0, scale: 0.9, y: 4 }}
+   159→                animate={{ opacity: 1, scale: 1, y: 0 }}
+   160→                exit={{ opacity: 0, scale: 0.9, y: 4 }}
+   161→                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl"
+   162→              >
+   163→                {extraEmojis.map((emoji) => (
+   164→                  <button
+   165→                    key={emoji}
+   166→                    type="button"
+   167→                    onClick={(e) => { e.stopPropagation(); onReact(emoji, true); setShowMore(false); }}
+   168→                    className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-90"
+   169→                  >{emoji}</button>
+   170→                ))}
+   171→              </m.div>
+   172→            )}
+   173→          </AnimatePresence>
+   174→        </div>
+   175→      )}
+   176→      <div className="mx-0.5 h-4 w-px bg-zinc-700" />
+   177→      <button type="button" onClick={(e) => { e.stopPropagation(); onCopy(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10" aria-label="Copy message">
+   178→        <Copy className="size-3.5" />
+   179→      </button>
+   180→      <button type="button" onClick={(e) => { e.stopPropagation(); onReply(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10" aria-label="Reply">
+   181→        <Reply className="size-3.5" />
+   182→      </button>
+   183→      {isOwn && onDelete && (
+   184→        <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-500 transition-all duration-150 hover:text-red-400 hover:bg-white/10" aria-label="Delete">
+   185→          <Trash2 className="size-3.5" />
+   186→        </button>
+   187→      )}
+   188→    </m.div>
+   189→  );
+   190→}
+   191→
+   192→/* ------------------------------------------------------------------ */
+   193→/*  Voice Bubble                                                       */
+   194→/* ------------------------------------------------------------------ */
+   195→
+   196→function VoiceBubble({ message, isOwn, waveform }: {
+   197→  message: ChatMessage; isOwn: boolean; waveform: number[];
+   198→}) {
+   199→  const audioRef = useRef<HTMLAudioElement>(null);
+   200→  const [playing, setPlaying] = useState(false);
+   201→  const [progress, setProgress] = useState(0);
+   202→  const [speed, setSpeed] = useState(1);
+   203→  const speeds = [1, 1.5, 2];
+   204→  const duration = message.voice_duration ?? 0;
+   205→
+   206→  useEffect(() => {
+   207→    const audio = audioRef.current;
+   208→    if (!audio) return;
+   209→    const onTime = () => { if (audio.duration) setProgress(audio.currentTime / audio.duration); };
+   210→    const onEnd = () => setPlaying(false);
+   211→    audio.addEventListener("timeupdate", onTime);
+   212→    audio.addEventListener("ended", onEnd);
+   213→    return () => { audio.removeEventListener("timeupdate", onTime); audio.removeEventListener("ended", onEnd); };
+   214→  }, []);
+   215→
+   216→  const toggle = useCallback(() => {
+   217→    const audio = audioRef.current;
+   218→    if (!audio) return;
+   219→    if (playing) { audio.pause(); setPlaying(false); }
+   220→    else { audio.playbackRate = speed; audio.play().catch(() => {}); setPlaying(true); }
+   221→  }, [playing, speed]);
+   222→
+   223→  const cycleSpeed = useCallback(() => {
+   224→    setSpeed((s) => {
+   225→      const idx = speeds.indexOf(s);
+   226→      const next = speeds[(idx + 1) % speeds.length];
+   227→      if (audioRef.current) audioRef.current.playbackRate = next;
+   228→      return next;
+   229→    });
+   230→  }, []);
+   231→
+   232→  /* Build waveform bars */
+   233→  const bars = useMemo(() => {
+   234→    const count = Math.min(waveform.length, 40);
+   235→    const step = Math.max(1, Math.floor(waveform.length / count));
+   236→    return Array.from({ length: count }, (_, i) => waveform[i * step] ?? 0.1);
+   237→  }, [waveform]);
+   238→
+   239→  const barColor = isOwn ? "bg-white/50" : "bg-zinc-400/70";
+   240→  const progressColor = isOwn ? "bg-white" : "bg-violet-400";
+   241→  const progressIdx = Math.floor(progress * bars.length);
+   242→
+   243→  return (
+   244→    <div className={cn("flex items-center gap-3", isOwn ? "flex-row-reverse" : "")}>
+   245→      <button type="button" onClick={toggle} className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-all duration-150", isOwn ? "bg-white/20 hover:bg-white/30 hover:scale-105" : "bg-zinc-600 hover:bg-zinc-500 hover:scale-105")} aria-label={playing ? "Pause" : "Play"}>
+   246→        {playing ? <Pause className="size-3.5 text-white" /> : <Play className="size-3.5 text-white ml-0.5" />}
+   247→      </button>
+   248→      <div className="flex items-center gap-[2px]" style={{ height: 32 }}>
+   249→        {bars.map((amp, i) => (
+   250→          <div key={i} className={cn("w-[2.5px] rounded-full transition-all duration-100", i < progressIdx ? progressColor : barColor)} style={{ height: `${Math.max(4, amp * 32)}px` }} />
+   251→        ))}
+   252→      </div>
+   253→      <button type="button" onClick={cycleSpeed} className={cn("shrink-0 text-[11px] font-semibold tabular-nums transition-colors hover:opacity-80", isOwn ? "text-white/70" : "text-zinc-400")}>{speed}x</button>
+   254→      <span className={cn("shrink-0 text-[11px] tabular-nums", isOwn ? "text-white/50" : "text-zinc-500")}>{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}</span>
+   255→      <audio ref={audioRef} src={message.content} preload="metadata" />
+   256→    </div>
+   257→  );
+   258→}
+   259→
+   260→/* ------------------------------------------------------------------ */
+   261→/*  LinkifiedText – detects & renders clickable URLs                   */
+   262→/* ------------------------------------------------------------------ */
+   263→
+   264→const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+   265→
+   266→type TextSegment = { type: "text"; value: string } | { type: "link"; value: string };
+   267→
+   268→function parseUrls(text: string): TextSegment[] {
+   269→  const segments: TextSegment[] = [];
+   270→  let lastIndex = 0;
+   271→  let match: RegExpExecArray | null;
+   272→  while ((match = URL_REGEX.exec(text)) !== null) {
+   273→    if (match.index > lastIndex) {
+   274→      segments.push({ type: "text", value: text.slice(lastIndex, match.index) });
+   275→    }
+   276→    segments.push({ type: "link", value: match[1] });
+   277→    lastIndex = URL_REGEX.lastIndex;
+   278→  }
+   279→  if (lastIndex < text.length) {
+   280→    segments.push({ type: "text", value: text.slice(lastIndex) });
+   281→  }
+   282→  return segments;
+   283→}
+   284→
+   285→const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { text: string; className?: string }) {
+   286→  const segments = useMemo(() => parseUrls(text), [text]);
+   287→  return (
+   288→    <span className={className}>
+   289→      {segments.map((seg, i) =>
+   290→        seg.type === "link" ? (
+   291→          <a
+   292→            key={i}
+   293→            href={seg.value}
+   294→            target="_blank"
+   295→            rel="noopener noreferrer"
+   296→            className="underline decoration-violet-400/50 underline-offset-2 hover:decoration-violet-400 transition-colors"
+   297→            onClick={(e) => e.stopPropagation()}
+   298→          >
+   299→            {seg.value}
+   300→          </a>
+   301→        ) : (
+   302→          <span key={i}>{seg.value}</span>
+   303→        ),
+   304→      )}
+   305→    </span>
+   306→  );
+   307→});
+   308→
+   309→/* ------------------------------------------------------------------ */
+   310→/*  Reply Preview (inside bubble)                                      */
+   311→/* ------------------------------------------------------------------ */
+   312→
+   313→function ReplyPreview({ senderName, content, isOwn }: { senderName: string; content: string; isOwn: boolean }) {
+   314→  return (
+   315→    <div className={cn(
+   316→      "mb-1.5 rounded-lg px-2.5 py-1.5",
+   317→      isOwn
+   318→        ? "border-l-2 border-l-white/50 bg-white/[0.08]"
+   319→        : "border-l-2 border-l-violet-400/70 bg-violet-500/[0.08]",
+   320→    )}>
+   321→      <p className={cn("text-[10px] font-bold leading-tight", isOwn ? "text-white/70" : "text-violet-400")}>{senderName}</p>
+   322→      <LinkifiedText text={content} className={cn("mt-0.5 truncate text-[11px] leading-snug block", isOwn ? "text-white/50" : "text-zinc-400")} />
+   323→    </div>
+   324→  );
+   325→}
+   326→
+   327→/* ------------------------------------------------------------------ */
+   328→/*  Image Lightbox (full-screen image viewer)                          */
+   329→/* ------------------------------------------------------------------ */
+   330→
+   331→function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+   332→  useEffect(() => {
+   333→    function onKey(e: KeyboardEvent) {
+   334→      if (e.key === "Escape") onClose();
+   335→    }
+   336→    window.addEventListener("keydown", onKey);
+   337→    document.body.style.overflow = "hidden";
+   338→    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+   339→  }, [onClose]);
+   340→
+   341→  return (
+   342→    <m.div
+   343→      initial={{ opacity: 0 }}
+   344→      animate={{ opacity: 1 }}
+   345→      exit={{ opacity: 0 }}
+   346→      transition={{ duration: 0.2 }}
+   347→      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+   348→      onClick={onClose}
+   349→    >
+   350→      <button
+   351→        type="button"
+   352→        onClick={onClose}
+   353→        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+   354→        aria-label="Close"
+   355→      >
+   356→        <X className="size-5" />
+   357→      </button>
+   358→      <m.img
+   359→        initial={{ opacity: 0, scale: 0.9 }}
+   360→        animate={{ opacity: 1, scale: 1 }}
+   361→        exit={{ opacity: 0, scale: 0.95 }}
+   362→        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+   363→        src={src}
+   364→        alt="Full size image"
+   365→        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+   366→        onClick={(e) => e.stopPropagation()}
+   367→      />
+   368→    </m.div>
+   369→  );
+   370→}
+   371→
+   372→/* ------------------------------------------------------------------ */
+   373→/*  Reaction Pills (below bubble)                                      */
+   374→/* ------------------------------------------------------------------ */
+   375→
+   376→function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
+   377→  reactions: Record<string, string[]>; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; currentUserId: string;
+   378→}) {
+   379→  const entries = Object.entries(reactions).filter(([, ids]) => ids.length > 0);
+   380→  if (entries.length === 0) return null;
+   381→  return (
+   382→    <div className={cn("flex flex-wrap gap-1 px-1 pt-0.5", isOwn ? "justify-end" : "justify-start")}>
+   383→      {entries.map(([emoji, ids]) => {
+   384→        const isActive = ids.includes(currentUserId);
+   385→        return (
+   386→          <button key={emoji} type="button" onClick={() => onReact(emoji, !isActive)}
+   387→            className={cn(
+   388→              "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
+   389→              "hover:scale-105 active:scale-95",
+   390→              isActive
+   391→                ? (isOwn ? "border-white/30 bg-white/20 shadow-sm shadow-violet-500/20" : "border-violet-400/40 bg-violet-500/15 shadow-sm shadow-violet-500/20")
+   392→                : "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
+   393→            )}>
+   394→            <span className="text-xs">{emoji}</span><span className={cn("text-[10px] font-medium tabular-nums", isActive ? (isOwn ? "text-white/70" : "text-violet-300") : "text-zinc-400")}>{ids.length}</span>
+   395→          </button>
+   396→        );
+   397→      })}
+   398→    </div>
+   399→  );
+   400→}
+   401→
+   402→/* ------------------------------------------------------------------ */
+   403→/*  MessageBubble                                                      */
+   404→/* ------------------------------------------------------------------ */
+   405→
+   406→function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, onReact, onDeleteMessage }: {
+   407→  message: ChatMessage; isOwn: boolean; partnerName: string; partnerAvatar: string | null;
+   408→  onReplyTo?: (msg: ChatMessage) => void; onReact?: (id: string, emoji: string, add: boolean) => void; onDeleteMessage?: (id: string) => void;
+   409→}) {
+   410→  const [showHeart, setShowHeart] = useState(false);
+   411→  const [showTapback, setShowTapback] = useState(false);
+   412→  const [showLightbox, setShowLightbox] = useState<string | null>(null);
+   413→  const lastTapRef = useRef(0);
+   414→  const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+   415→  const bubbleRef = useRef<HTMLDivElement>(null);
+   416→
+   417→  const triggerHeart = useCallback(() => {
+   418→    setShowHeart(true); setTimeout(() => setShowHeart(false), 800);
+   419→    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
+   420→  }, []);
+   421→
+   422→  const handleClick = useCallback(() => {
+   423→    clearTimeout(longPressRef.current);
+   424→    const now = Date.now();
+   425→    if (now - lastTapRef.current < DOUBLE_TAP_MS) triggerHeart();
+   426→    lastTapRef.current = now;
+   427→  }, [triggerHeart]);
+   428→
+   429→  const handlePressStart = useCallback(() => {
+   430→    longPressRef.current = setTimeout(() => {
+   431→      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+   432→      setShowTapback(true);
+   433→    }, LONG_PRESS_MS);
+   434→  }, []);
+   435→
+   436→  const handlePressEnd = useCallback(() => { clearTimeout(longPressRef.current); }, []);
+   437→
+   438→  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+   439→    e.preventDefault(); setShowTapback(true);
+   440→  }, []);
+   441→
+   442→  const handleCopy = useCallback(() => {
+   443→    navigator.clipboard?.writeText(message.content).then(() => {
+   444→      toast({ title: "Copied to clipboard", description: message.content.length > 50 ? message.content.slice(0, 50) + "..." : message.content });
+   445→    }).catch(() => {
+   446→      toast({ title: "Failed to copy", description: "Could not access clipboard", variant: "destructive" });
+   447→    });
+   448→    setShowTapback(false);
+   449→  }, [message.content]);
+   450→
+   451→  const handleDelete = useCallback(() => {
+   452→    onDeleteMessage?.(message.id);
+   453→    setShowTapback(false);
+   454→  }, [message.id, onDeleteMessage]);
+   455→
+   456→  const handleSwipeEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+   457→    if (info.offset.x > SWIPE_REPLY_THRESHOLD && info.velocity.x > 200) {
+   458→      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
+   459→      onReplyTo?.(message);
+   460→    }
+   461→  }, [message, onReplyTo]);
+   462→
+   463→  const isFailed = message.status === "failed";
+   464→  const isVoice = message.type === "voice";
+   465→  const isNew = message.status === "sending" || Date.now() - new Date(message.created_at).getTime() < 2000;
+   466→
+   467→  return (
+   468→    <>
+   469→    <m.div
+   470→      className={cn("relative flex w-full gap-2.5 px-4", isOwn ? "justify-end" : "justify-start")}
+   471→      initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
+   472→      animate={{ opacity: 1, y: 0, scale: 1 }}
+   473→      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+   474→    >
+   475→      <HeartBurst show={showHeart} />
+   476→      <AnimatePresence>{showTapback && onReact && (
+   477→        <TapbackDock message={message} isOwn={isOwn} onReact={(emoji, add) => { onReact(message.id, emoji, add); setShowTapback(false); }} onReply={() => { onReplyTo?.(message); setShowTapback(false); }} onCopy={handleCopy} onDelete={isOwn ? handleDelete : undefined} />
+   478→      )}</AnimatePresence>
+   479→
+   480→      {!isOwn && (
+   481→        <Avatar className="mt-auto size-8 shrink-0 ring-1 ring-muted">
+   482→          {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
+   483→          <AvatarFallback className="bg-gradient-to-br from-violet-100 to-purple-200 text-xs font-medium text-violet-700 dark:from-violet-500 dark:to-purple-600 dark:text-white">{partnerName.slice(0, 2).toUpperCase()}</AvatarFallback>
+   484→        </Avatar>
+   485→      )}
+   486→
+   487→      <div className={cn("flex max-w-[75%] flex-col gap-1", isOwn ? "items-end" : "items-start")}>
+   488→        <m.div
+   489→          ref={bubbleRef}
+   490→          drag="x"
+   491→          dragConstraints={{ left: 0, right: 0 }}
+   492→          dragElastic={{ left: 0, right: 0.35 }}
+   493→          onDragEnd={handleSwipeEnd}
+   494→          onClick={handleClick}
+   495→          onPointerDown={handlePressStart}
+   496→          onPointerUp={handlePressEnd}
+   497→          onPointerLeave={handlePressEnd}
+   498→          onContextMenu={handleContextMenu}
+   499→          className={cn(
+   500→            "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-transform duration-100 active:scale-[0.98]",
+   501→            // Own messages: vibrant violet-purple gradient with subtle shadow
+   502→            isOwn && "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md shadow-md shadow-violet-500/15",
+   503→            // Partner messages: softer background with shadow
+   504→            !isOwn && "bg-muted text-foreground rounded-bl-md shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-violet-950/20",
+   505→            isFailed && "ring-2 ring-red-400/50",
+   506→            isVoice && "py-2"
+   507→          )}
+   508→          style={{ transform: "translate3d(0,0,0)" }}
+   509→        >
+   510→          {/* Reply quote */}
+   511→          {message.reply_to_id && message.reply_to_content && (
+   512→            <ReplyPreview senderName={message.reply_to_sender_name ?? ""} content={message.reply_to_content} isOwn={isOwn} />
+   513→          )}
+   514→
+   515→          {/* Content */}
+   516→          {isVoice ? (
+   517→            message.waveform_data ? (
+   518→              <VoiceBubble message={message} isOwn={isOwn} waveform={message.waveform_data} />
+   519→            ) : <p className="text-white/60 italic">Voice message</p>
+   520→          ) : message.type === "image" ? (
+   521→            <div className="group/img relative cursor-zoom-in" onClick={() => setShowLightbox(message.content)}>
+   522→              <img src={message.content} alt="Shared image" className="max-h-64 rounded-lg object-contain transition-opacity duration-150 group-hover/img:opacity-90" />
+   523→              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors duration-150 group-hover/img:bg-black/20">
+   524→                <ZoomIn className="size-6 text-white opacity-0 transition-opacity duration-150 group-hover/img:opacity-80" />
+   525→              </div>
+   526→            </div>
+   527→          ) : (
+   528→            <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" />
+   529→          )}
+   530→
+   531→          {/* Vanish indicator */}
+   532→          {message.vanish_mode && (
+   533→            <div className="mt-1 flex items-center gap-1 text-[10px] text-white/50"><EyeOff className="size-3" /><span>View once</span></div>
+   534→          )}
+   535→        </m.div>
+   536→
+   537→        {/* Timestamp + receipt + ephemeral timer */}
+   538→        <div className={cn("flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground", isOwn && "flex-row-reverse")}>
+   539→          {message.ephemeral_seconds && message.ephemeral_seconds > 0 && (
+   540→            <EphemeralTimer seconds={message.ephemeral_seconds} onExpire={() => { /* trigger vanish */ }} />
+   541→          )}
+   542→          <span>{formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}</span>
+   543→          {isOwn && <ReceiptIcon status={message.status} />}
+   544→        </div>
+   545→
+   546→        {/* Reactions */}
+   547→        {onReact && <ReactionPills reactions={message.reactions} isOwn={isOwn} onReact={(e, a) => onReact(message.id, e, a)} currentUserId={""} />}
+   548→
+   549→        {isFailed && (
+   550→          <button
+   551→            type="button"
+   552→            onClick={(e) => { e.stopPropagation(); onDeleteMessage?.(message.id); }}
+   553→            className="mt-1 flex items-center gap-1 px-1 text-[10px] text-red-400 transition-colors hover:text-red-300"
+   554→          >
+   555→            <AlertCircle className="size-3" />
+   556→            <span>Failed to send &middot; Tap to retry</span>
+   557→          </button>
+   558→        )}
+   559→      </div>
+   560→
+   561→      {isOwn && <div className="w-8 shrink-0" />}
+   562→    </m.div>
+   563→
+   564→    {/* Image Lightbox */}
+   565→    <AnimatePresence>
+   566→      {showLightbox && (
+   567→        <ImageLightbox src={showLightbox} onClose={() => setShowLightbox(null)} />
+   568→      )}
+   569→    </AnimatePresence>
+   570→    </>
+   571→  );
+   572→}
+   573→
+   574→/* ------------------------------------------------------------------ */
+   575→/*  DateSeparator                                                      */
+   576→/* ------------------------------------------------------------------ */
+   577→
+   578→function formatDateSeparator(dateStr: string): string {
+   579→  const d = new Date(dateStr);
+   580→  const now = new Date();
+   581→  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+   582→  const yesterday = new Date(today);
+   583→  yesterday.setDate(yesterday.getDate() - 1);
+   584→  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+   585→
+   586→  if (msgDay.getTime() === today.getTime()) return "Today";
+   587→  if (msgDay.getTime() === yesterday.getTime()) return "Yesterday";
+   588→  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+   589→}
+   590→
+   591→function DateSeparator({ date }: { date: string }) {
+   592→  return (
+   593→    <div className="flex items-center gap-3 px-4 py-2">
+   594→      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+   595→      <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-border/50">
+   596→        {formatDateSeparator(date)}
+   597→      </span>
+   598→      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+   599→    </div>
+   600→  );
+   601→}
+   602→
+   603→/* ------------------------------------------------------------------ */
+   604→/*  TypingIndicator (smooth wave dots)                                 */
+   605→/* ------------------------------------------------------------------ */
+   606→
+   607→function TypingIndicator({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
+   608→  const initials = partnerName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+   609→  return (
+   610→    <div className="flex items-end gap-2.5 px-4">
+   611→      <Avatar className="size-8 shrink-0 ring-1 ring-muted">
+   612→        {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
+   613→        <AvatarFallback className="bg-gradient-to-br from-violet-100 to-purple-200 text-xs font-medium text-violet-700 dark:from-violet-500 dark:to-purple-600 dark:text-white">{initials}</AvatarFallback>
+   614→      </Avatar>
+   615→      <m.div
+   616→        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+   617→        animate={{ opacity: 1, y: 0, scale: 1 }}
+   618→        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+   619→        transition={{ duration: 0.2 }}
+   620→        className="flex items-center gap-2.5 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20"
+   621→      >
+   622→        <span className="flex gap-1">
+   623→          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
+   624→          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
+   625→          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
+   626→        </span>
+   627→        <span className="text-xs text-muted-foreground">{partnerName} is typing\u2026</span>
+   628→      </m.div>
+   629→    </div>
+   630→  );
+   631→}
+   632→
+   633→/* ------------------------------------------------------------------ */
+   634→/*  Skeleton / Empty / NewMsgs                                          */
+   635→/* ------------------------------------------------------------------ */
+   636→
+   637→function MessageListSkeleton() {
+   638→  return (
+   639→    <div className="flex flex-col gap-4 px-4 py-2">
+   640→      {Array.from({ length: 6 }).map((_, i) => (
+   641→        <div key={i} className={cn("flex gap-2.5", i % 2 === 0 ? "justify-start" : "justify-end")}>
+   642→          {i % 2 === 0 && <Skeleton className="size-8 shrink-0 rounded-full" />}
+   643→          <Skeleton className={cn("h-16 w-48 rounded-2xl", i % 2 !== 0 && "bg-gradient-to-r from-violet-500/20 to-purple-600/20")} />
+   644→          {i % 2 !== 0 && <div className="w-8 shrink-0" />}
+   645→        </div>
+   646→      ))}
+   647→    </div>
+   648→  );
+   649→}
+   650→
+   651→function NewMessagesButton({ onClick, count }: { onClick: () => void; count: number }) {
+   652→  return (
+   653→    <m.button type="button" onClick={onClick} initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.9 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-violet-500/20 transition-colors hover:from-violet-600 hover:to-purple-700 active:scale-95" aria-label={`Scroll to ${count} new`} style={{ transform: "translate3d(0,0,0)" }}>
+   654→      <ArrowDown className="size-3.5" /><span>{count} new message{count > 1 ? "s" : ""}</span>
+   655→    </m.button>
+   656→  );
+   657→}
+   658→
+   659→function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partnerAvatar: string | null }) {
+   660→  const initials = partnerName
+   661→    .split(" ")
+   662→    .map((w) => w[0])
+   663→    .join("")
+   664→    .toUpperCase()
+   665→    .slice(0, 2);
+   666→
+   667→  return (
+   668→    <div className="flex flex-col items-center justify-center gap-4 py-20">
+   669→      {/* Decorative large avatar with pulse + glow */}
+   670→      <div className="relative">
+   671→        {/* Animated glow ring */}
+   672→        <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-lg animate-[pulse_3s_ease-in-out_infinite]" />
+   673→        <m.div
+   674→          animate={{ scale: [1, 1.02, 1] }}
+   675→          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+   676→          className="relative"
+   677→        >
+   678→          <Avatar className="size-20 ring-4 ring-violet-100 dark:ring-violet-900/50">
+   679→            {partnerAvatar && <AvatarImage src={partnerAvatar} alt={partnerName} />}
+   680→            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-2xl font-bold text-white">
+   681→              {initials}
+   682→            </AvatarFallback>
+   683→          </Avatar>
+   684→        </m.div>
+   685→      </div>
+   686→      <div className="text-center">
+   687→        <p className="text-sm font-semibold text-foreground">{partnerName}</p>
+   688→        <p className="mt-1 text-xs text-muted-foreground">
+   689→          {"👋"} No messages yet. Say hello to start the conversation!
+   690→        </p>
+   691→      </div>
+   692→    </div>
+   693→  );
+   694→}
+   695→
+   696→/* ------------------------------------------------------------------ */
+   697→/*  MessageFeed (main export)                                          */
+   698→/* ------------------------------------------------------------------ */
+   699→
+   700→export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, backgroundStyle, onMarkAsRead, onVanishMessage, onReplyTo, onDeleteMessage, onReact, scrollToMessageId, onScrolledToMessage }: MessageFeedProps) {
+   701→  const parentRef = useRef<HTMLDivElement>(null);
+   702→  const isAutoScrollRef = useRef(true);
+   703→  const [showNewBtn, setShowNewBtn] = useState(false);
+   704→  const unreadRef = useRef(0);
+   705→  const prevCountRef = useRef(messages.length);
+   706→
+   707→  const totalItems = useMemo(() => messages.length + (isPartnerTyping ? 1 : 0), [messages.length, isPartnerTyping]);
+   708→
+   709→  const virtualizer = useVirtualizer({ count: totalItems, getScrollElement: () => parentRef.current, estimateSize: () => ESTIMATED_ROW_HEIGHT, overscan: OVERSCAN, paddingStart: 16, paddingEnd: 16, gap: 12 });
+   710→
+   711→  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+   712→    const el = parentRef.current; if (!el) return;
+   713→    el.scrollTo({ top: el.scrollHeight, behavior });
+   714→    isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0;
+   715→  }, []);
+   716→
+   717→  const handleScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
+   718→    const el = e.currentTarget;
+   719→    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+   720→    if (dist <= AUTO_SCROLL_THRESHOLD) { isAutoScrollRef.current = true; setShowNewBtn(false); unreadRef.current = 0; }
+   721→    else { isAutoScrollRef.current = false; }
+   722→  }, []);
+   723→
+   724→  useEffect(() => { if (messages.length > 0) requestAnimationFrame(() => scrollToBottom("instant")); }, [isLoading, scrollToBottom]);
+   725→
+   726→  useEffect(() => { if (!onMarkAsRead) return; const unread = messages.filter((m) => m.sender_id !== currentUserId && m.status !== "read"); if (unread.length > 0 && isAutoScrollRef.current) onMarkAsRead(unread.map((m) => m.id)); }, [messages, currentUserId, onMarkAsRead]);
+   727→
+   728→  /* ---- Scroll to a specific message ----------------------------------- */
+   729→  useEffect(() => {
+   730→    if (!scrollToMessageId) return;
+   731→    const idx = messages.findIndex((m) => m.id === scrollToMessageId);
+   732→    if (idx === -1) { onScrolledToMessage?.(); return; }
+   733→    virtualizer.scrollToIndex(idx, { align: "center" });
+   734→    onScrolledToMessage?.();
+   735→  }, [scrollToMessageId, messages, virtualizer, onScrolledToMessage]);
+   736→
+   737→  useEffect(() => {
+   738→    const prev = prevCountRef.current; const next = messages.length; prevCountRef.current = next;
+   739→    if (next <= prev) return;
+   740→    const last = messages[next - 1]; const own = last && last.sender_id === currentUserId;
+   741→    if (own) { requestAnimationFrame(() => scrollToBottom("instant")); return; }
+   742→    if (isAutoScrollRef.current) requestAnimationFrame(() => scrollToBottom("smooth"));
+   743→    else { unreadRef.current += next - prev; setShowNewBtn(true); }
+   744→  }, [messages.length, currentUserId, scrollToBottom]);
+   745→
+   746→  if (isLoading) return <MessageListSkeleton />;
+   747→  if (messages.length === 0 && !isPartnerTyping) return <EmptyState partnerName={partnerName} partnerAvatar={partnerAvatar} />;
+   748→
+   749→  const virtualItems = virtualizer.getVirtualItems();
+   750→
+   751→  return (
+   752→    <div className="relative h-full w-full overflow-hidden" style={backgroundStyle}>
+   753→      <div ref={parentRef} onScroll={handleScroll} className="h-full w-full overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+   754→        <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+   755→          {virtualItems.map((vi) => {
+   756→            const isTyping = vi.index === messages.length;
+   757→            const msg = isTyping ? null : messages[vi.index];
+   758→            // Check if we need a date separator before this message
+   759→            const showDateSep = msg && vi.index > 0 && messages[vi.index - 1] && (() => {
+   760→              const prev = new Date(messages[vi.index - 1].created_at);
+   761→              const curr = new Date(msg.created_at);
+   762→              return prev.toDateString() !== curr.toDateString();
+   763→            })();
+   764→            const showFirstDateSep = msg && vi.index === 0;
+   765→            return (
+   766→              <div key={vi.key} data-index={vi.index} ref={virtualizer.measureElement} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)` }}>
+   767→                {isTyping ? <TypingIndicator partnerName={partnerName} partnerAvatar={partnerAvatar} /> : msg ? (
+   768→                  <>
+   769→                    {(showDateSep || showFirstDateSep) && <DateSeparator date={msg.created_at} />}
+   770→                    <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} onDeleteMessage={onDeleteMessage} />
+   771→                  </>
+   772→                ) : null}
+   773→              </div>
+   774→            );
+   775→          })}
+   776→        </div>
+   777→      </div>
+   778→      {showNewBtn && unreadRef.current > 0 && <NewMessagesButton count={unreadRef.current} onClick={() => scrollToBottom("smooth")} />}
+   779→    </div>
+   780→  );
+   781→}
+   782→

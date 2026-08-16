@@ -890,3 +890,81 @@ Task: Feature expansion, attachment upload, URL detection, UI polish
 4. **消息搜索高亮** — 搜索后滚动到消息时高亮匹配文本
 5. **主题定制** — 允许用户选择强调色
 6. **离线支持** — Service Worker + 离线消息队列
+
+---
+Task ID: 8-a
+Agent: Frontend Developer
+Task: Chat Background Theme Selector
+
+Work Log:
+- Created `src/components/chat/ChatBackgroundPicker.tsx` with 7 CSS-only background themes: Default, Subtle Grid, Geometric, Gradient, Dark Marble, Starry Night, Aurora.
+- Each theme uses the app's violet/purple palette at 3-8% opacity via `radial-gradient` / `linear-gradient` / `repeating-linear-gradient`.
+- Implemented `useChatBackground()` hook that reads/writes selected theme to `localStorage` under key `puzzle-chat-bg`.
+- Built a popover-based picker UI using shadcn `Popover` with a 4-column grid of 40×40px preview swatches.
+- Active theme swatch has a violet ring indicator; hover shows label tooltip.
+- Added `backgroundStyle?: React.CSSProperties` prop to `MessageFeedProps` and applied it to the outer container div.
+- Integrated the `ChatBackgroundPicker` button (Palette icon) into `ChatLayout` header, left of the Search button.
+- Removed the hardcoded `DOT_PATTERN` SVG overlay from `ChatLayout`; background is now fully controlled by the theme system.
+- Fixed a pre-existing JSX error in `MessageBubble` where the Image Lightbox was rendered as a sibling without a Fragment wrapper.
+
+Stage Summary:
+- Users can now customize the chat message area background with 7 subtle CSS-only themes via a palette icon in the header.
+- Theme selection persists across page reloads via localStorage.
+- All backgrounds are purely CSS (no external images), use violet/purple palette at low opacity, and work in both light and dark mode.
+- New file: `src/components/chat/ChatBackgroundPicker.tsx`
+- Modified: `src/components/chat/ChatLayout.tsx`, `src/components/chat/MessageFeed.tsx`
+
+---
+Task ID: 8-b
+Agent: Frontend Styling Expert
+Task: Input glassmorphism + message bubble micro-interactions
+
+Work Log:
+- **globals.css**: Updated `msg-slide-up` keyframe with 60% bounce step (translateY(-1px) scale(1.005)). Added `timestamp-fade` keyframe (opacity 0→1, translateY 4px→0 over 0.4s). Added `reaction-pop` keyframe (opacity 0→1, scale 0.5→1 over 0.3s with cubic-bezier overshoot).
+- **ChatLayout.tsx – Input area glassmorphism**: Replaced `border-t bg-background` on input container with `border-t border-white/10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl`.
+- **ChatLayout.tsx – Text input**: Added `shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]` for subtle inner shadow. Updated focus ring to `focus-visible:ring-violet-500/30` and `focus-visible:shadow-[0_0_0_3px_rgba(139,92,246,0.1)]` for both vanish and normal modes.
+- **ChatLayout.tsx – Send button**: Upgraded `shadow-md` → `shadow-lg shadow-violet-500/25`. Added `active:scale-95` to complement existing `hover:scale-105`.
+- **ChatLayout.tsx – Attachment preview**: Replaced `border-t border-violet-500/20 bg-violet-500/5` with `bg-violet-500/5 backdrop-blur-sm rounded-xl border border-violet-500/10` for glass effect.
+- **ChatLayout.tsx – Reply preview**: Replaced `border-t bg-muted/30` with `bg-violet-500/5 backdrop-blur-sm border-l-2 border-l-violet-500` for glass effect.
+- **ChatLayout.tsx – Toolbar buttons** (vanish toggle, ephemeral timer, paperclip, emoji, mic): Changed all `hover:bg-muted` to `hover:bg-violet-500/10`. Added `transition-colors duration-200` to all buttons.
+- **MessageFeed.tsx – Bubble hover lift**: Changed `transition-transform duration-100` → `transition-all duration-200`. Added `md:hover:shadow-md md:hover:-translate-y-0.5` conditionally for non-voice, non-image message types.
+- **MessageFeed.tsx – Timestamp fade**: Added `animate-[timestamp-fade_0.4s_ease_0.3s_both]` to timestamp `<span>` when `isNew` is true (message is sending or <2s old).
+- **MessageFeed.tsx – Reaction badges**: Added `animate-[reaction-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)_both]` to each reaction button in `ReactionPills` for bouncy entrance.
+
+Stage Summary:
+- Chat input area now has full glassmorphism effect with `backdrop-blur-xl`, translucent backgrounds, and consistent violet-tinted hover states across all toolbar buttons.
+- Text input has subtle inner shadow and refined violet focus ring with box-shadow glow.
+- Send button has enhanced shadow and active scale-down for tactile press feedback.
+- Attachment and reply preview bars have glass-morphism styling.
+- Message bubbles lift slightly on hover (desktop only) for non-voice, non-image types.
+- New message timestamps fade in with a 0.3s delay using custom keyframe.
+- Reaction pills animate in with an overshooting bounce effect.
+- Message entrance animation now includes a subtle 60% bounce step.
+- No logic changes; all modifications are CSS/Tailwind class-only.
+- Pre-existing TS errors (hasAttachment/uploadAttachment before declaration) left untouched as instructed.
+
+---
+Task ID: 8-c
+Agent: Full-Stack Developer
+Task: Message search highlighting
+
+Work Log:
+- Read existing search API (`/api/messages/search/route.ts`) — ILIKE-based search returning messages.
+- Read `ChatLayout.tsx` — found `SearchPanel` component with debounced search, `searchOpen`/`scrollToMessageId` state, and `MessageFeed` usage.
+- Read `MessageFeed.tsx` — found local `LinkifiedText` component (line 285) used at line 530 for rendering message text content.
+- Added `highlightText()` helper function in `MessageFeed.tsx` that splits text into fragments and wraps case-insensitive matches in `<mark>` tags with `bg-yellow-300/60 dark:bg-yellow-400/40 rounded-sm px-0.5`.
+- Added `highlight?: string` prop to `LinkifiedText` component — when set, plain-text segments are further split to highlight matching substrings; link segments are left as-is.
+- Exported `LinkifiedText` from `MessageFeed.tsx` for potential reuse.
+- Added `searchHighlight?: string` and `onClearSearchHighlight?: () => void` to `MessageFeedProps`.
+- Passed `searchHighlight` through `MessageFeed` → `MessageBubble` → `LinkifiedText`.
+- Added `onClick` handler on the message scroll container that calls `onClearSearchHighlight` to dismiss highlight on any click in the message area.
+- In `ChatLayout.tsx`, added `searchHighlight` state (`string | undefined`), updated `handleSearchResultClick` to accept the query string and set it as highlight.
+- Updated `handleInputChange` to clear `searchHighlight` when user starts typing a new message.
+- Added `highlightedSnippet()` function inside `SearchPanel` to show highlighted match context in search results dropdown.
+- Updated `SearchPanel`'s `onResultClick` signature to pass both `messageId` and `query` string.
+
+Stage Summary:
+- Message search now highlights matching text in both the search results dropdown and the message feed after clicking a result.
+- Highlight uses yellow `<mark>` tags with semi-transparent backgrounds that work in both light and dark mode.
+- Highlight auto-dismisses when the user types in the message input or clicks anywhere in the message area.
+- Search API was not modified. All changes are in `MessageFeed.tsx` and `ChatLayout.tsx`.

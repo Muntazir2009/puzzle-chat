@@ -65,6 +65,9 @@ export interface UseChatReturn {
   vanishMessage: (messageId: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
   sendReaction: (messageId: string, emoji: string, add: boolean) => void;
+  loadMore: () => Promise<void>;
+  hasMore: boolean;
+  loadingMore: boolean;
 }
 
 const TYPING_DEBOUNCE_MS = 2_000;
@@ -88,6 +91,9 @@ export function useChat({
     online: false,
     last_seen: null,
   });
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const nextCursorRef = useRef<string | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<Channel | undefined>(undefined);
 
@@ -158,7 +164,7 @@ export function useChat({
 
   /* ---- Load history --------------------------------------------- */
   useEffect(() => {
-    if (initialMessages.length > 0) { setIsLoading(false); return; }
+    if (initialMessages.length > 0) { setIsLoading(false); setHasMore(false); return; }
     let cancelled = false;
     async function fetchHistory() {
       try {
@@ -166,8 +172,13 @@ export function useChat({
           `/api/messages/history?conversation_id=${conversationId}`
         );
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
-        const data: ChatMessage[] = await res.json();
-        if (!cancelled) { setMessages(data); setIsLoading(false); }
+        const data = await res.json();
+        if (!cancelled) {
+          setMessages(data.messages);
+          setHasMore(data.has_more);
+          nextCursorRef.current = data.next_cursor;
+          setIsLoading(false);
+        }
       } catch (err) {
         if (!cancelled) { console.error(err); setIsLoading(false); }
       }
@@ -361,7 +372,33 @@ export function useChat({
     }, TYPING_DEBOUNCE_MS);
   }, [currentUserId]);
 
+  /* ---- Load older messages (pagination) ---------------------------- */
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !nextCursorRef.current) return;
+    setLoadingMore(true);
+    try {
+      const cursor = nextCursorRef.current;
+      const res = await fetch(
+        `/api/messages/history?conversation_id=${conversationId}&before=${encodeURIComponent(cursor)}`
+      );
+      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      const data = await res.json();
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const older = (data.messages ?? []).filter((m: ChatMessage) => !existingIds.has(m.id));
+        return [...older, ...prev];
+      });
+      setHasMore(data.has_more);
+      nextCursorRef.current = data.next_cursor;
+    } catch (err) {
+      console.error("[useChat] loadMore error:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [conversationId, loadingMore, hasMore]);
+
+  /* ---- Cleanup typing timer on unmount ------------------------------ */
   useEffect(() => { return () => { if (typingTimerRef.current) clearTimeout(typingTimerRef.current); }; }, []);
 
-  return { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction };
+  return { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore };
 }
