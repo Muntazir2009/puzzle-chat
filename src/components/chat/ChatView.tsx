@@ -80,6 +80,13 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
     [conversations]
   );
 
+  /* Update browser tab title with unread count */
+  useEffect(() => {
+    const base = "Puzzle";
+    document.title = totalUnread > 0 ? `(${totalUnread > 99 ? "99+" : totalUnread}) ${base}` : base;
+    return () => { document.title = base; };
+  }, [totalUnread]);
+
   const fetchConversations = useCallback(async () => {
     try {
       const res = await fetch("/api/conversations");

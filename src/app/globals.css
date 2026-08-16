@@ -308,3 +308,33 @@
 .msg-enter {
   animation: msg-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Vanish Mode Input Glow Pulse                                       */
+/* ------------------------------------------------------------------ */
+@keyframes vanish-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.3);
+  }
+}
+.vanish-input-glow {
+  animation: vanish-glow 2s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Unread badge pulse in sidebar                                       */
+/* ------------------------------------------------------------------ */
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+.unread-badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}

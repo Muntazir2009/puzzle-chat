@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Plus, MessageCircle, Loader2, X, Trash2, Pin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -199,6 +199,55 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
 }
 
 /* ------------------------------------------------------------------ */
+/*  LinkifiedText – detects & renders clickable URLs                   */
+/* ------------------------------------------------------------------ */
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+type TextSegment = { type: "text"; value: string } | { type: "link"; value: string };
+
+function parseUrls(text: string): TextSegment[] {
+  const segments: TextSegment[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: "text", value: text.slice(lastIndex, match.index) });
+    }
+    segments.push({ type: "link", value: match[1] });
+    lastIndex = URL_REGEX.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    segments.push({ type: "text", value: text.slice(lastIndex) });
+  }
+  return segments;
+}
+
+const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { text: string; className?: string }) {
+  const segments = useMemo(() => parseUrls(text), [text]);
+  return (
+    <span className={className}>
+      {segments.map((seg, i) =>
+        seg.type === "link" ? (
+          <a
+            key={i}
+            href={seg.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-violet-400/50 underline-offset-2 hover:decoration-violet-400 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {seg.value}
+          </a>
+        ) : (
+          <span key={i}>{seg.value}</span>
+        ),
+      )}
+    </span>
+  );
+});
+
+/* ------------------------------------------------------------------ */
 /*  ConversationItemRow                                                */
 /* ------------------------------------------------------------------ */
 
@@ -263,9 +312,9 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
         </div>
         {conv.last_message && (
           <div className="mt-1 flex items-center justify-between gap-2">
-            <p className={cn("truncate text-xs", activeId === conv.id && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}{previewText}</p>
+            <span className={cn("truncate text-xs", activeId === conv.id && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}<LinkifiedText text={previewText} /></span>
             {conv.unread_count > 0 && (
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-[10px] font-bold text-white shadow-sm shadow-violet-500/30 ring-2 ring-background">{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
+              <span className="unread-badge-pulse flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-[10px] font-bold text-white shadow-sm shadow-violet-500/30 ring-2 ring-background">{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
           </div>
         )}

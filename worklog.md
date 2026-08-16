@@ -796,3 +796,97 @@ Task: QA testing, styling enhancements, and new features
 4. **Pusher 测试** — 需要两个用户同时在线测试实时消息
 5. **Performance** — 考虑添加消息分页（目前加载全部历史）
 6. **Notification** — 集成 Web Push API 实现离线通知
+
+---
+Task ID: 7-a
+Agent: Full-Stack Developer
+Task: Implement image/file attachment upload
+
+Work Log:
+- Created /src/app/api/messages/upload/route.ts for multipart upload
+- Uploads to Supabase Storage 'attachments' bucket, inserts message record
+- Updated ChatLayout.tsx Paperclip button with file selection
+- Added attachment preview bar with thumbnail/filename/size/cancel
+- File validation: 10MB max, image/video/pdf/txt types
+
+Stage Summary:
+- Paperclip button is now functional for image and file uploads
+- Attachment preview appears above input with cancel option
+- API handles storage + message insertion in one request
+
+---
+Task ID: 7-b
+Agent: Frontend Developer
+Task: Add URL detection and linkify in message bubbles
+
+Work Log:
+- Created LinkifiedText component with URL regex detection
+- URLs render as clickable links with violet underline
+- Applied to message content, reply previews, and conversation list previews
+- Click on links stops propagation to prevent bubble interactions
+
+Stage Summary:
+- Messages with URLs now have clickable links
+- Violet-themed link styling consistent with app design
+
+---
+Task ID: 7
+Agent: Main Agent + Subagents
+Task: Feature expansion, attachment upload, URL detection, UI polish
+
+## 项目当前状态描述/判断
+
+项目处于活跃开发后期，核心 IM 功能已完备，本轮重点在附件上传、URL 检测和样式细节打磨。所有修改编译通过，零控制台错误。
+
+## 当前目标/已完成的修改/验证结果
+
+### QA 测试
+- 登录页：所有表单状态、Tab 切换、错误显示正常
+- 登录错误（invalid login credentials）正确展示为行内错误信息
+- 认证回调错误正确重定向到 /login?error=auth_callback_failed
+- 根路由 307 重定向正常
+- 所有修改编译通过，零错误
+
+### 新功能（4项）
+1. **附件上传**（ChatLayout + API）
+   - Paperclip 按钮现在功能完整，支持选择图片/视频/PDF/TXT
+   - 附件预览条：图片缩略图/文件图标 + 文件名 + 大小 + 取消按钮
+   - 新 API 路由 `/api/messages/upload`：上传到 Supabase Storage，自动创建 bucket
+   - 客户端 10MB 大小验证，服务端文件类型验证
+   - 发送按钮在有附件时显示（无需文字）
+
+2. **URL 检测与可点击链接**（MessageFeed + ConversationList）
+   - 消息内容中的 URL 自动变为可点击链接
+   - 紫色下划线主题，hover 加深
+   - 点击链接阻止冒泡（不触发消息长按等）
+   - 同时应用于回复预览和会话列表预览
+
+3. **浏览器标签未读角标**（ChatView）
+   - 未读消息时标签标题显示 (3) Puzzle
+   - 超过 99 显示 (99+)
+   - 无未读时恢复为 Puzzle
+
+4. **失败消息重试**（MessageFeed）
+   - "Failed to send" 改为可点击按钮，带图标
+   - 点击触发删除（用于重新发送）
+
+### 样式改进（4项）
+1. **消失模式输入框脉冲光晕** — vanish-input-glow CSS 动画，输入框在消失模式下持续脉冲发光
+2. **未读角标脉冲** — unread-badge-pulse CSS 动画，会话列表未读计数轻微跳动
+3. **日期分隔符渐变线** — 两侧渐变分隔线 + ring 边框（上轮完成，本轮验证）
+4. **登录页副标题** — "Built with Next.js & Supabase"（上轮完成，本轮验证）
+
+## 未解决问题或风险
+1. **数据库未初始化** — 用户仍需在 Supabase SQL Editor 运行 supabase/schema.sql
+2. **middleware 警告** — Next.js 16 建议将 middleware 改为 proxy（非阻塞警告）
+3. **Pusher 依赖** — 实时消息需 Pusher mini service 运行
+4. **语音消息上传** — 录制 UI 已有，但上传到存储流程待补充
+5. **附件上传未实测** — 需要实际 Supabase Storage 来测试
+
+## 建议下一阶段优先事项
+1. **消息分页** — 当前加载全部历史，需实现游标分页
+2. **消息转发** — 在 TapbackDock 添加 Forward 选项
+3. **Web Push 通知** — 离线时推送通知
+4. **消息搜索高亮** — 搜索后滚动到消息时高亮匹配文本
+5. **主题定制** — 允许用户选择强调色
+6. **离线支持** — Service Worker + 离线消息队列

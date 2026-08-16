@@ -1,7 +1,7 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Search, Loader2 } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUp, EyeOff, Eye, Mic, MicOff, X, Clock, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Search, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +14,7 @@ import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { cn } from "@/lib/utils";
 import { m, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -32,8 +33,22 @@ const EPHEMERAL_OPTIONS = [
 const DOT_PATTERN = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.7' fill='%239ca3af' opacity='0.15'/%3E%3C/svg%3E")`;
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+const ACCEPTED_TYPES = "image/*,video/mp4,.pdf,.txt";
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+
+/* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function formatLastSeen(lastSeen: string | null): string {
   if (!lastSeen) return "Offline";
@@ -353,6 +368,12 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const voice = useVoiceRecorder();
   const [showVoiceWaveform, setShowVoiceWaveform] = useState(false);
 
+  /* Attachment */
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
   const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
 
@@ -377,15 +398,26 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
 
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
+    /* If an attachment is selected, upload it instead of sending text */
+    if (hasAttachment && !hasText) {
+      await uploadAttachment();
+      return;
+    }
+    /* If there's both text and an attachment, send text first, then upload */
     const trimmed = draft.trim();
     if (!trimmed || isSending) return;
     setIsSending(true);
     const opts: SendMessageOptions = { vanish_mode: vanishMode, ephemeral_seconds: ephemeralSeconds, reply_to_id: replyTo?.id ?? null };
     setDraft(""); setReplyTo(null);
     if (inputRef.current) inputRef.current.style.height = "auto";
-    try { await sendMessage(trimmed, opts); setSendBtnKey((k) => k + 1); }
+    try {
+      await sendMessage(trimmed, opts);
+      setSendBtnKey((k) => k + 1);
+      /* Upload attachment after text is sent */
+      if (hasAttachment) await uploadAttachment();
+    }
     finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
-  }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo]);
+  }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo, hasAttachment, uploadAttachment]);
 
   const handleVoiceSend = useCallback(async () => {
     const result = await voice.stopRecording();
@@ -404,6 +436,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
 
   const hasText = draft.trim().length > 0;
+  const canSend = hasText || hasAttachment;
 
   /* Search result click → scroll to message */
   const handleSearchResultClick = useCallback((messageId: string) => {
@@ -414,6 +447,71 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   const handleScrolledToMessage = useCallback(() => {
     setScrollToMessageId(null);
   }, []);
+
+  /* ---- Attachment handlers ---------------------------------------- */
+  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      toast({ title: "File too large", description: "Maximum size is 10 MB.", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    setAttachmentFile(file);
+    /* Generate thumbnail preview for images */
+    if (IMAGE_MIME_TYPES.has(file.type)) {
+      const url = URL.createObjectURL(file);
+      setAttachmentPreview(url);
+    } else {
+      setAttachmentPreview(null);
+    }
+    /* Reset input so the same file can be re-selected */
+    e.target.value = "";
+  }, []);
+
+  const clearAttachment = useCallback(() => {
+    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
+  }, [attachmentPreview]);
+
+  const uploadAttachment = useCallback(async () => {
+    if (!attachmentFile || isUploading) return;
+    setIsUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", attachmentFile);
+      fd.append("conversation_id", conversationId);
+      if (replyTo?.id) fd.append("reply_to_id", replyTo.id);
+      if (vanishMode) fd.append("vanish_mode", "true");
+      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
+
+      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(data.error || `Upload failed: ${res.status}`);
+      }
+      /* Message is inserted server-side and pushed via Pusher;
+         the useChat hook will pick it up automatically. */
+      clearAttachment();
+      setReplyTo(null);
+    } catch (err) {
+      console.error("[ChatLayout] upload error:", err);
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not send the file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
+
+  const handlePaperclipClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const hasAttachment = attachmentFile !== null;
 
   /* Status text for header */
   const statusText = isPartnerTyping
@@ -528,6 +626,55 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
           )}
         </AnimatePresence>
 
+        {/* Attachment preview bar */}
+        <AnimatePresence>
+          {attachmentFile && (
+            <m.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-violet-500/20 bg-violet-500/5"
+            >
+              <div className="flex items-center gap-3 px-4 py-2.5">
+                {attachmentPreview ? (
+                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg ring-2 ring-violet-500/20">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+                    {attachmentFile.type === "application/pdf" ? (
+                      <FileText className="size-5" />
+                    ) : attachmentFile.type.startsWith("video/") ? (
+                      <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                    ) : (
+                      <FileText className="size-5" />
+                    )}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
+                </div>
+                {isUploading ? (
+                  <Loader2 className="size-5 shrink-0 animate-spin text-violet-500" />
+                ) : (
+                  <m.button
+                    type="button"
+                    onClick={clearAttachment}
+                    whileTap={{ scale: 0.85 }}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Remove attachment"
+                  >
+                    <X className="size-4" />
+                  </m.button>
+                )}
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+
         {/* Voice waveform overlay */}
         <AnimatePresence>
           {showVoiceWaveform && (
@@ -591,16 +738,26 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                     // Glow effect on focus
                     "focus-visible:border-transparent focus-visible:ring-2",
                     vanishMode
-                      ? "border-violet-500/30 focus-visible:ring-violet-400/40 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.15)]"
+                      ? "border-violet-500/30 focus-visible:ring-violet-400/40 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.15)] vanish-input-glow"
                       : "focus-visible:ring-violet-400/30 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.08)]",
                   )}
                 />
               </div>
             )}
 
-            {/* Attachment button (placeholder) */}
+            {/* Hidden file input for attachments */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_TYPES}
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-hidden="true"
+            />
+
+            {/* Attachment button */}
             {!showVoiceWaveform && (
-              <m.button type="button" whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Attach file">
+              <m.button type="button" onClick={handlePaperclipClick} whileTap={{ scale: 0.9 }} className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors", hasAttachment ? "text-violet-500 bg-violet-500/15" : "text-muted-foreground hover:bg-muted")} aria-label="Attach file">
                 <Paperclip className="size-4" />
               </m.button>
             )}
@@ -629,19 +786,19 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               </EmojiPicker>
             )}
 
-            {/* Send button (shown when there's text) */}
-            {!showVoiceWaveform && hasText && (
+            {/* Send button (shown when there's text or attachment) */}
+            {!showVoiceWaveform && canSend && (
               <AnimatePresence>
                 <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
-                  <Button type="submit" size="icon" disabled={isSending}
+                  <Button type="submit" size="icon" disabled={isSending || isUploading}
                     className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105")}
                     aria-label="Send message"><ArrowUp className="size-4" /></Button>
                 </m.div>
               </AnimatePresence>
             )}
 
-            {/* Mic button (shown when input is empty) */}
-            {!showVoiceWaveform && !hasText && (
+            {/* Mic button (shown when input is empty and no attachment) */}
+            {!showVoiceWaveform && !canSend && (
               <AnimatePresence>
                 <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
                   <m.button type="button" onClick={() => voice.startRecording()} whileTap={{ scale: 0.9 }} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted" aria-label="Record voice">

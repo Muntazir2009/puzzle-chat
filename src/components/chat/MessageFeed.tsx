@@ -1,6 +1,6 @@
 "use client";
 
-import {
+import React, {
   type UIEvent,
   useCallback,
   useEffect,
@@ -257,6 +257,55 @@ function VoiceBubble({ message, isOwn, waveform }: {
 }
 
 /* ------------------------------------------------------------------ */
+/*  LinkifiedText – detects & renders clickable URLs                   */
+/* ------------------------------------------------------------------ */
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+type TextSegment = { type: "text"; value: string } | { type: "link"; value: string };
+
+function parseUrls(text: string): TextSegment[] {
+  const segments: TextSegment[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: "text", value: text.slice(lastIndex, match.index) });
+    }
+    segments.push({ type: "link", value: match[1] });
+    lastIndex = URL_REGEX.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    segments.push({ type: "text", value: text.slice(lastIndex) });
+  }
+  return segments;
+}
+
+const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { text: string; className?: string }) {
+  const segments = useMemo(() => parseUrls(text), [text]);
+  return (
+    <span className={className}>
+      {segments.map((seg, i) =>
+        seg.type === "link" ? (
+          <a
+            key={i}
+            href={seg.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-violet-400/50 underline-offset-2 hover:decoration-violet-400 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {seg.value}
+          </a>
+        ) : (
+          <span key={i}>{seg.value}</span>
+        ),
+      )}
+    </span>
+  );
+});
+
+/* ------------------------------------------------------------------ */
 /*  Reply Preview (inside bubble)                                      */
 /* ------------------------------------------------------------------ */
 
@@ -269,7 +318,7 @@ function ReplyPreview({ senderName, content, isOwn }: { senderName: string; cont
         : "border-l-2 border-l-violet-400/70 bg-violet-500/[0.08]",
     )}>
       <p className={cn("text-[10px] font-bold leading-tight", isOwn ? "text-white/70" : "text-violet-400")}>{senderName}</p>
-      <p className={cn("mt-0.5 truncate text-[11px] leading-snug", isOwn ? "text-white/50" : "text-zinc-400")}>{content}</p>
+      <LinkifiedText text={content} className={cn("mt-0.5 truncate text-[11px] leading-snug block", isOwn ? "text-white/50" : "text-zinc-400")} />
     </div>
   );
 }
@@ -474,7 +523,7 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
               </div>
             </div>
           ) : (
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            <LinkifiedText text={message.content} className="whitespace-pre-wrap break-words" />
           )}
 
           {/* Vanish indicator */}
@@ -495,7 +544,16 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
         {/* Reactions */}
         {onReact && <ReactionPills reactions={message.reactions} isOwn={isOwn} onReact={(e, a) => onReact(message.id, e, a)} currentUserId={""} />}
 
-        {isFailed && <span className="px-1 text-[10px] text-red-500">Failed to send. Retry.</span>}
+        {isFailed && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDeleteMessage?.(message.id); }}
+            className="mt-1 flex items-center gap-1 px-1 text-[10px] text-red-400 transition-colors hover:text-red-300"
+          >
+            <AlertCircle className="size-3" />
+            <span>Failed to send &middot; Tap to retry</span>
+          </button>
+        )}
       </div>
 
       {isOwn && <div className="w-8 shrink-0" />}
