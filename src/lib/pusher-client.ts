@@ -44,7 +44,6 @@ export function getPusherClient(): Pusher {
 
   _client = new Pusher(key ?? "", {
     cluster: cluster,
-    enabled: Boolean(key),
     channelAuthorization: {
       endpoint: "/api/pusher/auth",
       transport: "ajax",
@@ -57,6 +56,7 @@ export function getPusherClient(): Pusher {
 /** Convenience alias kept for readability. */
 export const pusherClient = new Proxy({} as Pusher, {
   get(_target, prop) {
-    return (getPusherClient() as Record<string | symbol, unknown>)[prop];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getPusherClient() as any)[prop];
   },
 });

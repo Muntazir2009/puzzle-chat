@@ -7,7 +7,7 @@ import {
 } from "@/lib/pusher-client";
 import { getRoomId } from "@/lib/room";
 import type { ChatChannelEvents } from "@/lib/pusher-server";
-import type { PrivateChannel } from "pusher-js";
+import type { Channel } from "pusher-js";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +63,7 @@ export interface UseChatReturn {
   onTyping: () => void;
   markAsRead: (messageIds: string[]) => Promise<void>;
   vanishMessage: (messageId: string) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   sendReaction: (messageId: string, emoji: string, add: boolean) => void;
 }
 
@@ -88,7 +89,7 @@ export function useChat({
     last_seen: null,
   });
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const channelRef = useRef<PrivateChannel | undefined>(undefined);
+  const channelRef = useRef<Channel | undefined>(undefined);
 
   /* ---- Heartbeat (keeps last_seen up-to-date) -------------------- */
   useHeartbeat();
@@ -177,7 +178,7 @@ export function useChat({
 
   /* ---- Pusher --------------------------------------------------- */
   useEffect(() => {
-    const channel = pusherClient.subscribe(channelName) as PrivateChannel;
+    const channel = pusherClient.subscribe(channelName) as Channel;
     channelRef.current = channel;
 
     function handleNewMessage(data: ChatChannelEvents["new-message"]) {
@@ -318,6 +319,17 @@ export function useChat({
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
   }, [conversationId, currentUserId]);
 
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      await fetch("/api/messages/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: conversationId, message_id: messageId }),
+      });
+    } catch (err) { console.error(err); }
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  }, [conversationId, currentUserId]);
+
   const sendReaction = useCallback((messageId: string, emoji: string, add: boolean) => {
     setMessages((prev) => prev.map((m) => {
       if (m.id !== messageId) return m;
@@ -351,5 +363,5 @@ export function useChat({
 
   useEffect(() => { return () => { if (typingTimerRef.current) clearTimeout(typingTimerRef.current); }; }, []);
 
-  return { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, sendReaction };
+  return { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction };
 }

@@ -33,18 +33,20 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const { data: { users }, error: listErr } = await admin.auth.admin.listUsers({
       page: 1,
-      perPage: 1,
-      filters: { email: partner_email },
-    });
+      perPage: 1000,
+    } as Parameters<typeof admin.auth.admin.listUsers>[0]);
 
-    if (listErr || !users || users.length === 0) {
+    /* Filter by email */
+    const matched = users?.filter((u) => u.email === partner_email) ?? [];
+    if (listErr || matched.length === 0) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
       );
     }
 
-    const partnerId = users[0].id;
+    const partnerUser = matched[0];
+    const partnerId = partnerUser.id;
 
     if (partnerId === userId) {
       return NextResponse.json(
@@ -53,19 +55,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /* Ensure partner has a public.users row */
-    await supabase.from("users").upsert(
-      {
-        id: partnerId,
-        name: users[0].user_metadata?.name ?? partner_email.split("@")[0],
-      },
-      { onConflict: "id" },
-    ).ignore();
+    /* Ensure partner has a public.users row — MUST use admin client
+       because RLS policy users_insert_self checks auth.uid() = id,
+       and auth.uid() is the current user, NOT the partner */
+    await admin
+      .from("users")
+      .upsert(
+        {
+          id: partnerId,
+          name: partnerUser.user_metadata?.name ?? partner_email.split("@")[0],
+        },
+        { onConflict: "id" },
+      );
 
     /* Use the get_or_create_conversation RPC */
     const { data: conversationId, error: rpcErr } = await supabase.rpc(
       "get_or_create_conversation",
-      { other_user_id: partnerId }
+      { other_user_id: partnerId },
     );
 
     if (rpcErr || !conversationId) {
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     /* Fetch partner profile from public users table */
-    const { data: partner } = await supabase
+    const { data: partnerProfile } = await supabase
       .from("users")
       .select("id, name, avatar_url")
       .eq("id", partnerId)
@@ -85,8 +91,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       conversation_id: conversationId,
-      partner: partner
-        ? { id: partner.id, name: partner.name, avatar_url: partner.avatar_url }
+      partner: partnerProfile
+        ? { id: partnerProfile.id, name: partnerProfile.name, avatar_url: partnerProfile.avatar_url }
         : { id: partnerId, name: "Unknown", avatar_url: null },
     });
   } catch (err) {

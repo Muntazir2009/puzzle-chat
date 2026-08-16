@@ -77,7 +77,7 @@ function SearchPanel({
   const [results, setResults] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   /* Auto-focus on open */
   useEffect(() => {
@@ -143,7 +143,7 @@ function SearchPanel({
         )}
       </div>
 
-      {/* Results list */
+      {/* Results list */}
       {results.length > 0 && (
         <div className="max-h-[200px] overflow-y-auto border-t px-2 pb-2">
           {results.map((msg) => (
@@ -332,10 +332,11 @@ function PartnerInfoPanel({
 /* ------------------------------------------------------------------ */
 
 export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
-  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, sendReaction } =
+  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction } =
     useChat({ currentUserId, otherUserId, conversationId, initialMessages });
 
   const [draft, setDraft] = useState("");
+  const [sendBtnKey, setSendBtnKey] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [vanishMode, setVanishMode] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -367,7 +368,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     const opts: SendMessageOptions = { vanish_mode: vanishMode, ephemeral_seconds: ephemeralSeconds, reply_to_id: replyTo?.id ?? null };
     setDraft(""); setReplyTo(null);
     if (inputRef.current) inputRef.current.style.height = "auto";
-    try { await sendMessage(trimmed, opts); }
+    try { await sendMessage(trimmed, opts); setSendBtnKey((k) => k + 1); }
     finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
   }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo]);
 
@@ -411,8 +412,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   return (
     <div className="flex w-full flex-col bg-background" style={containerStyle}>
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
-        {/* Header - sticky with glassmorphic blur */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 px-4">
+        {/* Header - sticky with glassmorphic blur + shadow */}
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 px-4">
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
@@ -485,6 +486,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             partnerAvatar={partner.avatar_url}
             onMarkAsRead={markAsRead}
             onVanishMessage={vanishMessage}
+            onDeleteMessage={deleteMessage}
             onReplyTo={setReplyTo}
             onReact={sendReaction}
             scrollToMessageId={scrollToMessageId}
@@ -533,8 +535,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         {/* Input bar */}
         <div className="shrink-0 border-t bg-background px-3 py-2.5 sm:px-4 sm:py-3">
           <form onSubmit={handleSubmit} className="flex items-end gap-2">
-            {/* Vanish toggle - compact */}
-            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200", vanishMode ? "bg-violet-500/15 text-violet-500" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
+            {/* Vanish toggle - compact with smooth transition */}
+            <m.button type="button" onClick={() => setVanishMode((v) => !v)} whileTap={{ scale: 0.9 }} className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200", vanishMode ? "bg-violet-500/15 text-violet-500 shadow-sm shadow-violet-500/10" : "text-muted-foreground hover:bg-muted")} aria-label="Vanish mode">
               {vanishMode ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             </m.button>
 
@@ -545,11 +547,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               </m.button>
               <AnimatePresence>
                 {ephemeralOpen && (
-                  <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-28 overflow-hidden rounded-xl border bg-popover p-1 shadow-xl">
+                  <m.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.95 }} transition={{ duration: 0.15 }} className="absolute bottom-full left-0 z-50 mb-2 w-32 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl shadow-black/10">
                     {EPHEMERAL_OPTIONS.map((opt) => (
                       <button key={opt.label} type="button" onClick={() => { setEphemeralSeconds(opt.value); setEphemeralOpen(false); }}
-                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors", ephemeralSeconds === opt.value ? "bg-violet-500/10 text-violet-500 font-medium" : "text-foreground hover:bg-muted")}>
-                        <Clock className="size-3" />{opt.label}
+                        className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all duration-150", ephemeralSeconds === opt.value ? "bg-violet-500/10 text-violet-500 font-semibold" : "text-foreground hover:bg-muted")}>
+                        <Clock className="size-3 opacity-60" />{opt.label}
                       </button>
                     ))}
                   </m.div>
@@ -565,17 +567,16 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   rows={1} className={cn(
                     "w-full resize-none rounded-2xl border bg-muted/50 px-4 py-3 text-sm",
                     "placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:ring-0",
+                    "focus-visible:outline-none",
                     "max-h-32 overflow-y-auto",
-                    "transition-all duration-200",
-                    // Gradient border effect on focus
-                    "focus-visible:border-transparent focus-visible:ring-[2px]",
+                    "transition-all duration-300",
+                    // Glow effect on focus
+                    "focus-visible:border-transparent focus-visible:ring-2",
                     vanishMode
-                      ? "border-violet-500/30 focus-visible:ring-violet-400/30"
-                      : "focus-visible:ring-violet-400/25",
+                      ? "border-violet-500/30 focus-visible:ring-violet-400/40 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.15)]"
+                      : "focus-visible:ring-violet-400/30 focus-visible:shadow-[0_0_12px_rgba(139,92,246,0.08)]",
                   )}
                 />
-                {/* Subtle gradient border overlay when focused - implemented via ring colors */}
               </div>
             )}
 
@@ -596,9 +597,9 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             {/* Send button (shown when there's text) */}
             {!showVoiceWaveform && hasText && (
               <AnimatePresence>
-                <m.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15, type: "spring", stiffness: 500, damping: 30 }}>
+                <m.div key={sendBtnKey} initial={{ scale: 0, opacity: 0, rotate: -90 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}>
                   <Button type="submit" size="icon" disabled={isSending}
-                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700")}
+                    className={cn("size-9 shrink-0 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/30 hover:scale-105")}
                     aria-label="Send message"><ArrowUp className="size-4" /></Button>
                 </m.div>
               </AnimatePresence>

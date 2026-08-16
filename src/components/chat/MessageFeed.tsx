@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, AlertCircle, EyeOff, Reply, Play, Pause } from "lucide-react";
+import { ArrowDown, AlertCircle, EyeOff, Reply, Play, Pause, Copy, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ const OVERSCAN = 8;
 const DOUBLE_TAP_MS = 300;
 const LONG_PRESS_MS = 500;
 const SWIPE_REPLY_THRESHOLD = 80;
-const REACTION_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}"];
+const REACTION_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}", "\u{1F622}", "\u{1F64F}", "\u{1F525}", "\u{1F389}"];
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -43,6 +43,7 @@ export interface MessageFeedProps {
   onMarkAsRead?: (ids: string[]) => void;
   onVanishMessage?: (id: string) => void;
   onReplyTo?: (message: ChatMessage) => void;
+  onDeleteMessage?: (id: string) => void;
   onReact?: (messageId: string, emoji: string, add: boolean) => void;
   scrollToMessageId?: string | null;
   onScrolledToMessage?: () => void;
@@ -85,7 +86,7 @@ function HeartBurst({ show }: { show: boolean }) {
 
 function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () => void }) {
   const [remaining, setRemaining] = useState(seconds);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
@@ -102,9 +103,9 @@ function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () =
   const offset = circ * (1 - pct);
 
   return (
-    <svg className="size-4 shrink-0" viewBox="0 0 18 18" aria-label={`${remaining}s remaining`}>
+    <svg className="size-4 shrink-0 ephemeral-timer-pulse" viewBox="0 0 18 18" aria-label={`${remaining}s remaining`}>
       <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20" />
-      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className="text-white/60" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 1s linear" }} />
+      <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className="text-violet-300" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 1s linear" }} />
     </svg>
   );
 }
@@ -113,9 +114,12 @@ function EphemeralTimer({ seconds, onExpire }: { seconds: number; onExpire: () =
 /*  Tapback Dock (iMessage long-press reactions)                        */
 /* ------------------------------------------------------------------ */
 
-function TapbackDock({ message, isOwn, onReact, onReply }: {
-  message: ChatMessage; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; onReply: () => void;
+function TapbackDock({ message, isOwn, onReact, onReply, onCopy, onDelete }: {
+  message: ChatMessage; isOwn: boolean; onReact: (emoji: string, add: boolean) => void; onReply: () => void; onCopy: () => void; onDelete?: () => void;
 }) {
+  const [showMore, setShowMore] = useState(false);
+  const primaryEmojis = REACTION_EMOJIS.slice(0, 4);
+  const extraEmojis = REACTION_EMOJIS.slice(4);
   return (
     <m.div
       initial={{ opacity: 0, scale: 0.8, y: 4 }}
@@ -123,25 +127,62 @@ function TapbackDock({ message, isOwn, onReact, onReply }: {
       exit={{ opacity: 0, scale: 0.8, y: 4 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
       className={cn(
-        "absolute z-50 flex items-center gap-1 rounded-full bg-zinc-900 px-1.5 py-1 shadow-xl",
+        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl",
         isOwn ? "right-2" : "left-2",
-        "-bottom-11"
+        "-bottom-12"
       )}
       style={{ willChange: "transform, opacity" }}
     >
-      {REACTION_EMOJIS.map((emoji) => (
+      {primaryEmojis.map((emoji) => (
         <button
           key={emoji}
           type="button"
           onClick={(e) => { e.stopPropagation(); onReact(emoji, true); }}
-          className="flex size-8 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 active:scale-90"
+          className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-90"
           aria-label={`React ${emoji}`}
         >{emoji}</button>
       ))}
+      {extraEmojis.length > 0 && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowMore((v) => !v); }}
+            className="flex size-8 items-center justify-center rounded-xl text-xs font-bold text-zinc-400 transition-all duration-150 hover:bg-white/10"
+            aria-label="More reactions"
+          >+</button>
+          <AnimatePresence>
+            {showMore && (
+              <m.div
+                initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl"
+              >
+                {extraEmojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onReact(emoji, true); setShowMore(false); }}
+                    className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-90"
+                  >{emoji}</button>
+                ))}
+              </m.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
       <div className="mx-0.5 h-4 w-px bg-zinc-700" />
-      <button type="button" onClick={(e) => { e.stopPropagation(); onReply(); }} className="flex size-8 items-center justify-center rounded-full text-zinc-400 transition-colors hover:text-zinc-200" aria-label="Reply">
+      <button type="button" onClick={(e) => { e.stopPropagation(); onCopy(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10" aria-label="Copy message">
+        <Copy className="size-3.5" />
+      </button>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onReply(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10" aria-label="Reply">
         <Reply className="size-3.5" />
       </button>
+      {isOwn && onDelete && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} className="flex size-8 items-center justify-center rounded-xl text-zinc-500 transition-all duration-150 hover:text-red-400 hover:bg-white/10" aria-label="Delete">
+          <Trash2 className="size-3.5" />
+        </button>
+      )}
     </m.div>
   );
 }
@@ -193,22 +234,22 @@ function VoiceBubble({ message, isOwn, waveform }: {
     return Array.from({ length: count }, (_, i) => waveform[i * step] ?? 0.1);
   }, [waveform]);
 
-  const barColor = isOwn ? "bg-white/70" : "bg-zinc-400";
+  const barColor = isOwn ? "bg-white/50" : "bg-zinc-400/70";
   const progressColor = isOwn ? "bg-white" : "bg-violet-400";
   const progressIdx = Math.floor(progress * bars.length);
 
   return (
-    <div className={cn("flex items-center gap-2.5", isOwn ? "flex-row-reverse" : "")}>
-      <button type="button" onClick={toggle} className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-colors", isOwn ? "bg-white/20 hover:bg-white/30" : "bg-zinc-600 hover:bg-zinc-500")} aria-label={playing ? "Pause" : "Play"}>
+    <div className={cn("flex items-center gap-3", isOwn ? "flex-row-reverse" : "")}>
+      <button type="button" onClick={toggle} className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-all duration-150", isOwn ? "bg-white/20 hover:bg-white/30 hover:scale-105" : "bg-zinc-600 hover:bg-zinc-500 hover:scale-105")} aria-label={playing ? "Pause" : "Play"}>
         {playing ? <Pause className="size-3.5 text-white" /> : <Play className="size-3.5 text-white ml-0.5" />}
       </button>
-      <div className="flex items-center gap-px" style={{ height: 28 }}>
+      <div className="flex items-center gap-[2px]" style={{ height: 32 }}>
         {bars.map((amp, i) => (
-          <div key={i} className={cn("w-[3px] rounded-full transition-all duration-75", i < progressIdx ? progressColor : barColor)} style={{ height: `${Math.max(4, amp * 28)}px` }} />
+          <div key={i} className={cn("w-[2.5px] rounded-full transition-all duration-100", i < progressIdx ? progressColor : barColor)} style={{ height: `${Math.max(4, amp * 32)}px` }} />
         ))}
       </div>
-      <button type="button" onClick={cycleSpeed} className={cn("shrink-0 text-[11px] font-medium tabular-nums", isOwn ? "text-white/70" : "text-zinc-400")}>{speed}x</button>
-      <span className={cn("shrink-0 text-[11px] tabular-nums", isOwn ? "text-white/60" : "text-zinc-500")}>{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}</span>
+      <button type="button" onClick={cycleSpeed} className={cn("shrink-0 text-[11px] font-semibold tabular-nums transition-colors hover:opacity-80", isOwn ? "text-white/70" : "text-zinc-400")}>{speed}x</button>
+      <span className={cn("shrink-0 text-[11px] tabular-nums", isOwn ? "text-white/50" : "text-zinc-500")}>{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}</span>
       <audio ref={audioRef} src={message.content} preload="metadata" />
     </div>
   );
@@ -220,9 +261,14 @@ function VoiceBubble({ message, isOwn, waveform }: {
 
 function ReplyPreview({ senderName, content, isOwn }: { senderName: string; content: string; isOwn: boolean }) {
   return (
-    <div className={cn("mb-1 rounded-md border-l-2 px-2 py-1", isOwn ? "border-white/40 bg-white/10" : "border-violet-400/60 bg-violet-500/10")}>
-      <p className={cn("text-[10px] font-semibold", isOwn ? "text-white/80" : "text-violet-400")}>{senderName}</p>
-      <p className={cn("truncate text-[11px]", isOwn ? "text-white/60" : "text-zinc-400")}>{content}</p>
+    <div className={cn(
+      "mb-1.5 rounded-lg px-2.5 py-1.5",
+      isOwn
+        ? "border-l-2 border-l-white/50 bg-white/[0.08]"
+        : "border-l-2 border-l-violet-400/70 bg-violet-500/[0.08]",
+    )}>
+      <p className={cn("text-[10px] font-bold leading-tight", isOwn ? "text-white/70" : "text-violet-400")}>{senderName}</p>
+      <p className={cn("mt-0.5 truncate text-[11px] leading-snug", isOwn ? "text-white/50" : "text-zinc-400")}>{content}</p>
     </div>
   );
 }
@@ -237,13 +283,19 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
   const entries = Object.entries(reactions).filter(([, ids]) => ids.length > 0);
   if (entries.length === 0) return null;
   return (
-    <div className={cn("flex flex-wrap gap-0.5 px-1", isOwn ? "justify-end" : "justify-start")}>
+    <div className={cn("flex flex-wrap gap-1 px-1 pt-0.5", isOwn ? "justify-end" : "justify-start")}>
       {entries.map(([emoji, ids]) => {
         const isActive = ids.includes(currentUserId);
         return (
           <button key={emoji} type="button" onClick={() => onReact(emoji, !isActive)}
-            className={cn("flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] transition-all", isActive ? (isOwn ? "border-white/30 bg-white/20" : "border-violet-400/40 bg-violet-500/15") : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700")}>
-            <span>{emoji}</span><span className={cn("text-[10px]", isActive ? (isOwn ? "text-white/70" : "text-violet-300") : "text-zinc-400")}>{ids.length}</span>
+            className={cn(
+              "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
+              "hover:scale-105 active:scale-95",
+              isActive
+                ? (isOwn ? "border-white/30 bg-white/20 shadow-sm shadow-violet-500/20" : "border-violet-400/40 bg-violet-500/15 shadow-sm shadow-violet-500/20")
+                : "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
+            )}>
+            <span className="text-xs">{emoji}</span><span className={cn("text-[10px] font-medium tabular-nums", isActive ? (isOwn ? "text-white/70" : "text-violet-300") : "text-zinc-400")}>{ids.length}</span>
           </button>
         );
       })}
@@ -255,14 +307,14 @@ function ReactionPills({ reactions, isOwn, onReact, currentUserId }: {
 /*  MessageBubble                                                      */
 /* ------------------------------------------------------------------ */
 
-function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, onReact }: {
+function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, onReact, onDeleteMessage }: {
   message: ChatMessage; isOwn: boolean; partnerName: string; partnerAvatar: string | null;
-  onReplyTo?: (msg: ChatMessage) => void; onReact?: (id: string, emoji: string, add: boolean) => void;
+  onReplyTo?: (msg: ChatMessage) => void; onReact?: (id: string, emoji: string, add: boolean) => void; onDeleteMessage?: (id: string) => void;
 }) {
   const [showHeart, setShowHeart] = useState(false);
   const [showTapback, setShowTapback] = useState(false);
   const lastTapRef = useRef(0);
-  const longPressRef = useRef<ReturnType<typeof setTimeout>>();
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bubbleRef = useRef<HTMLDivElement>(null);
 
   const triggerHeart = useCallback(() => {
@@ -290,6 +342,16 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
     e.preventDefault(); setShowTapback(true);
   }, []);
 
+  const handleCopy = useCallback(() => {
+    navigator.clipboard?.writeText(message.content).catch(() => {});
+    setShowTapback(false);
+  }, [message.content]);
+
+  const handleDelete = useCallback(() => {
+    onDeleteMessage?.(message.id);
+    setShowTapback(false);
+  }, [message.id, onDeleteMessage]);
+
   const handleSwipeEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.x > SWIPE_REPLY_THRESHOLD && info.velocity.x > 200) {
       if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
@@ -304,13 +366,13 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
   return (
     <m.div
       className={cn("relative flex w-full gap-2.5 px-4", isOwn ? "justify-end" : "justify-start")}
-      initial={isNew ? { opacity: 0, y: 12 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
       <HeartBurst show={showHeart} />
       <AnimatePresence>{showTapback && onReact && (
-        <TapbackDock message={message} isOwn={isOwn} onReact={(emoji, add) => { onReact(message.id, emoji, add); setShowTapback(false); }} onReply={() => { onReplyTo?.(message); setShowTapback(false); }} />
+        <TapbackDock message={message} isOwn={isOwn} onReact={(emoji, add) => { onReact(message.id, emoji, add); setShowTapback(false); }} onReply={() => { onReplyTo?.(message); setShowTapback(false); }} onCopy={handleCopy} onDelete={isOwn ? handleDelete : undefined} />
       )}</AnimatePresence>
 
       {!isOwn && (
@@ -386,17 +448,44 @@ function MessageBubble({ message, isOwn, partnerName, partnerAvatar, onReplyTo, 
 }
 
 /* ------------------------------------------------------------------ */
-/*  TypingIndicator (larger, more bouncy dots)                         */
+/*  DateSeparator                                                      */
+/* ------------------------------------------------------------------ */
+
+function formatDateSeparator(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  if (msgDay.getTime() === today.getTime()) return "Today";
+  if (msgDay.getTime() === yesterday.getTime()) return "Yesterday";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function DateSeparator({ date }: { date: string }) {
+  return (
+    <div className="flex items-center justify-center py-2">
+      <span className="rounded-full bg-muted/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
+        {formatDateSeparator(date)}
+      </span>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  TypingIndicator (smooth wave dots)                                 */
 /* ------------------------------------------------------------------ */
 
 function TypingIndicator({ partnerName }: { partnerName: string }) {
   return (
     <div className="flex items-end gap-2.5 px-4">
-      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20">
-        <span className="flex gap-1.5">
-          <span className="size-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:0ms] [animation-duration:600ms]" />
-          <span className="size-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:180ms] [animation-duration:600ms]" />
-          <span className="size-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:360ms] [animation-duration:600ms]" />
+      <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800 dark:shadow-violet-950/20">
+        <span className="flex gap-1">
+          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
+          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
+          <span className="typing-dot size-[7px] rounded-full bg-violet-400" />
         </span>
         <span className="text-xs text-muted-foreground">{partnerName} is typing\u2026</span>
       </div>
@@ -471,7 +560,7 @@ function EmptyState({ partnerName, partnerAvatar }: { partnerName: string; partn
 /*  MessageFeed (main export)                                          */
 /* ------------------------------------------------------------------ */
 
-export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, onMarkAsRead, onVanishMessage, onReplyTo, onReact, scrollToMessageId, onScrolledToMessage }: MessageFeedProps) {
+export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserId, partnerName, partnerAvatar, onMarkAsRead, onVanishMessage, onReplyTo, onDeleteMessage, onReact, scrollToMessageId, onScrolledToMessage }: MessageFeedProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const isAutoScrollRef = useRef(true);
   const [showNewBtn, setShowNewBtn] = useState(false);
@@ -529,10 +618,20 @@ export function MessageFeed({ messages, isLoading, isPartnerTyping, currentUserI
           {virtualItems.map((vi) => {
             const isTyping = vi.index === messages.length;
             const msg = isTyping ? null : messages[vi.index];
+            // Check if we need a date separator before this message
+            const showDateSep = msg && vi.index > 0 && messages[vi.index - 1] && (() => {
+              const prev = new Date(messages[vi.index - 1].created_at);
+              const curr = new Date(msg.created_at);
+              return prev.toDateString() !== curr.toDateString();
+            })();
+            const showFirstDateSep = msg && vi.index === 0;
             return (
               <div key={vi.key} data-index={vi.index} ref={virtualizer.measureElement} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)` }}>
                 {isTyping ? <TypingIndicator partnerName={partnerName} /> : msg ? (
-                  <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} />
+                  <>
+                    {(showDateSep || showFirstDateSep) && <DateSeparator date={msg.created_at} />}
+                    <MessageBubble message={msg} isOwn={msg.sender_id === currentUserId} partnerName={partnerName} partnerAvatar={partnerAvatar} onReplyTo={onReplyTo} onReact={onReact} onDeleteMessage={onDeleteMessage} />
+                  </>
                 ) : null}
               </div>
             );

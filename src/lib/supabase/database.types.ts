@@ -109,7 +109,12 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_or_create_conversation: {
+        Args: { other_user_id: string };
+        Returns: string;
+      };
+    };
     Enums: {
       message_type: "text" | "image" | "file" | "voice";
       message_status: "sending" | "sent" | "delivered" | "read" | "failed";

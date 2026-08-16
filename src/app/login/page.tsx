@@ -88,11 +88,14 @@ export default function LoginPage() {
 
   /* ---- Render ---------------------------------------------------- */
   return (
-    <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
-      {/* Ambient glow orbs */}
-      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-purple-600/20 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-indigo-600/20 blur-[120px]" />
-      <div className="pointer-events-none absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-fuchsia-500/10 blur-[100px]" />
+    <div className="login-animated-bg relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-950 via-purple-950/50 to-zinc-950">
+      {/* Ambient glow orbs - animated */}
+      <div className="floating-shape-1 pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-purple-600/20 blur-[120px]" />
+      <div className="floating-shape-2 pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-indigo-600/20 blur-[120px]" />
+      <div className="floating-shape-3 pointer-events-none absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-fuchsia-500/10 blur-[100px]" />
+      {/* Additional subtle floating shapes */}
+      <div className="floating-shape-2 pointer-events-none absolute left-1/4 bottom-1/4 h-48 w-48 rounded-full bg-violet-600/10 blur-[80px]" />
+      <div className="floating-shape-1 pointer-events-none absolute right-1/4 top-1/4 h-32 w-32 rounded-full bg-indigo-500/15 blur-[60px]" />
 
       {/* Glass card */}
       <m.div

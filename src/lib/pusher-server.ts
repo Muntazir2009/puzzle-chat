@@ -60,6 +60,7 @@ export function getPusherServer(): Pusher {
 
 export const pusherServer = new Proxy({} as Pusher, {
   get(_target, prop) {
-    return (getPusherServer() as Record<string | symbol, unknown>)[prop];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getPusherServer() as any)[prop];
   },
 });

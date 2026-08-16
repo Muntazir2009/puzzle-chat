@@ -39,11 +39,20 @@ function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffSec = Math.floor((now - then) / 1000);
-  if (diffSec < 60) return "now";
+  if (diffSec < 5) return "just now";
+  if (diffSec < 60) return `${diffSec}s`;
+  if (diffSec < 120) return "1m";
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m`;
+  if (diffSec < 7200) return "1h";
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h`;
+  // Check for yesterday
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return "yesterday";
   if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d`;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function getInitials(name: string): string {
@@ -60,7 +69,7 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
   const [results, setResults] = useState<Array<{ id: string; name: string; avatar_url: string | null; email: string | null }>>([]);
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleSearch = useCallback(async (q: string) => {
     if (!q.trim()) return;
@@ -173,15 +182,21 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
 /*  ConversationItemRow                                                */
 /* ------------------------------------------------------------------ */
 
-function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect, onContextMenu }: {
+function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect, onContextMenu, index }: {
   conv: ConversationItem;
   activeId: string | null;
   currentUserId: string;
   isOnline: boolean;
   onSelect: (conv: ConversationItem) => void;
   onContextMenu: (e: React.MouseEvent, conv: ConversationItem) => void;
+  index: number;
 }) {
   return (
+    <>
+    {/* Subtle separator between conversation items */}
+    {index > 0 && (
+      <div className="absolute left-12 right-4 top-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+    )}
     <m.button
       type="button"
       initial={{ opacity: 0, y: 8 }}
@@ -190,11 +205,16 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => onContextMenu(e, conv)}
       className={cn(
-        "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all duration-200",
-        "hover:bg-muted/50 hover:border-l-2 hover:border-l-violet-300/60",
-        activeId === conv.id
-          ? "bg-muted/70 border-l-[3px] border-l-violet-500"
-          : "border-l-[3px] border-l-transparent",
+        "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all duration-300 ease-out",
+        // Left border accent with gradient effect on hover
+        "border-l-[3px] border-l-transparent",
+        "hover:border-l-violet-400/70 hover:bg-gradient-to-r hover:from-violet-500/[0.06] hover:to-transparent hover:pl-[18px]",
+        // Active state with violet gradient left border
+        activeId === conv.id && [
+          "bg-gradient-to-r from-violet-500/[0.10] to-transparent",
+          "border-l-violet-500",
+          "pl-[18px]",
+        ],
       )}
     >
       <div className="relative shrink-0">
@@ -210,19 +230,20 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
         <div className="flex items-center justify-between gap-2">
           <span className={cn("truncate text-sm transition-colors duration-200", activeId === conv.id ? "font-bold" : "font-semibold")}>{conv.partner.name}</span>
           {conv.last_message && (
-            <span className={cn("shrink-0 text-[11px] tabular-nums", activeId === conv.id ? "text-foreground/50" : "text-muted-foreground", conv.unread_count > 0 && "font-medium")}>{timeAgo(conv.last_message.created_at)}</span>
+            <span className={cn("shrink-0 text-[11px] tabular-nums transition-colors duration-200", activeId === conv.id ? "text-foreground/40" : "text-muted-foreground/70", conv.unread_count > 0 && "font-medium text-violet-500")}>{timeAgo(conv.last_message.created_at)}</span>
           )}
         </div>
         {conv.last_message && (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className={cn("truncate text-xs", activeId === conv.id && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}{conv.last_message.content}</p>
             {conv.unread_count > 0 && (
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-[10px] font-bold text-white shadow-sm shadow-violet-500/30">{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-[10px] font-bold text-white shadow-sm shadow-violet-500/30 ring-2 ring-background">{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
           </div>
         )}
       </div>
     </m.button>
+    </>
   );
 }
 
@@ -234,6 +255,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   const [ctxConv, setCtxConv] = useState<ConversationItem | null>(null);
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
   const [onlineMap, setOnlineMap] = useState<OnlineMap>({});
+  const [filter, setFilter] = useState("");
 
   /* Keep the current user's last_seen up-to-date */
   useHeartbeat();
@@ -260,7 +282,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
           // Map to { [id]: online } boolean
           const map: OnlineMap = {};
           for (const [id, status] of Object.entries(data)) {
-            map[id] = (status as { online: boolean }).online;
+            map[id] = Boolean((status as any)?.online);
           }
           setOnlineMap(map);
         }
@@ -289,6 +311,15 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
     }
   }, [onDelete]);
 
+  const filteredConversations = useMemo(() => {
+    if (!filter.trim()) return conversations;
+    const q = filter.toLowerCase();
+    return conversations.filter((c) =>
+      c.partner.name.toLowerCase().includes(q) ||
+      (c.last_message?.content.toLowerCase().includes(q) ?? false)
+    );
+  }, [conversations, filter]);
+
   return (
     <div className="flex h-full flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
@@ -296,26 +327,66 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
         <NewChatDialog onSelect={onNewChat} />
       </header>
 
+      {/* Conversation search/filter */}
+      {conversations.length > 3 && (
+        <div className="relative shrink-0 border-b px-3 py-2">
+          <Search className="absolute left-5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter chats..."
+            className="h-8 w-full rounded-lg bg-muted/60 pl-8 pr-8 text-xs outline-none placeholder:text-muted-foreground/50 focus:bg-muted focus:ring-1 focus:ring-violet-500/20 transition-all"
+            aria-label="Filter conversations"
+          />
+          {filter && (
+            <button
+              type="button"
+              onClick={() => setFilter("")}
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+              aria-label="Clear filter"
+            >
+              <X className="size-3" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
-          <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-4 px-6 text-center">
+        {filteredConversations.length === 0 && conversations.length > 0 ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <Search className="size-6 text-muted-foreground/40" />
+            <p className="text-xs text-muted-foreground">No matching conversations</p>
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-5 px-6 text-center">
+            {/* Illustration: layered chat bubbles */}
             <div className="relative">
-              <div className="flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
-                <MessageCircle className="size-10 text-violet-400/50" />
+              {/* Background decorative ring */}
+              <div className="absolute -inset-6 rounded-full bg-gradient-to-br from-violet-500/5 to-purple-600/5" />
+              <div className="relative flex size-24 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/10 to-purple-600/10">
+                <MessageCircle className="size-12 text-violet-400/40" />
               </div>
-              <div className="absolute -right-1 -top-1 flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30">
-                <Plus className="size-3 text-white" />
-              </div>
+              {/* Floating action badge */}
+              <m.div
+                animate={{ y: [0, -3, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 ring-4 ring-background"
+              >
+                <Plus className="size-4 text-white" />
+              </m.div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <p className="text-sm font-semibold">No conversations yet</p>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">Tap the <strong>+</strong> button to start your first conversation.</p>
+              <p className="max-w-[200px] text-xs leading-relaxed text-muted-foreground">
+                Tap the <strong className="text-violet-500">+</strong> button above to find someone and start chatting.
+              </p>
             </div>
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {conversations.map((conv) => (
-              <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} />
+            {filteredConversations.map((conv, idx) => (
+              <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} index={idx} />
             ))}
           </AnimatePresence>
         )}

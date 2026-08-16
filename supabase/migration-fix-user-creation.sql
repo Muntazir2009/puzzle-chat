@@ -1,8 +1,9 @@
 -- ================================================================== *
 -- Migration: Fix "Database error saving new user"
 -- 
--- Problem: The users table had RLS enabled but no INSERT policy.
--- The handle_new_user() trigger was failing, blocking new signups.
+-- Problem: The handle_new_user() trigger on auth.users was blocking
+-- new signups. Also, get_or_create_conversation was incorrectly
+-- declared as STABLE when it performs INSERTs (must be VOLATILE).
 -- 
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor)
 -- ================================================================== *
@@ -45,7 +46,48 @@ CREATE TRIGGER trg_on_auth_user_created
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
 
--- 4. Verify: check the policies exist
+-- 4. Fix get_or_create_conversation: remove STABLE (function does INSERT)
+CREATE OR REPLACE FUNCTION public.get_or_create_conversation(
+  other_user_id UUID
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_conv_id   UUID;
+  v_user_a    UUID;
+  v_user_b    UUID;
+BEGIN
+  IF auth.uid() < other_user_id THEN
+    v_user_a := auth.uid();
+    v_user_b := other_user_id;
+  ELSE
+    v_user_a := other_user_id;
+    v_user_b := auth.uid();
+  END IF;
+
+  SELECT id INTO v_conv_id
+    FROM public.conversations
+    WHERE user_a = v_user_a AND user_b = v_user_b;
+
+  IF v_conv_id IS NOT NULL THEN
+    RETURN v_conv_id;
+  END IF;
+
+  INSERT INTO public.conversations (user_a, user_b)
+    VALUES (v_user_a, v_user_b)
+    RETURNING id INTO v_conv_id;
+
+  RETURN v_conv_id;
+END;
+$$;
+
+-- 5. Verify: check the policies and function
 SELECT policyname, tablename, cmd 
 FROM pg_policies 
 WHERE tablename = 'users';
+
+SELECT proname, provolatile 
+FROM pg_proc 
+WHERE proname = 'get_or_create_conversation';
