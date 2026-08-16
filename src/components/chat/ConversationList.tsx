@@ -159,7 +159,7 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
         <div className="px-5 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => handleQueryChange(e.target.value)} placeholder="Search by name..." className="h-10 rounded-xl pl-9 pr-9" />
+            <Input value={query} onChange={(e) => handleQueryChange(e.target.value)} placeholder="Search by name..." className="h-10 rounded-xl pl-9 pr-9" style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties} />
             {query && (
               <button type="button" onClick={() => { setQuery(""); setResults([]); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 <X className="size-3.5" />
@@ -417,7 +417,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+      <header className="flex h-14 shrink-0 items-center justify-between px-4" style={{ borderBottom: "1px solid var(--app-accent-subtle)" }}>
         <h2 className="text-base font-bold tracking-tight">Chats</h2>
         <NewChatDialog onSelect={onNewChat} />
       </header>

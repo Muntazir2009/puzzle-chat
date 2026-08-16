@@ -220,7 +220,7 @@ export function ProfileDialog({
           {/* Avatar preview with upload overlay */}
           <div className="mb-6 flex flex-col items-center gap-3">
             <div className="relative">
-              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-600/30 blur-md" />
+              <div className="absolute -inset-1.5 rounded-full blur-md" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", opacity: 0.3 }} />
               {/* Outer clickable container sized to fit avatar + ring */}
               <div
                 className="relative cursor-pointer"
@@ -239,13 +239,16 @@ export function ProfileDialog({
                 aria-label="Upload avatar"
               >
                 <div className="absolute inset-2">
-                  <Avatar className="size-full ring-4 ring-violet-100 dark:ring-violet-900/50 transition-all duration-300">
+                  <Avatar className="size-full ring-4 transition-all duration-300" style={{ "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties}>
                     <AvatarImage
                       src={displayedAvatar ?? undefined}
                       alt={userName}
                       className="transition-opacity duration-500"
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xl font-bold text-white transition-all duration-300">
+                    <AvatarFallback
+                      className="text-xl font-bold text-white transition-all duration-300"
+                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+                    >
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
@@ -263,10 +266,11 @@ export function ProfileDialog({
                 >
                   <div
                     className={cn(
-                      "flex size-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-violet-500/90 text-white shadow-lg transition-transform duration-200",
+                      "flex size-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white shadow-lg transition-transform duration-200",
                       (avatarHovered && !uploading) && "scale-100",
                       uploading && "scale-90"
                     )}
+                    style={{ background: "var(--app-accent)" }}
                   >
                     {uploading ? (
                       <Loader2 className="size-5 animate-spin" />
@@ -303,6 +307,7 @@ export function ProfileDialog({
               placeholder="Your name"
               maxLength={50}
               className="h-11 rounded-xl"
+              style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties}
               autoFocus
             />
 
@@ -341,7 +346,11 @@ export function ProfileDialog({
             <Button
               onClick={handleSave}
               disabled={saving || !name.trim() || name.trim() === userName}
-              className="rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 shadow-md shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700"
+              className="rounded-xl text-white transition-opacity hover:opacity-90"
+              style={{
+                background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+                boxShadow: "0 4px 6px -1px var(--app-accent-glow)",
+              }}
             >
               {saving ? (
                 <Loader2 className="size-4 animate-spin" />

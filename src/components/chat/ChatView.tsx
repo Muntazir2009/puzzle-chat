@@ -257,7 +257,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
       <div className="flex h-dvh w-full flex-col bg-background">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
           <aside className="hidden w-80 shrink-0 flex-col border-r sm:flex">
-            <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--app-accent-subtle)" }}>
               <div className="flex items-center gap-2.5">
                 <Skeleton className="size-8 rounded-xl" />
                 <Skeleton className="h-4 w-14" />
@@ -326,8 +326,8 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
     <div className="flex h-dvh w-full flex-col bg-background">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
         {/* Desktop sidebar */}
-        <aside className="hidden w-80 shrink-0 flex-col border-r sm:flex">
-          <div className="flex items-center justify-between border-b px-4 py-3">
+        <aside className="hidden w-80 shrink-0 flex-col sm:flex" style={{ borderRight: "1px solid var(--app-accent-subtle)" }}>
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--app-accent-subtle)" }}>
             <PuzzleLogo unreadCount={totalUnread} />
             {userMenu}
           </div>
@@ -348,7 +348,7 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                 transition={{ duration: 0.2 }}
                 className="flex min-h-0 flex-1 flex-col"
               >
-                <div className="flex items-center justify-between border-b px-4 py-3">
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--app-accent-subtle)" }}>
                   <PuzzleLogo unreadCount={totalUnread} />
                   {userMenu}
                 </div>
@@ -380,7 +380,8 @@ export function ChatView({ userId, userName, userAvatar, userEmail }: ChatViewPr
                 <button
                   type="button"
                   onClick={() => setActiveConv(null)}
-                  className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-colors hover:bg-muted"
+                  className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm shadow-sm transition-colors hover:bg-muted"
+                  style={{ border: "1px solid var(--app-accent-subtle)" }}
                   aria-label="Back to chats"
                 >
                   <ArrowLeft className="size-4" />
