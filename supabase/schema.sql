@@ -1,5 +1,5 @@
 /* ================================================================== *
-   Puzzle – Phase 1+ Schema
+   Puzzle – Full Schema
    1-on-1 Direct Messaging on Supabase (PostgreSQL)
    *
    Run this script in the Supabase SQL Editor (Dashboard → SQL Editor)
@@ -10,7 +10,7 @@
 -- 1. ENUMS
 -- ────────────────────────────────────────────────────────────────────
 
-CREATE TYPE message_type  AS ENUM ('text', 'image', 'file');
+CREATE TYPE message_type  AS ENUM ('text', 'image', 'file', 'voice');
 CREATE TYPE message_status AS ENUM ('sending', 'sent', 'delivered', 'read', 'failed');
 
 -- ────────────────────────────────────────────────────────────────────
@@ -32,20 +32,24 @@ CREATE TABLE IF NOT EXISTS public.conversations (
   CONSTRAINT conversations_user_pair UNIQUE (user_a, user_b)
 );
 
--- Prevent a user from conversing with themselves.
 ALTER TABLE public.conversations
   ADD CONSTRAINT conversations_no_self_chat
   CHECK (user_a <> user_b);
 
 CREATE TABLE IF NOT EXISTS public.messages (
-  id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID          NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
-  sender_id       UUID          NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  content         TEXT          NOT NULL DEFAULT '',
-  type            message_type  NOT NULL DEFAULT 'text',
-  status          message_status NOT NULL DEFAULT 'sent',
-  vanish_mode     BOOLEAN       NOT NULL DEFAULT FALSE,
-  created_at      TIMESTAMPTZ   NOT NULL DEFAULT now()
+  id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id   UUID          NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  sender_id         UUID          NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  reply_to_id       UUID          REFERENCES public.messages(id) ON DELETE SET NULL,
+  content           TEXT          NOT NULL DEFAULT '',
+  type              message_type  NOT NULL DEFAULT 'text',
+  status            message_status NOT NULL DEFAULT 'sent',
+  vanish_mode       BOOLEAN       NOT NULL DEFAULT FALSE,
+  ephemeral_seconds INTEGER       DEFAULT NULL,
+  voice_duration    INTEGER       DEFAULT NULL,
+  waveform_data     JSONB         DEFAULT NULL,
+  reactions         JSONB         DEFAULT '{}'::jsonb,
+  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
 -- ────────────────────────────────────────────────────────────────────
@@ -59,6 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_updated_at  ON public.conversations
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON public.messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id      ON public.messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at     ON public.messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_reply_to_id     ON public.messages(reply_to_id) WHERE reply_to_id IS NOT NULL;
 
 -- ────────────────────────────────────────────────────────────────────
 -- 4. AUTO-UPDATE `conversations.updated_at` ON NEW MESSAGES
@@ -88,37 +93,23 @@ ALTER TABLE public.users         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages     ENABLE ROW LEVEL SECURITY;
 
--- ── users ──────────────────────────────────────────────────────────
--- A user can read any profile (needed to display the other party).
 CREATE POLICY "users_select_all" ON public.users
-  FOR SELECT
-  USING (true);
+  FOR SELECT USING (true);
 
--- A user can only update their own profile.
 CREATE POLICY "users_update_self" ON public.users
-  FOR UPDATE
-  USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid() = id);
 
--- ── conversations ──────────────────────────────────────────────────
--- A user can only see conversations they are part of.
 CREATE POLICY "conversations_select" ON public.conversations
-  FOR SELECT
-  USING (auth.uid() = user_a OR auth.uid() = user_b);
+  FOR SELECT USING (auth.uid() = user_a OR auth.uid() = user_b);
 
--- A user can insert a conversation if they are one of the two participants.
 CREATE POLICY "conversations_insert" ON public.conversations
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_a OR auth.uid() = user_b);
+  FOR INSERT WITH CHECK (auth.uid() = user_a OR auth.uid() = user_b);
 
--- Either participant can update the conversation (e.g. updated_at).
 CREATE POLICY "conversations_update" ON public.conversations
   FOR UPDATE
   USING (auth.uid() = user_a OR auth.uid() = user_b)
   WITH CHECK (auth.uid() = user_a OR auth.uid() = user_b);
 
--- ── messages ──────────────────────────────────────────────────────
--- A user can SELECT messages only if they belong to a conversation
--- where they are user_a or user_b.
 CREATE POLICY "messages_select" ON public.messages
   FOR SELECT
   USING (
@@ -130,8 +121,6 @@ CREATE POLICY "messages_select" ON public.messages
     )
   );
 
--- A user can INSERT a message only into a conversation
--- where they are user_a or user_b.
 CREATE POLICY "messages_insert" ON public.messages
   FOR INSERT
   WITH CHECK (
@@ -144,8 +133,6 @@ CREATE POLICY "messages_insert" ON public.messages
     AND sender_id = auth.uid()
   );
 
--- A user can UPDATE a message only if they are the sender
--- AND the message is in a conversation they belong to.
 CREATE POLICY "messages_update" ON public.messages
   FOR UPDATE
   USING (
@@ -158,8 +145,6 @@ CREATE POLICY "messages_update" ON public.messages
     )
   );
 
--- A user can DELETE a message only if they are the sender
--- AND the message is in a conversation they belong to.
 CREATE POLICY "messages_delete" ON public.messages
   FOR DELETE
   USING (
@@ -188,7 +173,6 @@ DECLARE
   v_user_a    UUID;
   v_user_b    UUID;
 BEGIN
-  -- Determine deterministic ordering so the UNIQUE constraint is honored.
   IF auth.uid() < other_user_id THEN
     v_user_a := auth.uid();
     v_user_b := other_user_id;

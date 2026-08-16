@@ -261,4 +261,93 @@ Stage Summary:
 | `src/components/chat/ChatLayout.tsx` | Rewritten | Vanish mode toggle, gradient header avatar, vanish-styled input bar |
 
 ## Unresolved / Next Phase
-- Phase 5 should deliver: conversation list sidebar, auth pages, conversation switching, and online/offline presence indicators.
+- Project is feature-complete for the messaging core. Remaining: conversation list sidebar, auth integration, conversation switching, online presence.
+
+---
+Task ID: 5
+Agent: Main Development Agent
+Task: Phase 5 – Swipe-to-Reply, Voice Recorder, Ephemeral Timer, iMessage Tapback Dock.
+
+Work Log:
+- Updated `supabase/schema.sql`:
+  - Added `voice` to `message_type` enum.
+  - Added `reply_to_id UUID NULL REFERENCES messages(id) ON DELETE SET NULL`.
+  - Added `ephemeral_seconds INTEGER DEFAULT NULL`.
+  - Added `voice_duration INTEGER DEFAULT NULL`.
+  - Added `waveform_data JSONB DEFAULT NULL`.
+  - Added `reactions JSONB DEFAULT '{}'::jsonb`.
+  - Added index on `reply_to_id` (partial, where NOT NULL).
+- Updated `src/lib/supabase/database.types.ts`:
+  - `message_type` now includes `"voice"`.
+  - Messages Row/Insert/Update now include `reply_to_id`, `ephemeral_seconds`, `voice_duration`, `waveform_data`, `reactions`.
+- Updated `src/lib/pusher-server.ts` – `ChatChannelEvents` expanded:
+  - `new-message` now includes `sender_name`, `reply_to_id`, `reply_to_content`, `reply_to_sender_name`, `ephemeral_seconds`, `voice_duration`, `waveform_data`, `reactions`.
+  - New `reaction` event: `{ message_id, conversation_id, user_id, emoji, add }`.
+- Updated `src/app/api/messages/send/route.ts`:
+  - Accepts `reply_to_id`, `ephemeral_seconds`, `voice_duration`, `waveform_data`.
+  - Resolves reply-to context (content + sender name) from DB.
+  - Resolves sender name for broadcast payload.
+- Created `src/app/api/messages/reaction/route.ts`:
+  - POST: validates `conversation_id`, `message_id`, `emoji` (whitelist: 👍❤️😂😮😢😡🙏), `add: boolean`.
+  - Auth + participation check.
+  - Updates `reactions` JSONB: adds/removes user_id from emoji array, cleans empty keys.
+  - Broadcasts `reaction` event via Pusher.
+- Created `src/hooks/useVoiceRecorder.ts`:
+  - Uses `navigator.mediaDevices.getUserMedia({ audio: true })` + `MediaRecorder`.
+  - Creates `AudioContext` + `AnalyserNode` for real-time amplitude sampling (100ms intervals, max 300 samples).
+  - Exposes `isRecording`, `duration` (seconds), `amplitudes` (0-1 float array), `startRecording()`, `stopRecording()`.
+  - `stopRecording()` returns `{ blob: Blob, duration: number, amplitudes: number[] }`.
+  - Uses `amplitudesRef` to avoid React Compiler violations.
+- Rewrote `src/hooks/useChat.ts`:
+  - `ChatMessage` expanded: `sender_name`, `reply_to_id`, `reply_to_content`, `reply_to_sender_name`, `ephemeral_seconds`, `voice_duration`, `waveform_data`, `reactions`.
+  - `SendMessageOptions` type for structured send params.
+  - `sendMessage(content, opts?)` accepts `type`, `vanish_mode`, `ephemeral_seconds`, `reply_to_id`, `voice_duration`, `waveform_data`.
+  - Listens for `reaction` Pusher event; updates `reactions` JSONB on the message optimistically.
+  - New `sendReaction(messageId, emoji, add)` method: optimistic local update + fire-and-forget API call.
+- Rewrote `src/components/chat/MessageFeed.tsx`:
+  - **Swipe-to-Reply**: `m.div` with `drag="x"`, `dragElastic={{ right: 0.35 }}`, `dragConstraints={{ left: 0, right: 0 }}`. On `onDragEnd`, if `offset.x > 80 && velocity.x > 200`, calls `onReplyTo(message)` with haptic feedback.
+  - **iMessage Tapback Dock**: Long-press (500ms timer via `onPointerDown`/`onPointerUp`) or right-click (`onContextMenu`) opens a floating `TapbackDock`. Animated via Framer Motion `AnimatePresence` with spring. Shows 4 reaction pills (👍❤️😂😮) + Reply button. Each pill calls `onReact(messageId, emoji, true)`.
+  - **Voice Bubble**: `VoiceBubble` component renders inline play/pause button, SVG waveform bars (downsampled to 40 bars), `1x/1.5x/2x` speed toggle, duration display. Uses `useRef<HTMLAudioElement>` for playback control. Progress tracked via `timeupdate` event.
+  - **Ephemeral Timer**: `EphemeralTimer` component renders a circular SVG progress ring (14px, stroke-dasharray animation). Counts down every second; calls `onExpire` at zero.
+  - **Reply Preview**: `ReplyPreview` renders inside bubbles with sender name + truncated content, styled with indigo/white left-border.
+  - **Reaction Pills**: `ReactionPills` renders below bubbles showing emoji + count. Toggleable by clicking (calls `onReact` with add/remove).
+- Rewrote `src/components/chat/ChatLayout.tsx`:
+  - **Reply Preview Bar**: `AnimatePresence`-animated bar above input. Shows gradient left-border, sender name, truncated content, X dismiss button. State managed via `replyTo: ChatMessage | null`.
+  - **Mic Button**: Shown when not recording. Calls `voice.startRecording()`. Hidden during recording.
+  - **Voice Waveform Overlay**: `AnimatePresence`-animated bar replacing the input during recording. Shows red recording dot with ping animation, live amplitude bars (last 60 samples, 2px wide, indigo), duration counter, gradient send button.
+  - **Ephemeral Timer Dropdown**: Clock icon button toggles a floating dropdown (Off/5s/1m/1h). Active state shows amber color. Selected value passed to `sendMessage` as `ephemeral_seconds`.
+  - **Cancel Recording**: Red `MicOff` button appears during recording; stops and discards.
+  - Send button gets gradient when vanish or ephemeral is active.
+- Lint: zero errors (1 expected TanStack Virtual informational warning).
+- SSR verification: confirmed HTML output with Mic icon, Clock icon, Eye icon, textarea, send button, skeleton, header, LazyMotion bundles.
+
+Stage Summary:
+- Phase 5 is complete. All 4 features implemented:
+  1. ✅ Telegram Swipe-to-Reply with rubber-band drag physics + haptic
+  2. ✅ Telegram Voice Recorder with Web Audio API, SVG waveforms, 1x/1.5x/2x speed
+  3. ✅ Signal Ephemeral Timer with circular SVG countdown + dropdown (5s/1m/1h)
+  4. ✅ iMessage Tapback Dock (long-press / right-click) with 👍❤️😂😮 reactions + reply
+- Project messaging core is feature-complete.
+
+---
+
+## Current Project Status
+- **Phase**: 5 of N – Advanced Interactions (Final)
+- **State**: Complete. All files compile, lint is clean, SSR verified.
+- **Env vars needed**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_PUSHER_KEY`, `PUSHER_APP_ID`, `PUSHER_SECRET`.
+
+## Files Created / Modified This Phase
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/schema.sql` | Modified | Added voice type, reply_to_id, ephemeral_seconds, voice_duration, waveform_data, reactions |
+| `src/lib/supabase/database.types.ts` | Modified | Widened types for all new fields |
+| `src/lib/pusher-server.ts` | Modified | Added reaction event, expanded new-message |
+| `src/app/api/messages/send/route.ts` | Modified | Accepts reply/ephemeral/voice/waveform |
+| `src/app/api/messages/reaction/route.ts` | Created | Reaction toggle endpoint + Pusher broadcast |
+| `src/hooks/useVoiceRecorder.ts` | Created | Web Audio API recording with amplitude sampling |
+| `src/hooks/useChat.ts` | Rewritten | Reactions, voice type, reply context, sendReaction |
+| `src/components/chat/MessageFeed.tsx` | Rewritten | Swipe-to-reply, tapback dock, voice bubble, ephemeral timer, reaction pills |
+| `src/components/chat/ChatLayout.tsx` | Rewritten | Reply preview, mic, voice waveform overlay, ephemeral dropdown |
+
+## Unresolved / Next Phase
+- Conversation list sidebar, auth integration, conversation switching, online/offline presence indicators.

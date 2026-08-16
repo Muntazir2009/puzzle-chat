@@ -1,4 +1,4 @@
-// Auto-generated Supabase database types.// Regenerate after running the SQL migration with://   npx supabase gen types typescript > src/lib/supabase/database.types.ts
+// Hand-written Supabase database types matching the schema.
 
 export type Json =
   | string
@@ -52,20 +52,8 @@ export interface Database {
           updated_at?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "conversations_user_a_fkey";
-            columns: ["user_a"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "conversations_user_b_fkey";
-            columns: ["user_b"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
+          { foreignKeyName: "conversations_user_a_fkey"; columns: ["user_a"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+          { foreignKeyName: "conversations_user_b_fkey"; columns: ["user_b"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
         ];
       };
       messages: {
@@ -73,54 +61,57 @@ export interface Database {
           id: string;
           conversation_id: string;
           sender_id: string;
+          reply_to_id: string | null;
           content: string;
-          type: "text" | "image" | "file";
+          type: "text" | "image" | "file" | "voice";
           status: "sending" | "sent" | "delivered" | "read" | "failed";
           vanish_mode: boolean;
+          ephemeral_seconds: number | null;
+          voice_duration: number | null;
+          waveform_data: number[] | null;
+          reactions: Record<string, string[]>;
           created_at: string;
         };
         Insert: {
           id?: string;
           conversation_id: string;
           sender_id: string;
+          reply_to_id?: string | null;
           content: string;
-          type?: "text" | "image" | "file";
+          type?: "text" | "image" | "file" | "voice";
           status?: "sending" | "sent" | "delivered" | "read" | "failed";
           vanish_mode?: boolean;
+          ephemeral_seconds?: number | null;
+          voice_duration?: number | null;
+          waveform_data?: number[] | null;
+          reactions?: Record<string, string[]>;
           created_at?: string;
         };
         Update: {
           id?: string;
           conversation_id?: string;
           sender_id?: string;
+          reply_to_id?: string | null;
           content?: string;
-          type?: "text" | "image" | "file";
+          type?: "text" | "image" | "file" | "voice";
           status?: "sending" | "sent" | "delivered" | "read" | "failed";
           vanish_mode?: boolean;
+          ephemeral_seconds?: number | null;
+          voice_duration?: number | null;
+          waveform_data?: number[] | null;
+          reactions?: Record<string, string[]>;
           created_at?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "messages_conversation_id_fkey";
-            columns: ["conversation_id"];
-            isOneToOne: false;
-            referencedRelation: "conversations";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey";
-            columns: ["sender_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
+          { foreignKeyName: "messages_conversation_id_fkey"; columns: ["conversation_id"]; isOneToOne: false; referencedRelation: "conversations"; referencedColumns: ["id"] },
+          { foreignKeyName: "messages_sender_id_fkey"; columns: ["sender_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
         ];
       };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
-      message_type: "text" | "image" | "file";
+      message_type: "text" | "image" | "file" | "voice";
       message_status: "sending" | "sent" | "delivered" | "read" | "failed";
     };
     CompositeTypes: Record<string, never>;
