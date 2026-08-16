@@ -1,6 +1,4 @@
-// Auto-generated Supabase database types.
-// Regenerate after running the SQL migration with:
-//   npx supabase gen types typescript > src/lib/supabase/database.types.ts
+// Auto-generated Supabase database types.// Regenerate after running the SQL migration with://   npx supabase gen types typescript > src/lib/supabase/database.types.ts
 
 export type Json =
   | string
@@ -77,7 +75,8 @@ export interface Database {
           sender_id: string;
           content: string;
           type: "text" | "image" | "file";
-          status: "sent" | "delivered" | "read";
+          status: "sending" | "sent" | "delivered" | "read" | "failed";
+          vanish_mode: boolean;
           created_at: string;
         };
         Insert: {
@@ -86,7 +85,8 @@ export interface Database {
           sender_id: string;
           content: string;
           type?: "text" | "image" | "file";
-          status?: "sent" | "delivered" | "read";
+          status?: "sending" | "sent" | "delivered" | "read" | "failed";
+          vanish_mode?: boolean;
           created_at?: string;
         };
         Update: {
@@ -95,7 +95,8 @@ export interface Database {
           sender_id?: string;
           content?: string;
           type?: "text" | "image" | "file";
-          status?: "sent" | "delivered" | "read";
+          status?: "sending" | "sent" | "delivered" | "read" | "failed";
+          vanish_mode?: boolean;
           created_at?: string;
         };
         Relationships: [
@@ -120,7 +121,7 @@ export interface Database {
     Functions: Record<string, never>;
     Enums: {
       message_type: "text" | "image" | "file";
-      message_status: "sent" | "delivered" | "read";
+      message_status: "sending" | "sent" | "delivered" | "read" | "failed";
     };
     CompositeTypes: Record<string, never>;
   };

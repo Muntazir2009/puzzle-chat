@@ -8,14 +8,29 @@ export interface ChatChannelEvents {
     sender_id: string;
     content: string;
     type: "text" | "image" | "file";
-    status: "sent" | "delivered" | "read";
+    status: "sending" | "sent" | "delivered" | "read" | "failed";
+    vanish_mode: boolean;
     created_at: string;
+  };
+  "delivered": {
+    message_id: string;
+    conversation_id: string;
+    user_id: string;
+  };
+  "read": {
+    message_ids: string[];
+    conversation_id: string;
+    user_id: string;
   };
   "typing-start": {
     user_id: string;
   };
   "typing-stop": {
     user_id: string;
+  };
+  "vanish": {
+    message_id: string;
+    conversation_id: string;
   };
 }
 

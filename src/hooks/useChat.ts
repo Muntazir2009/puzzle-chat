@@ -21,7 +21,8 @@ export interface ChatMessage {
   sender_id: string;
   content: string;
   type: "text" | "image" | "file";
-  status: "sent" | "delivered" | "read";
+  status: "sending" | "sent" | "delivered" | "read" | "failed";
+  vanish_mode: boolean;
   created_at: string;
 }
 
@@ -42,10 +43,14 @@ export interface UseChatReturn {
   isLoading: boolean;
   /** The other user is currently typing. */
   isPartnerTyping: boolean;
-  /** Append the user's own optimistic message and persist via API. */
-  sendMessage: (content: string, type?: "text" | "image" | "file") => Promise<void>;
+  /** Send a message with optional vanish mode flag. */
+  sendMessage: (content: string, type?: "text" | "image" | "file", vanish_mode?: boolean) => Promise<void>;
   /** Broadcast a typing-start event. Call on every keystroke. */
   onTyping: () => void;
+  /** Mark peer's unread messages as read and broadcast receipt. */
+  markAsRead: (messageIds: string[]) => Promise<void>;
+  /** Request vanish deletion for a view-once message. */
+  vanishMessage: (messageId: string) => Promise<void>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -121,12 +126,52 @@ export function useChat({
         content: data.content,
         type: data.type,
         status: data.status,
+        vanish_mode: data.vanish_mode,
         created_at: data.created_at,
       };
       setMessages((prev) => {
         if (prev.some((m) => m.id === incoming.id)) return prev;
         return [...prev, incoming];
       });
+
+      /* Auto-send delivered receipt for the other user's messages. */
+      if (data.sender_id !== currentUserId) {
+        /* Fire-and-forget: tell the sender we received it. */
+        fetch("/api/messages/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: data.conversation_id,
+            message_ids: [data.id],
+          }),
+        }).catch(() => {/* delivered receipt best-effort */});
+      }
+    }
+
+    function handleDelivered(data: ChatChannelEvents["delivered"]) {
+      /* When the peer acknowledges delivery, update our sent messages to delivered. */
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === data.message_id && m.sender_id === currentUserId && m.status === "sent"
+            ? { ...m, status: "delivered" as const }
+            : m
+        )
+      );
+    }
+
+    function handleRead(data: ChatChannelEvents["read"]) {
+      /* The peer has read our messages. Update their status. */
+      setMessages((prev) =>
+        prev.map((m) =>
+          data.message_ids.includes(m.id) && m.sender_id === currentUserId
+            ? { ...m, status: "read" as const }
+            : m
+        )
+      );
+    }
+
+    function handleVanish(data: ChatChannelEvents["vanish"]) {
+      setMessages((prev) => prev.filter((m) => m.id !== data.message_id));
     }
 
     function handleTypingStart(data: ChatChannelEvents["typing-start"]) {
@@ -140,11 +185,17 @@ export function useChat({
     }
 
     channel.bind("new-message", handleNewMessage);
+    channel.bind("delivered", handleDelivered);
+    channel.bind("read", handleRead);
+    channel.bind("vanish", handleVanish);
     channel.bind("typing-start", handleTypingStart);
     channel.bind("typing-stop", handleTypingStop);
 
     return () => {
       channel.unbind("new-message", handleNewMessage);
+      channel.unbind("delivered", handleDelivered);
+      channel.unbind("read", handleRead);
+      channel.unbind("vanish", handleVanish);
       channel.unbind("typing-start", handleTypingStart);
       channel.unbind("typing-stop", handleTypingStop);
       pusherClient.unsubscribe(channelName);
@@ -152,18 +203,21 @@ export function useChat({
     };
   }, [channelName, currentUserId]);
 
-  /* ---- Send a message -------------------------------------------- */
+  /* ---- Send a message (optimistic with temp ID) ----------------- */
   const sendMessage = useCallback(
-    async (content: string, type: "text" | "image" | "file" = "text") => {
+    async (content: string, type: "text" | "image" | "file" = "text", vanish_mode = false) => {
       if (!content.trim()) return;
 
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
       const optimistic: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: tempId,
         conversation_id: conversationId,
         sender_id: currentUserId,
         content,
         type,
-        status: "sent",
+        status: "sending",
+        vanish_mode,
         created_at: new Date().toISOString(),
       };
 
@@ -177,6 +231,7 @@ export function useChat({
             conversation_id: conversationId,
             content,
             type,
+            vanish_mode,
           }),
         });
 
@@ -187,21 +242,64 @@ export function useChat({
 
         const persisted: ChatMessage = await res.json();
 
+        /* Replace the optimistic message with the server-persisted one. */
         setMessages((prev) =>
-          prev.map((m) => (m.id === optimistic.id ? persisted : m))
+          prev.map((m) => (m.id === tempId ? persisted : m))
         );
       } catch (err) {
         console.error("[useChat] sendMessage error:", err);
+        /* Mark as failed so the UI can show an error state. */
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === optimistic.id
-              ? { ...m, status: "sent" as const }
+            m.id === tempId
+              ? { ...m, status: "failed" as const }
               : m
           )
         );
       }
     },
     [conversationId, currentUserId]
+  );
+
+  /* ---- Mark messages as read ------------------------------------ */
+  const markAsRead = useCallback(
+    async (messageIds: string[]) => {
+      if (messageIds.length === 0) return;
+      try {
+        await fetch("/api/messages/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            message_ids: messageIds,
+          }),
+        });
+      } catch (err) {
+        console.error("[useChat] markAsRead error:", err);
+      }
+    },
+    [conversationId]
+  );
+
+  /* ---- Vanish a view-once message -------------------------------- */
+  const vanishMessage = useCallback(
+    async (messageId: string) => {
+      try {
+        await fetch("/api/messages/vanish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            message_id: messageId,
+          }),
+        });
+      } catch (err) {
+        console.error("[useChat] vanishMessage error:", err);
+      }
+      /* Optimistically remove from UI regardless. */
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    },
+    [conversationId]
   );
 
   /* ---- Typing indicator ------------------------------------------ */
@@ -236,5 +334,7 @@ export function useChat({
     isPartnerTyping,
     sendMessage,
     onTyping,
+    markAsRead,
+    vanishMessage,
   };
 }

@@ -167,3 +167,98 @@ Stage Summary:
 
 ## Unresolved / Next Phase
 - Phase 4 should deliver: conversation list sidebar, auth pages, conversation switching, and presence.
+
+---
+Task ID: 4
+Agent: Main Development Agent
+Task: Phase 4 – Optimistic UI, WhatsApp receipts, Instagram styling, double-tap heart, vanish mode.
+
+Work Log:
+- Updated `supabase/schema.sql`:
+  - Added `sending` and `failed` to `message_status` enum.
+  - Added `vanish_mode BOOLEAN NOT NULL DEFAULT FALSE` column to `messages` table.
+  - Added `messages_delete` RLS policy (sender can delete their own vanish messages).
+- Updated `src/lib/supabase/database.types.ts`:
+  - `message_status` enum now includes `"sending" | "sent" | "delivered" | "read" | "failed"`.
+  - Added `vanish_mode: boolean` to messages Row/Insert/Update types.
+- Updated `src/lib/pusher-server.ts` – `ChatChannelEvents` expanded:
+  - `new-message` now includes `vanish_mode: boolean` and `status` widened to include `sending`/`failed`.
+  - New `delivered` event: `{ message_id, conversation_id, user_id }`.
+  - New `read` event: `{ message_ids[], conversation_id, user_id }`.
+  - New `vanish` event: `{ message_id, conversation_id }`.
+- Updated `src/app/api/messages/send/route.ts`:
+  - Accepts `vanish_mode: boolean` in the Zod body schema.
+  - Passes `vanish_mode` to Supabase insert and Pusher broadcast payload.
+- Created `src/app/api/messages/read/route.ts`:
+  - POST endpoint: validates `conversation_id` + `message_ids[]`.
+  - Auth + participation check.
+  - Updates only peer's messages (not sender's own) to `status: "read"`.
+  - Broadcasts `read` event via Pusher so the sender updates their receipt icons.
+- Created `src/app/api/messages/vanish/route.ts`:
+  - POST endpoint: validates `conversation_id` + `message_id`.
+  - Auth + participation check.
+  - Verifies the message has `vanish_mode = true`.
+  - Deletes from Supabase, broadcasts `vanish` event via Pusher.
+- Rewrote `src/hooks/useChat.ts`:
+  - `ChatMessage` type now includes `status: "sending" | "sent" | "delivered" | "read" | "failed"` and `vanish_mode: boolean`.
+  - **Optimistic UI**: `sendMessage` creates a temp message with `id: temp-${Date.now()}-${random}` and `status: "sending"`. On API success, replaces with the persisted message. On failure, sets `status: "failed"`.
+  - **Auto-delivered receipt**: When a `new-message` arrives from the peer, the hook fire-and-forget calls `/api/messages/read` to mark it as read.
+  - Listens for `delivered`, `read`, `vanish` Pusher events to update local state.
+  - Exposes `markAsRead(messageIds)` and `vanishMessage(messageId)` in the return value.
+- Rewrote `src/components/chat/MessageFeed.tsx`:
+  - **WhatsApp Receipt Icons**: Custom SVG receipt system:
+    - `sending` → animated spinning circle
+    - `sent` → 1 gray checkmark (✓)
+    - `delivered` → 2 gray checkmarks (✓✓)
+    - `read` → 2 blue checkmarks (✓✓)
+    - `failed` → red alert circle with ring on bubble
+  - **Instagram Styling**: Sender bubbles use `bg-gradient-to-r from-indigo-500 to-purple-600 text-white`. Receiver bubbles use `bg-zinc-800 text-zinc-50`. All bubbles have `shadow-sm` and `translate3d(0,0,0)` for GPU compositing.
+  - **Double-Tap Heart**: Each `MessageBubble` tracks last-tap timestamp. On double-tap (< 300ms), triggers `HeartBurst` component — a Framer Motion `AnimatePresence` + spring-animated ❤️ that scales from 0.2→1.2 and floats upward with `translate3d`. Haptic feedback via `navigator.vibrate(10)` on supported devices.
+  - **Vanish Mode indicator**: Messages with `vanish_mode: true` show an `EyeOff` icon + "View once" label inside the bubble.
+  - **Auto-read marking**: When feed is scrolled to bottom, `onMarkAsRead` is called with all peer's unread message IDs.
+  - Skeleton now uses gradient tint for own-message placeholders.
+  - Empty state uses a gradient-tinted chat bubble icon.
+  - `NewMessagesButton` uses indigo-500 with spring animation.
+  - TypingIndicator uses dark `bg-zinc-800` with zinc-400 dots.
+- Rewrote `src/components/chat/ChatLayout.tsx`:
+  - **Vanish Mode Toggle**: An `Eye`/`EyeOff` button in the input bar. Animated with `m.button` + `whileTap={{ scale: 0.9 }}`. Active state shows indigo-500 tint. Toggles `vanishMode` state, passed to `sendMessage`.
+  - Input placeholder changes to "Send a disappearing message…" when vanish mode is ON.
+  - Send button gains gradient styling (`from-indigo-500 to-purple-600`) when vanish mode is active.
+  - Textarea border tints to `indigo-500/30` when vanish mode is ON.
+  - Header avatar fallback uses gradient (`from-indigo-500 to-purple-600`).
+  - "typing…" status uses `text-indigo-500` color.
+  - Passes `onMarkAsRead` and `onVanishMessage` to `MessageFeed`.
+- Lint: zero errors (1 expected TanStack Virtual informational warning).
+- SSR verification via curl: confirmed correct HTML with vanish toggle, gradient avatar, gradient skeletons, LazyMotion, all components rendering.
+
+Stage Summary:
+- Phase 4 is complete. All 5 features implemented:
+  1. ✅ Optimistic UI with temp IDs and graceful failure revert
+  2. ✅ WhatsApp-style receipts (1 gray → 2 gray → 2 blue)
+  3. ✅ Instagram gradient bubbles (indigo→purple for sender, zinc-800 for receiver)
+  4. ✅ Double-tap heart burst with spring animation + haptic feedback
+  5. ✅ Vanish mode toggle with instant-delete broadcast
+- Next phase should deliver: conversation list sidebar, auth integration, conversation switching, and online presence.
+
+---
+
+## Current Project Status
+- **Phase**: 4 of N – Visual Interactions & Message Lifecycle
+- **State**: Complete. All files compile, lint is clean, SSR verified.
+- **Env vars needed**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_PUSHER_KEY`, `PUSHER_APP_ID`, `PUSHER_SECRET`.
+
+## Files Created / Modified This Phase
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/schema.sql` | Modified | Added `sending`/`failed` status, `vanish_mode` column, delete RLS policy |
+| `src/lib/supabase/database.types.ts` | Modified | Widened status enum, added `vanish_mode` field |
+| `src/lib/pusher-server.ts` | Modified | Added `delivered`, `read`, `vanish` events; `vanish_mode` on `new-message` |
+| `src/app/api/messages/send/route.ts` | Modified | Accepts and persists `vanish_mode` |
+| `src/app/api/messages/read/route.ts` | Created | Read receipt endpoint + Pusher broadcast |
+| `src/app/api/messages/vanish/route.ts` | Created | View-once delete endpoint + Pusher broadcast |
+| `src/hooks/useChat.ts` | Rewritten | Temp IDs, sending/failed status, delivered/read/vanish listeners, markAsRead, vanishMessage |
+| `src/components/chat/MessageFeed.tsx` | Rewritten | WhatsApp receipts, Instagram gradients, double-tap heart, vanish indicator, auto-read |
+| `src/components/chat/ChatLayout.tsx` | Rewritten | Vanish mode toggle, gradient header avatar, vanish-styled input bar |
+
+## Unresolved / Next Phase
+- Phase 5 should deliver: conversation list sidebar, auth pages, conversation switching, and online/offline presence indicators.
