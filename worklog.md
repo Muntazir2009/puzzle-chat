@@ -1020,3 +1020,26 @@ Stage Summary:
 - Removed module-level `normalizeMessage` const from useChat.ts
 - Deployed successfully to Cloudflare Workers
 - Root cause: Most likely the `new Proxy({} as Pusher, { get(_target, prop) { return getPusherClient()[prop]; } })` pattern in pusher-client.ts, where the bundler could reorder the Proxy initialization before the `getPusherClient` function declaration in the production minified output, causing a TDZ error when the Proxy's get handler tried to access the not-yet-initialized function.
+
+---
+Task ID: 1
+Agent: Main
+Task: Fix TDZ "Cannot access 'eN' before initialization" error when opening a chat
+
+Work Log:
+- Analyzed user's screenshot showing `ReferenceError: Cannot access 'eN' before initialization` at `2950ba42dd7c37fb.js:17:24011`
+- Used VLM skill to extract detailed error info from screenshot including stack trace and component tree
+- Traced the error through all chat component files: ChatView.tsx, ChatLayout.tsx, MessageFeed.tsx, ConversationList.tsx, useChat.ts, pusher-client.ts, useVoiceRecorder.ts, useVisualViewport.ts
+- **Found root cause**: In `ChatLayout.tsx`, `handleSubmit` (line 425) had `uploadAttachment` in its `useCallback` dependency array, but `uploadAttachment` was declared later at line 508. When webpack's production minifier bundles this, `uploadAttachment` (minified as `eN`) is in the Temporal Dead Zone when the dependency array is evaluated, causing the crash.
+- Fixed by moving `clearAttachment` and `uploadAttachment` declarations BEFORE `handleSubmit`
+- Ran a full codebase audit via subagent scanning all 38 `useCallback` calls across 13 files — confirmed this was the only TDZ vulnerability
+- Linted the changed file (0 errors, 1 pre-existing warning)
+- Built with `@opennextjs/cloudflare build` — succeeded
+- Deployed to `puzzle.killermunu.workers.dev` via `wrangler deploy` — succeeded (Version ID: 052d1821-b4e5-48bc-a096-2ab5efa51b64)
+
+Stage Summary:
+- Root cause: `const uploadAttachment = useCallback(...)` declared AFTER `const handleSubmit = useCallback(..., [..., uploadAttachment])` in ChatLayout.tsx
+- The TDZ error only occurred in production webpack bundles on Cloudflare Workers because the minifier preserves the declaration order, causing the dependency array evaluation to access `uploadAttachment` before it's initialized
+- This explains why the minified variable name changed between builds (eE → eN) — different minification passes assign different names
+- Fix: Reordered declarations so `clearAttachment` → `uploadAttachment` → `handleSubmit`
+- Deployed successfully to production

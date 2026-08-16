@@ -3559,17 +3559,17 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js": {
-      "bytes": 322,
-      "imports": [],
-      "format": "cjs"
-    },
     ".open-next/server-functions/default/.next/server/app/api/messages/upload/route_client-reference-manifest.js": {
       "bytes": 322,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/api/messages/search/route_client-reference-manifest.js": {
+      "bytes": 322,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js": {
       "bytes": 322,
       "imports": [],
       "format": "cjs"
@@ -3584,12 +3584,12 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js": {
+    ".open-next/server-functions/default/.next/server/app/api/messages/send/route_client-reference-manifest.js": {
       "bytes": 320,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/messages/send/route_client-reference-manifest.js": {
+    ".open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js": {
       "bytes": 320,
       "imports": [],
       "format": "cjs"
@@ -3678,11 +3678,6 @@
           "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/vanish/route_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js"
-        },
-        {
           "path": ".open-next/server-functions/default/.next/server/app/api/messages/upload/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/upload/route_client-reference-manifest.js"
@@ -3691,6 +3686,11 @@
           "path": ".open-next/server-functions/default/.next/server/app/api/messages/search/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/search/route_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/api/conversations/route_client-reference-manifest.js",
@@ -3703,14 +3703,14 @@
           "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/users/profile/route_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js"
-        },
-        {
           "path": ".open-next/server-functions/default/.next/server/app/api/messages/send/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/send/route_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/home/z/my-project/.open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/api/users/status/route_client-reference-manifest.js",
@@ -10069,13 +10069,13 @@
         ".open-next/server-functions/default/.next/server/app/api/messages/vanish/route_client-reference-manifest.js": {
           "bytesInOutput": 480
         },
-        ".open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js": {
-          "bytesInOutput": 480
-        },
         ".open-next/server-functions/default/.next/server/app/api/messages/upload/route_client-reference-manifest.js": {
           "bytesInOutput": 480
         },
         ".open-next/server-functions/default/.next/server/app/api/messages/search/route_client-reference-manifest.js": {
+          "bytesInOutput": 480
+        },
+        ".open-next/server-functions/default/.next/server/app/api/messages/delete/route_client-reference-manifest.js": {
           "bytesInOutput": 481
         },
         ".open-next/server-functions/default/.next/server/app/api/conversations/route_client-reference-manifest.js": {
@@ -10084,10 +10084,10 @@
         ".open-next/server-functions/default/.next/server/app/api/users/profile/route_client-reference-manifest.js": {
           "bytesInOutput": 477
         },
-        ".open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js": {
+        ".open-next/server-functions/default/.next/server/app/api/messages/send/route_client-reference-manifest.js": {
           "bytesInOutput": 477
         },
-        ".open-next/server-functions/default/.next/server/app/api/messages/send/route_client-reference-manifest.js": {
+        ".open-next/server-functions/default/.next/server/app/api/messages/read/route_client-reference-manifest.js": {
           "bytesInOutput": 477
         },
         ".open-next/server-functions/default/.next/server/app/api/users/status/route_client-reference-manifest.js": {
