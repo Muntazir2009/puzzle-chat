@@ -47,6 +47,30 @@
       "namedRegex": "^/api(?:/)?$"
     },
     {
+      "page": "/api/conversations",
+      "regex": "^/api/conversations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/conversations(?:/)?$"
+    },
+    {
+      "page": "/api/conversations/create",
+      "regex": "^/api/conversations/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/conversations/create(?:/)?$"
+    },
+    {
+      "page": "/api/conversations/delete",
+      "regex": "^/api/conversations/delete(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/conversations/delete(?:/)?$"
+    },
+    {
+      "page": "/api/messages/delete",
+      "regex": "^/api/messages/delete(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/messages/delete(?:/)?$"
+    },
+    {
       "page": "/api/messages/history",
       "regex": "^/api/messages/history(?:/)?$",
       "routeKeys": {},
@@ -65,10 +89,22 @@
       "namedRegex": "^/api/messages/read(?:/)?$"
     },
     {
+      "page": "/api/messages/search",
+      "regex": "^/api/messages/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/messages/search(?:/)?$"
+    },
+    {
       "page": "/api/messages/send",
       "regex": "^/api/messages/send(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/messages/send(?:/)?$"
+    },
+    {
+      "page": "/api/messages/upload",
+      "regex": "^/api/messages/upload(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/messages/upload(?:/)?$"
     },
     {
       "page": "/api/messages/vanish",
@@ -81,6 +117,36 @@
       "regex": "^/api/pusher/auth(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/pusher/auth(?:/)?$"
+    },
+    {
+      "page": "/api/users/batch-status",
+      "regex": "^/api/users/batch\\-status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/users/batch\\-status(?:/)?$"
+    },
+    {
+      "page": "/api/users/heartbeat",
+      "regex": "^/api/users/heartbeat(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/users/heartbeat(?:/)?$"
+    },
+    {
+      "page": "/api/users/profile",
+      "regex": "^/api/users/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/users/profile(?:/)?$"
+    },
+    {
+      "page": "/api/users/search",
+      "regex": "^/api/users/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/users/search(?:/)?$"
+    },
+    {
+      "page": "/api/users/status",
+      "regex": "^/api/users/status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/users/status(?:/)?$"
     },
     {
       "page": "/auth/callback",
