@@ -76,6 +76,12 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* 
+   Dynamic viewport height – updated at runtime by useVisualViewport.
+   Falls back to 100dvh (CSS native) which Safari ≥15.4 and Chrome ≥108 support. 
+  */
+  --dvh: 100dvh;
 }
 
 .dark {
@@ -118,5 +124,27 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /*
+   Mobile keyboard fix.
+   On iOS Safari the entire page scrolls when the keyboard opens.
+   We pin the html/body to the visual viewport so only the scrollable
+   message feed moves.
+  */
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    height: var(--dvh, 100dvh);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Prevent iOS rubber-banding outside the chat feed. */
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
