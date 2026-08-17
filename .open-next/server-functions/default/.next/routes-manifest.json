@@ -101,16 +101,16 @@
       "namedRegex": "^/api/messages/send(?:/)?$"
     },
     {
-      "page": "/api/messages/upload",
-      "regex": "^/api/messages/upload(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/api/messages/upload(?:/)?$"
-    },
-    {
       "page": "/api/messages/vanish",
       "regex": "^/api/messages/vanish(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/messages/vanish(?:/)?$"
+    },
+    {
+      "page": "/api/messages/voice",
+      "regex": "^/api/messages/voice(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/messages/voice(?:/)?$"
     },
     {
       "page": "/api/pusher/auth",
