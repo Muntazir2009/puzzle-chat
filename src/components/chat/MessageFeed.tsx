@@ -972,8 +972,8 @@ function MessageBubble({
     <>
       <div
         className={cn(
-          "relative flex w-full select-none gap-1.5 px-1",
-          isOwn ? "justify-end mr-1" : "justify-start ml-1",
+          "relative flex w-full select-none gap-1.5",
+          isOwn ? "justify-end" : "justify-start",
         )}
       >
         {/* Avatar column for other user's messages */}
@@ -1022,15 +1022,17 @@ function MessageBubble({
 
         <div
           className={cn(
-            "flex max-w-[90%] sm:max-w-[80%] flex-col gap-1 select-none",
+            "flex max-w-[95%] sm:max-w-[85%] flex-col gap-1 select-none",
           )}
         >
           <m.div
             drag="x"
             dragConstraints={{ left: 0, right: 80 }}
             dragElastic={0.15}
+            dragSnapToOrigin
+            dragMomentum={false}
             onDrag={(_, info) => {
-              if (info.offset.x < 0) return; // Only rightward
+              if (info.offset.x < 0) return;
               wasDraggedRef.current = true;
               setShowReplyArrow(info.offset.x > 50);
             }}
@@ -1041,15 +1043,13 @@ function MessageBubble({
               setShowReplyArrow(false);
               wasDraggedRef.current = false;
             }}
-            animate={{ x: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
             onClick={handleClick}
             onPointerDown={handlePressStart}
             onPointerUp={handlePressEnd}
             onPointerLeave={handlePressEnd}
             onContextMenu={handleContextMenu}
             className={cn(
-              "relative cursor-default select-none px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200 active:scale-95",
+              "relative cursor-default select-none px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200",
               rounding,
               !isOwn &&
                 "bg-muted text-foreground shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
