@@ -441,7 +441,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     <div className="flex w-full flex-col bg-background" style={containerStyle}>
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
         {/* Header — glassmorphic, minimal, no shadow/glow */}
-        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 px-4 border-b border-white/5 bg-black/60 backdrop-blur-2xl">
+        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 pl-14 sm:pl-16 pr-4 border-b border-white/5 bg-black/60 backdrop-blur-2xl">
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
@@ -474,7 +474,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         </header>
 
         {/* Feed area — pb-24 so messages never get covered by the floating input pill */}
-        <div className="relative min-h-0 flex-1 pb-24 px-1">
+        <div className="relative min-h-0 flex-1 pb-24 pl-14 sm:pl-16 pr-1">
           <MessageFeed
             messages={messages}
             isLoading={isLoading}

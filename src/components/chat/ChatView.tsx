@@ -86,7 +86,7 @@ function NavPill({
 }) {
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicatorY, setIndicatorY] = useState(0);
-  const [indicatorH, setIndicatorH] = useState(32);
+  const [indicatorH, setIndicatorH] = useState(40);
 
   useEffect(() => {
     const idx = activeNav === "chats" ? 0 : 1;
@@ -96,9 +96,9 @@ function NavPill({
       if (parent) {
         const parentRect = parent.getBoundingClientRect();
         const elRect = el.getBoundingClientRect();
-        const y = elRect.top - parentRect.top + (elRect.height - 32) / 2;
+        const y = elRect.top - parentRect.top;
         setIndicatorY(y);
-        setIndicatorH(32);
+        setIndicatorH(elRect.height);
       }
     }
   }, [activeNav]);
@@ -106,17 +106,16 @@ function NavPill({
   return (
     <div
       className={cn(
-        "relative fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-4 rounded-full py-4 px-2 shadow-2xl",
+        "relative fixed left-2 top-1/2 z-50 flex -translate-y-1/2 w-12 flex-col items-center gap-2 rounded-full py-3 px-1.5 shadow-xl",
         "sm:left-5",
         "backdrop-blur-xl border border-white/10 bg-black/80",
       )}
     >
-      {/* Sliding active indicator — absolute relative to this pill container */}
+      {/* Sliding active indicator — background highlight behind active icon */}
       <m.div
-        className="absolute left-0 w-1 rounded-full"
-        style={{ background: "var(--app-accent)" }}
+        className="absolute left-1 right-1 rounded-full bg-white/10"
         animate={{ y: indicatorY, height: indicatorH }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       />
 
       {/* Chats icon */}
@@ -126,8 +125,8 @@ function NavPill({
         onClick={() => onNavChange("chats")}
         aria-label="Chats"
         className={cn(
-          "relative flex size-10 items-center justify-center rounded-full transition-colors duration-200 ease-out",
-          activeNav === "chats" ? "text-white" : "text-white/60 hover:text-white/90",
+          "relative z-10 flex size-10 items-center justify-center rounded-full transition-colors duration-150 ease-out",
+          activeNav === "chats" ? "text-white" : "text-white/50 hover:text-white/90",
         )}
       >
         <MessageSquare className="size-5" />
@@ -139,17 +138,15 @@ function NavPill({
       </button>
 
       {/* Settings icon — opens popover */}
-      <Popover
-        onOpenChange={(open) => onNavChange(open ? "settings" : "chats")}
-      >
+      <Popover>
         <PopoverTrigger asChild>
           <button
             ref={(el) => { itemRefs.current[1] = el; }}
             type="button"
             aria-label="Settings"
             className={cn(
-              "relative flex size-10 items-center justify-center rounded-full transition-colors duration-200 ease-out",
-              activeNav === "settings" ? "text-white" : "text-white/60 hover:text-white/90",
+              "relative z-10 flex size-10 items-center justify-center rounded-full transition-colors duration-150 ease-out",
+              activeNav === "settings" ? "text-white" : "text-white/50 hover:text-white/90",
             )}
           >
             <Settings className="size-5" />
@@ -159,7 +156,10 @@ function NavPill({
           side="right"
           align="start"
           sideOffset={12}
-          className="w-64 border border-white/10 bg-zinc-900/95 p-0 backdrop-blur-xl rounded-2xl text-white"
+          onOpenChange={(open) => {
+            if (open) onNavChange("settings");
+          }}
+          className="w-64 border border-white/10 bg-neutral-900/90 p-0 backdrop-blur-xl rounded-2xl text-white shadow-2xl transform-gpu"
         >
           {settingsContent}
         </PopoverContent>
@@ -399,7 +399,7 @@ export function ChatView({
       <ThemeProvider>
         <div className="h-dvh w-full bg-background">
           {/* Nav pill skeleton */}
-          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-4 rounded-full py-4 px-2 sm:left-5 backdrop-blur-xl border border-white/10 bg-black/80">
+          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 w-12 flex-col items-center gap-2 rounded-full py-3 px-1.5 sm:left-5 backdrop-blur-xl border border-white/10 bg-black/80 shadow-xl">
             <Skeleton className="size-5 rounded" />
             <Skeleton className="size-5 rounded" />
           </div>
@@ -439,7 +439,7 @@ export function ChatView({
               className="h-full"
             >
               {/* Small branding header */}
-              <div className="flex items-center justify-center gap-2.5 pl-14 sm:pl-20 pt-6 pb-2">
+              <div className="flex items-center justify-center gap-2.5 pl-14 sm:pl-16 pt-6 pb-2">
                 <div
                   className="flex size-8 items-center justify-center rounded-xl text-white"
                   style={{
@@ -455,7 +455,7 @@ export function ChatView({
               </div>
 
               {/* Conversation list container */}
-              <div className="mx-auto h-[calc(100%-60px)] max-w-lg overflow-y-auto pl-14 sm:pl-20">
+              <div className="mx-auto h-[calc(100%-60px)] max-w-lg overflow-y-auto pl-14 sm:pl-16">
                 <ConversationList
                   {...listProps}
                   activeId={null}
@@ -489,7 +489,7 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => setActiveConv(null)}
-                className="absolute left-14 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 shadow-sm backdrop-blur-sm transition-colors hover:bg-muted sm:hidden"
+                className="absolute left-14 sm:left-16 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-background/80 shadow-sm backdrop-blur-sm transition-colors hover:bg-muted sm:hidden"
                 style={{ border: "1px solid var(--app-accent-subtle)" }}
                 aria-label="Back to chats"
               >

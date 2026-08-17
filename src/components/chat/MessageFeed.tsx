@@ -209,8 +209,9 @@ function MessageActionSheet({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.15 }}
-      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 bg-zinc-900/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-[var(--app-accent-subtle)]"
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-neutral-900/90 border border-white/10 shadow-2xl backdrop-blur-xl transform-gpu will-change-transform"
+      style={{ willChange: "transform, opacity" }}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center gap-1 px-2 py-2">
@@ -292,8 +293,8 @@ function TapbackDock({
       exit={{ opacity: 0, scale: 0.8, y: 4 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl",
-        isOwn ? "right-2" : "left-2",
+        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-neutral-900/90 border border-white/10 px-1 py-1 shadow-2xl backdrop-blur-xl transform-gpu",
+        isOwn ? "right-1" : "left-1",
         "-top-12",
       )}
       style={{ willChange: "transform, opacity" }}
@@ -332,7 +333,7 @@ function TapbackDock({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 4 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-zinc-900 px-1 py-1 shadow-xl"
+                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-neutral-900/90 border border-white/10 px-1 py-1 shadow-2xl backdrop-blur-xl transform-gpu"
               >
                 {extraEmojis.map((emoji) => (
                   <button
@@ -971,8 +972,8 @@ function MessageBubble({
     <>
       <div
         className={cn(
-          "relative flex w-full select-none gap-2 px-1",
-          isOwn ? "justify-end" : "justify-start",
+          "relative flex w-full select-none gap-1.5 px-1",
+          isOwn ? "justify-end mr-1" : "justify-start ml-1",
         )}
       >
         {/* Avatar column for other user's messages */}
@@ -1021,7 +1022,7 @@ function MessageBubble({
 
         <div
           className={cn(
-            "flex max-w-[82%] sm:max-w-[65%] flex-col gap-1 select-none",
+            "flex max-w-[90%] sm:max-w-[80%] flex-col gap-1 select-none",
           )}
         >
           <m.div

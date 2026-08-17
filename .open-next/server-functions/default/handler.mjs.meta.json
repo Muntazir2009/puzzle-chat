@@ -5848,7 +5848,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/_dd5258fe._.js": {
-      "bytes": 349791,
+      "bytes": 350063,
       "imports": [],
       "format": "cjs"
     },
@@ -10276,7 +10276,7 @@
           "bytesInOutput": 17475
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/_dd5258fe._.js": {
-          "bytesInOutput": 376982
+          "bytesInOutput": 377254
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/_ec930419._.js": {
           "bytesInOutput": 281526
@@ -10510,7 +10510,7 @@
           "bytesInOutput": 58043
         }
       },
-      "bytes": 5274673
+      "bytes": 5274945
     }
   }
 }
