@@ -1,3 +1,3 @@
-export const production = {"DATABASE_URL":"file:/home/z/my-project/db/custom.db"};
-export const development = {"DATABASE_URL":"file:/home/z/my-project/db/custom.db"};
+export const production = {"DATABASE_URL":"file:/home/z/my-project/db/custom.db","NEXT_PUBLIC_SUPABASE_URL":"https://njtdajospdunfbfgyymh.supabase.co","NEXT_PUBLIC_SUPABASE_ANON_KEY":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdGRham9zcGR1bmZiZmd5eW1oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NTI3MTYsImV4cCI6MjEwMjQyODcxNn0.A5hF3MXpeBvpCY-2oM1MHzrqEB43fFmoosCfsPIECQQ"};
+export const development = {"DATABASE_URL":"file:/home/z/my-project/db/custom.db","NEXT_PUBLIC_SUPABASE_URL":"https://njtdajospdunfbfgyymh.supabase.co","NEXT_PUBLIC_SUPABASE_ANON_KEY":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdGRham9zcGR1bmZiZmd5eW1oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NTI3MTYsImV4cCI6MjEwMjQyODcxNn0.A5hF3MXpeBvpCY-2oM1MHzrqEB43fFmoosCfsPIECQQ"};
 export const test = {"DATABASE_URL":"file:/home/z/my-project/db/custom.db"};
