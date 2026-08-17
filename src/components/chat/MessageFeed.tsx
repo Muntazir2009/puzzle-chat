@@ -35,7 +35,7 @@ import { toast } from "@/hooks/use-toast";
 /* ------------------------------------------------------------------ */
 
 const AUTO_SCROLL_THRESHOLD = 120;
-const ESTIMATED_ROW_HEIGHT = 72;
+const ESTIMATED_ROW_HEIGHT = 96;
 const OVERSCAN = 8;
 const LONG_PRESS_MS = 500;
 const REACTION_EMOJIS = [
@@ -550,7 +550,7 @@ function parseUrls(text: string): TextSegment[] {
 /** Split a plain-text string into highlighted / non-highlighted fragments */
 function highlightText(text: string, query: string): React.ReactNode[] {
   if (!query) return [text];
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$");
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\");
   const re = new RegExp(`(${escaped})`, "gi");
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -634,7 +634,7 @@ function ReplyPreview({
             }
           : {
               borderLeftColor: "var(--app-accent-light)",
-              backgroundColor: "var(--app-accent-glow)",
+              backgroundColor: "var(--app-accent-subtle)",
             }
       }
     >
@@ -751,13 +751,11 @@ function ReactionPills({
                 ? isOwn
                   ? {
                       borderColor: "rgba(255,255,255,0.3)",
-                      backgroundColor: "rgba(255,255,255,0.2)",
-                      boxShadow: "0 1px 2px 0 var(--app-accent-glow)",
+                      backgroundColor: "rgba(255,255,255,0.15)",
                     }
                   : {
                       borderColor: "var(--app-accent)",
                       backgroundColor: "var(--app-accent-subtle)",
-                      boxShadow: "0 1px 2px 0 var(--app-accent-glow)",
                     }
                 : undefined
             }
@@ -783,12 +781,51 @@ function ReactionPills({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Bubble rounding helper for grouped messages                        */
+/* ------------------------------------------------------------------ */
+
+function getBubbleRounding({
+  isFirst,
+  isLast,
+  isOwn,
+}: {
+  isFirst: boolean;
+  isLast: boolean;
+  isOwn: boolean;
+}): string {
+  if (isFirst && isLast) {
+    // Single message in group (or only message)
+    return isOwn
+      ? "rounded-2xl rounded-br-sm"
+      : "rounded-2xl rounded-bl-sm";
+  }
+  if (isFirst) {
+    // First message of a multi-message group
+    return isOwn
+      ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-sm rounded-br-sm"
+      : "rounded-tl-2xl rounded-bl-sm rounded-tr-2xl rounded-br-sm";
+  }
+  if (isLast) {
+    // Last message of a multi-message group
+    return isOwn
+      ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-sm rounded-br-2xl"
+      : "rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl rounded-br-sm";
+  }
+  // Middle message
+  return isOwn
+    ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-sm rounded-br-sm"
+    : "rounded-tl-2xl rounded-bl-sm rounded-tr-2xl rounded-br-sm";
+}
+
+/* ------------------------------------------------------------------ */
 /*  MessageBubble                                                      */
 /* ------------------------------------------------------------------ */
 
 function MessageBubble({
   message,
   isOwn,
+  isFirst,
+  isLast,
   partnerName,
   partnerAvatar,
   currentUserId,
@@ -798,9 +835,12 @@ function MessageBubble({
   searchHighlight,
   activeActionId,
   onOpenAction,
+  showAvatar,
 }: {
   message: ChatMessage;
   isOwn: boolean;
+  isFirst: boolean;
+  isLast: boolean;
   partnerName: string;
   partnerAvatar: string | null;
   currentUserId: string;
@@ -810,6 +850,7 @@ function MessageBubble({
   searchHighlight?: string;
   activeActionId: string | null;
   onOpenAction: (id: string | null) => void;
+  showAvatar: boolean;
 }) {
   const [showTapback, setShowTapback] = useState(false);
   const showActionSheet = activeActionId === message.id;
@@ -818,7 +859,6 @@ function MessageBubble({
   const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-  const bubbleRef = useRef<HTMLDivElement>(null);
   const wasDraggedRef = useRef(false);
 
   const handleClick = useCallback(() => {
@@ -838,7 +878,7 @@ function MessageBubble({
         navigator.vibrate(20);
       setShowTapback(true);
     }, LONG_PRESS_MS);
-  }, []);
+  }, [onOpenAction]);
 
   const handlePressEnd = useCallback(() => {
     clearTimeout(longPressRef.current);
@@ -848,7 +888,7 @@ function MessageBubble({
     e.preventDefault();
     onOpenAction(null);
     setShowTapback(true);
-  }, []);
+  }, [onOpenAction]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard
@@ -925,17 +965,41 @@ function MessageBubble({
     { addSuffix: true },
   );
 
+  const rounding = getBubbleRounding({ isFirst, isLast, isOwn });
+
   return (
     <>
-      <m.div
+      <div
         className={cn(
-          "relative flex w-full select-none gap-2.5 px-1.5 sm:px-3",
+          "relative flex w-full select-none gap-2 px-1",
           isOwn ? "justify-end" : "justify-start",
         )}
-        initial={isNew ? { opacity: 0, y: 16, scale: 0.97 } : false}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       >
+        {/* Avatar column for other user's messages */}
+        {!isOwn && (
+          <>
+            {showAvatar ? (
+              <Avatar className="size-7 shrink-0 self-end ring-1 ring-white/10">
+                {partnerAvatar && (
+                  <AvatarImage src={partnerAvatar} alt={partnerName} />
+                )}
+                <AvatarFallback
+                  className="text-[10px] font-medium"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+                    color: "var(--app-accent-dark)",
+                  }}
+                >
+                  {partnerName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-0 shrink-0" />
+            )}
+          </>
+        )}
+
         <AnimatePresence>
           {showTapback && onReact && (
             <TapbackDock
@@ -955,82 +1019,39 @@ function MessageBubble({
           )}
         </AnimatePresence>
 
-        {/* Reply arrow indicator for swipe-to-reply */}
-        <m.div
-          className={cn(
-            "absolute top-1/2 z-10 -translate-y-1/2",
-            isOwn ? "right-1.5 sm:right-3" : "left-1.5 sm:left-3",
-          )}
-          animate={
-            showReplyArrow
-              ? { scale: 1.2, opacity: 1 }
-              : { scale: 0.5, opacity: 0 }
-          }
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          style={{ pointerEvents: "none" }}
-        >
-          <div
-            className="flex items-center justify-center rounded-full p-1.5"
-            style={{ backgroundColor: "var(--app-accent)" }}
-          >
-            <Reply className="size-3.5 text-white" />
-          </div>
-        </m.div>
-
-        {!isOwn && (
-          <Avatar className="mt-auto size-8 shrink-0 ring-1 ring-muted">
-            {partnerAvatar && (
-              <AvatarImage src={partnerAvatar} alt={partnerName} />
-            )}
-            <AvatarFallback
-              className="text-xs font-medium"
-              style={{
-                background:
-                  "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
-                color: "var(--app-accent-dark)",
-              }}
-            >
-              {partnerName.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        )}
-
         <div
           className={cn(
-            "flex max-w-[75%] flex-col gap-1 select-none",
-            isOwn
-              ? "items-end mr-1.5 sm:mr-3"
-              : "items-start ml-1.5 sm:ml-3",
+            "flex max-w-[82%] sm:max-w-[65%] flex-col gap-1 select-none",
           )}
         >
           <m.div
-            ref={bubbleRef}
             drag="x"
-            dragConstraints={{ left: 0, right: 120 }}
-            dragElastic={0.3}
-            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+            dragConstraints={{ left: 0, right: 80 }}
+            dragElastic={0.15}
             onDrag={(_, info) => {
-              if (info.offset.x < 0) return;
+              if (info.offset.x < 0) return; // Only rightward
               wasDraggedRef.current = true;
-              setShowReplyArrow(info.offset.x > 30);
+              setShowReplyArrow(info.offset.x > 50);
             }}
             onDragEnd={(_, info) => {
-              if (info.offset.x > 60 && onReplyTo) {
+              if (info.offset.x > 50 && onReplyTo) {
                 onReplyTo(message);
               }
               setShowReplyArrow(false);
               wasDraggedRef.current = false;
             }}
+            animate={{ x: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
             onClick={handleClick}
             onPointerDown={handlePressStart}
             onPointerUp={handlePressEnd}
             onPointerLeave={handlePressEnd}
             onContextMenu={handleContextMenu}
             className={cn(
-              "relative cursor-default select-none rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200 active:scale-95",
-              isOwn && "rounded-br-sm text-white",
+              "relative cursor-default select-none px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200 active:scale-95",
+              rounding,
               !isOwn &&
-                "bg-muted text-foreground rounded-bl-sm shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
+                "bg-muted text-foreground shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
               isFailed && "ring-2 ring-red-400/50",
               isVoice && "py-2",
               !isVoice &&
@@ -1044,10 +1065,28 @@ function MessageBubble({
                 background: isOwn
                   ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))"
                   : undefined,
-                boxShadow: undefined,
               } as React.CSSProperties
             }
           >
+            {/* Reply arrow indicator for swipe-to-reply */}
+            <m.div
+              className="absolute left-0 top-1/2 -translate-y-1/2 -ml-2 z-10"
+              animate={
+                showReplyArrow
+                  ? { scale: 1.2, opacity: 1 }
+                  : { scale: 0.5, opacity: 0 }
+              }
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              style={{ pointerEvents: "none" }}
+            >
+              <div
+                className="size-8 rounded-full flex items-center justify-center"
+                style={{ background: "var(--app-accent)" }}
+              >
+                <Reply className="size-4 text-white rotate-180" />
+              </div>
+            </m.div>
+
             {/* Message Action Sheet (single-tap menu) */}
             <AnimatePresence>
               {showActionSheet && (
@@ -1188,15 +1227,13 @@ function MessageBubble({
               className="mt-1 flex items-center gap-1 px-1 text-[10px] text-red-400 transition-colors hover:text-red-300 active:scale-95"
             >
               <AlertCircle className="size-3" />
-              <span>
-                Failed to send &middot; Tap to retry
-              </span>
+              <span>Failed to send &middot; Tap to retry</span>
             </button>
           )}
         </div>
 
-        {isOwn && <div className="w-8 shrink-0" />}
-      </m.div>
+        {isOwn && <div className="w-7 shrink-0" />}
+      </div>
 
       {/* Image Lightbox */}
       <AnimatePresence>
@@ -1208,6 +1245,64 @@ function MessageBubble({
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  MessageGroup                                                       */
+/* ------------------------------------------------------------------ */
+
+function MessageGroup({
+  messages: groupMessages,
+  currentUserId,
+  partnerName,
+  partnerAvatar,
+  onReplyTo,
+  onReact,
+  onDeleteMessage,
+  searchHighlight,
+  activeActionId,
+  onOpenAction,
+}: {
+  messages: ChatMessage[];
+  currentUserId: string;
+  partnerName: string;
+  partnerAvatar: string | null;
+  onReplyTo?: (msg: ChatMessage) => void;
+  onReact?: (id: string, emoji: string, add: boolean) => void;
+  onDeleteMessage?: (id: string) => void;
+  searchHighlight?: string;
+  activeActionId: string | null;
+  onOpenAction: (id: string | null) => void;
+}) {
+  const isOwnGroup = groupMessages[0].sender_id === currentUserId;
+  return (
+    <div className={cn("flex flex-col gap-1", isOwnGroup ? "items-end" : "items-start")}>
+      {groupMessages.map((msg, idx) => {
+        const isFirst = idx === 0;
+        const isLast = idx === groupMessages.length - 1;
+        const showAvatar = !isOwnGroup && isLast;
+        return (
+          <MessageBubble
+            key={msg.id}
+            message={msg}
+            isOwn={isOwnGroup}
+            isFirst={isFirst}
+            isLast={isLast}
+            partnerName={partnerName}
+            partnerAvatar={partnerAvatar}
+            currentUserId={currentUserId}
+            onReplyTo={onReplyTo}
+            onReact={onReact}
+            onDeleteMessage={onDeleteMessage}
+            searchHighlight={searchHighlight}
+            activeActionId={activeActionId}
+            onOpenAction={onOpenAction}
+            showAvatar={showAvatar}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -1230,7 +1325,7 @@ function formatDateSeparator(dateStr: string): string {
 
 function DateSeparator({ date }: { date: string }) {
   return (
-    <div className="flex items-center gap-3 px-1.5 sm:px-3 py-2">
+    <div className="flex items-center gap-3 px-1 py-2">
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
       <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-[var(--app-accent-subtle)]">
         {formatDateSeparator(date)}
@@ -1258,13 +1353,13 @@ function TypingIndicator({
     .toUpperCase()
     .slice(0, 2);
   return (
-    <div className="flex items-end gap-2.5 px-1.5 sm:px-3">
-      <Avatar className="size-8 shrink-0 ring-1 ring-muted">
+    <div className="flex items-end gap-2 px-1">
+      <Avatar className="size-7 shrink-0 ring-1 ring-white/10">
         {partnerAvatar && (
           <AvatarImage src={partnerAvatar} alt={partnerName} />
         )}
         <AvatarFallback
-          className="text-xs font-medium"
+          className="text-[10px] font-medium"
           style={{
             background:
               "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
@@ -1280,7 +1375,6 @@ function TypingIndicator({
         exit={{ opacity: 0, y: 4, scale: 0.95 }}
         transition={{ duration: 0.15 }}
         className="flex items-center gap-2.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800"
-        style={{ boxShadow: "0 1px 2px 0 var(--app-accent-glow)" }}
       >
         <span className="flex gap-1">
           <span
@@ -1310,30 +1404,20 @@ function TypingIndicator({
 
 function MessageListSkeleton() {
   return (
-    <div className="flex flex-col gap-4 px-1.5 sm:px-3 py-2">
+    <div className="flex flex-col gap-4 px-1 py-2">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
           className={cn(
-            "flex gap-2.5",
+            "flex gap-2",
             i % 2 === 0 ? "justify-start" : "justify-end",
           )}
         >
           {i % 2 === 0 && (
-            <Skeleton className="size-8 shrink-0 rounded-full" />
+            <Skeleton className="size-7 shrink-0 rounded-full" />
           )}
-          <Skeleton
-            className={cn("h-16 w-48 rounded-2xl")}
-            style={
-              i % 2 !== 0
-                ? {
-                    background:
-                      "linear-gradient(to right, var(--app-accent-glow), transparent)",
-                  }
-                : undefined
-            }
-          />
-          {i % 2 !== 0 && <div className="w-8 shrink-0" />}
+          <Skeleton className={cn("h-16 w-48 rounded-2xl")} />
+          {i % 2 !== 0 && <div className="w-7 shrink-0" />}
         </div>
       ))}
     </div>
@@ -1361,7 +1445,6 @@ function NewMessagesButton({
         transform: "translate3d(0,0,0)",
         background:
           "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
-        boxShadow: "0 10px 15px -3px var(--app-accent-glow)",
       }}
     >
       <ArrowDown className="size-3.5" />
@@ -1388,38 +1471,22 @@ function EmptyState({
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
-      {/* Decorative large avatar with glow */}
-      <div className="relative">
-        {/* Animated glow ring */}
-        <div
-          className="absolute -inset-3 rounded-full blur-lg animate-[pulse_3s_ease-in-out_infinite]"
+      <Avatar className="size-20 ring-4" style={
+        { "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties
+      }>
+        {partnerAvatar && (
+          <AvatarImage src={partnerAvatar} alt={partnerName} />
+        )}
+        <AvatarFallback
+          className="text-2xl font-bold text-white"
           style={{
             background:
-              "linear-gradient(to bottom right, var(--app-accent-glow), var(--app-accent-glow))",
+              "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))",
           }}
-        />
-        <div className="relative">
-          <Avatar
-            className="size-20 ring-4"
-            style={
-              { "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties
-            }
-          >
-            {partnerAvatar && (
-              <AvatarImage src={partnerAvatar} alt={partnerName} />
-            )}
-            <AvatarFallback
-              className="text-2xl font-bold text-white"
-              style={{
-                background:
-                  "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))",
-              }}
-            >
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      </div>
+        >
+          {initials}
+        </AvatarFallback>
+      </Avatar>
       <div className="text-center">
         <p className="text-sm font-semibold text-foreground">{partnerName}</p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -1434,6 +1501,8 @@ function EmptyState({
 /* ------------------------------------------------------------------ */
 /*  MessageFeed (main export)                                          */
 /* ------------------------------------------------------------------ */
+
+type MessageGroupData = { senderId: string; messages: ChatMessage[] };
 
 export function MessageFeed({
   messages,
@@ -1467,10 +1536,25 @@ export function MessageFeed({
   );
   const prevScrollHeightRef = useRef(0);
 
+  /* ---- Build message groups ---------------------------------------- */
+  const groups = useMemo(() => {
+    const result: MessageGroupData[] = [];
+    for (const msg of messages) {
+      const last = result[result.length - 1];
+      if (last && last.senderId === msg.sender_id) {
+        last.messages.push(msg);
+      } else {
+        result.push({ senderId: msg.sender_id, messages: [msg] });
+      }
+    }
+    return result;
+  }, [messages]);
+
   const totalItems = useMemo(
-    () => messages.length + (isPartnerTyping ? 1 : 0),
-    [messages.length, isPartnerTyping],
+    () => groups.length + (isPartnerTyping ? 1 : 0),
+    [groups.length, isPartnerTyping],
   );
+
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
 
@@ -1532,14 +1616,17 @@ export function MessageFeed({
   /* ---- Scroll to a specific message ----------------------------------- */
   useEffect(() => {
     if (!scrollToMessageId) return;
-    const idx = messages.findIndex((m) => m.id === scrollToMessageId);
-    if (idx === -1) {
+    // Find which group contains the target message
+    const groupIdx = groups.findIndex((g) =>
+      g.messages.some((m) => m.id === scrollToMessageId),
+    );
+    if (groupIdx === -1) {
       onScrolledToMessage?.();
       return;
     }
-    virtualizer.scrollToIndex(idx, { align: "center" });
+    virtualizer.scrollToIndex(groupIdx, { align: "center" });
     onScrolledToMessage?.();
-  }, [scrollToMessageId, messages, virtualizer, onScrolledToMessage]);
+  }, [scrollToMessageId, groups, virtualizer, onScrolledToMessage]);
 
   /* ---- Handle message count changes (new or prepended) ------------ */
   useEffect(() => {
@@ -1607,7 +1694,10 @@ export function MessageFeed({
       <div
         ref={parentRef}
         onScroll={handleScroll}
-        onClick={() => { onClearSearchHighlight?.(); setActiveActionId(null); }}
+        onClick={() => {
+          onClearSearchHighlight?.();
+          setActiveActionId(null);
+        }}
         className="h-full w-full select-none overflow-y-auto overscroll-contain"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
@@ -1656,19 +1746,24 @@ export function MessageFeed({
             </div>
           )}
           {virtualItems.map((vi) => {
-            const isTyping = vi.index === messages.length;
-            const msg = isTyping ? null : messages[vi.index];
-            // Check if we need a date separator before this message
-            const showDateSep =
-              msg &&
-              vi.index > 0 &&
-              messages[vi.index - 1] &&
-              (() => {
-                const prev = new Date(messages[vi.index - 1].created_at);
-                const curr = new Date(msg.created_at);
-                return prev.toDateString() !== curr.toDateString();
-              })();
-            const showFirstDateSep = msg && vi.index === 0;
+            const isTyping = vi.index === groups.length;
+            const group = isTyping ? null : groups[vi.index];
+
+            // Determine if we need a date separator before this group
+            let showDateSep = false;
+            if (group) {
+              const firstMsg = group.messages[0];
+              if (vi.index === 0) {
+                showDateSep = true;
+              } else {
+                const prevGroup = groups[vi.index - 1];
+                const prevLastMsg = prevGroup.messages[prevGroup.messages.length - 1];
+                const prevDate = new Date(prevLastMsg.created_at);
+                const currDate = new Date(firstMsg.created_at);
+                showDateSep = prevDate.toDateString() !== currDate.toDateString();
+              }
+            }
+
             return (
               <div
                 key={vi.key}
@@ -1687,17 +1782,16 @@ export function MessageFeed({
                     partnerName={partnerName}
                     partnerAvatar={partnerAvatar}
                   />
-                ) : msg ? (
+                ) : group ? (
                   <>
-                    {(showDateSep || showFirstDateSep) && (
-                      <DateSeparator date={msg.created_at} />
+                    {showDateSep && (
+                      <DateSeparator date={group.messages[0].created_at} />
                     )}
-                    <MessageBubble
-                      message={msg}
-                      isOwn={msg.sender_id === currentUserId}
+                    <MessageGroup
+                      messages={group.messages}
+                      currentUserId={currentUserId}
                       partnerName={partnerName}
                       partnerAvatar={partnerAvatar}
-                      currentUserId={currentUserId}
                       onReplyTo={onReplyTo}
                       onReact={onReact}
                       onDeleteMessage={onDeleteMessage}

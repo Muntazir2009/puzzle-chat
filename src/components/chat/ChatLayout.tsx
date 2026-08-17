@@ -261,7 +261,12 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
 
   /* Compute background style — wallpaper overrides theme */
   const bgStyle = wallpaper
-    ? { backgroundImage: `url(${wallpaper})`, backgroundSize: "cover", backgroundPosition: "center" }
+    ? {
+        backgroundImage: `url(${wallpaper})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }
     : theme.style;
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -435,27 +440,27 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
   return (
     <div className="flex w-full flex-col bg-background" style={containerStyle}>
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
-        {/* Header - sticky with glassmorphic blur + shadow */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--app-accent-subtle)] bg-background/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 px-4">
+        {/* Header — glassmorphic, minimal, no shadow/glow */}
+        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 px-4 border-b border-white/5 bg-black/60 backdrop-blur-2xl">
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
-            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none"
+            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-white/5 focus-visible:outline-none"
             aria-label="Open user info"
           >
-            <Avatar className="size-9 ring-2 ring-[var(--app-accent-lighter)]/30">
+            <Avatar className="size-8 ring-2 ring-[var(--app-accent-lighter)]/30">
               {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
               <AvatarFallback
-                className="text-xs font-semibold text-white"
+                className="text-[10px] font-semibold text-white"
                 style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
               >{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold leading-tight">{partner.name}</span>
+              <span className="text-sm font-semibold leading-tight text-white">{partner.name}</span>
               <div className="flex items-center gap-1.5">
                 <StatusDot online={partnerStatus.online} />
                 <span
-                  className={cn("text-xs", isPartnerTyping ? "font-medium" : "text-muted-foreground")}
+                  className={cn("text-[11px]", isPartnerTyping ? "font-medium" : "text-white/40")}
                   style={isPartnerTyping ? { color: "var(--app-accent)" } : undefined}
                 >{statusText}</span>
               </div>
@@ -468,8 +473,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
           </div>
         </header>
 
-        {/* Feed area – pb-28 so messages never get covered by the floating input bar */}
-        <div className="relative min-h-0 flex-1 pb-28">
+        {/* Feed area — pb-24 so messages never get covered by the floating input pill */}
+        <div className="relative min-h-0 flex-1 pb-24 px-1">
           <MessageFeed
             messages={messages}
             isLoading={isLoading}
@@ -503,8 +508,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
       {/* Floating preview bars above the pill */}
       {(replyTo || attachmentFile) && (
         <div
-          className="fixed left-4 right-4 max-w-2xl mx-auto z-30 flex flex-col gap-1.5"
-          style={{ bottom: 80 }}
+          className="fixed left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-30 flex flex-col gap-1.5"
+          style={{ bottom: 72 }}
         >
           {/* Attachment preview bar */}
           <AnimatePresence>
@@ -519,7 +524,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               >
                 <div className="flex items-center gap-3 px-4 py-2.5">
                   {attachmentPreview ? (
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg" style={{ boxShadow: `0 0 0 2px var(--app-accent-subtle)` }}>
+                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-white/10">
                       <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
                     </div>
                   ) : (
@@ -588,15 +593,17 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         </div>
       )}
 
-      {/* Floating glassmorphic input pill */}
+      {/* Compact floating input pill */}
       <form onSubmit={handleSubmit}>
         <div
           className={cn(
-            "fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-30 flex items-center gap-1.5",
+            "fixed bottom-4 left-1/2 -translate-x-1/2",
+            "w-[90%] max-w-lg",
             "rounded-full",
-            "bg-neutral-900/70",
+            "backdrop-blur-xl bg-black/80",
             "border border-white/10",
-            "backdrop-blur-xl shadow-xl",
+            "p-1.5 px-3 shadow-2xl z-40",
+            "flex items-center gap-2",
             "transition-all duration-200",
             "focus-within:border-white/20",
           )}
@@ -607,7 +614,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               type="button"
               onClick={handlePaperclipClick}
               className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200 active:scale-95",
+                "flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 active:scale-95",
                 hasAttachment ? "text-[var(--app-accent)]" : "text-white/50 hover:text-white/80",
               )}
               aria-label="Attach file"
@@ -636,7 +643,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             >
               <button
                 type="button"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:text-white/80 active:scale-95"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:text-white/80 active:scale-95"
                 aria-label="Emoji"
               >
                 <Smile className="size-4" />
@@ -655,7 +662,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               placeholder={replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message..."}
               rows={1}
               className={cn(
-                "flex-1 resize-none bg-transparent py-3 px-1 text-sm",
+                "flex-1 resize-none bg-transparent py-2 px-1 text-sm",
                 "text-white placeholder:text-white/40",
                 "focus-visible:outline-none",
                 "max-h-32 overflow-y-auto",
@@ -666,7 +673,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
 
           {/* Voice waveform overlay — replaces textarea inside the pill */}
           {showVoiceWaveform && (
-            <div className="flex flex-1 items-center gap-3 px-3 py-2.5">
+            <div className="flex flex-1 items-center gap-3 px-3 py-1.5">
               {/* Red recording dot */}
               <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-500">
                 {voice.isRecording && (
@@ -706,7 +713,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             <button
               type="button"
               onClick={handleVoiceCancel}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
               aria-label="Cancel recording"
             >
               <MicOff className="size-4" />
@@ -719,7 +726,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               type="button"
               onClick={handleVoiceSend}
               disabled={isSendingVoice}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-50"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-50"
               style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }}
               aria-label="Send voice"
             >
@@ -741,13 +748,13 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   type="submit"
                   size="icon"
                   disabled={isSending || isUploading}
-                  className="size-9 shrink-0 rounded-full text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
+                  className="size-8 shrink-0 rounded-full text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
                   style={{
                     background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
                   }}
                   aria-label="Send message"
                 >
-                  <ArrowUp className="size-4" />
+                  <ArrowUp className="size-3.5" />
                 </Button>
               </m.div>
             </AnimatePresence>
@@ -765,7 +772,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                 <button
                   type="button"
                   onClick={() => voice.startRecording()}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 active:scale-95"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 active:scale-95"
                   aria-label="Record voice"
                 >
                   <Mic className="size-4" />

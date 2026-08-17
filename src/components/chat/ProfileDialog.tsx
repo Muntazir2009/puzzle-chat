@@ -220,7 +220,6 @@ export function ProfileDialog({
           {/* Avatar preview with upload overlay */}
           <div className="mb-6 flex flex-col items-center gap-3">
             <div className="relative">
-              <div className="absolute -inset-1.5 rounded-full blur-md" style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", opacity: 0.3 }} />
               {/* Outer clickable container sized to fit avatar + ring */}
               <div
                 className="relative cursor-pointer"
@@ -318,7 +317,7 @@ export function ProfileDialog({
                   className={cn(
                     "inline-block size-2 rounded-full transition-colors duration-300",
                     userStatus.online
-                      ? "bg-emerald-500 shadow-sm shadow-emerald-500/50"
+                      ? "bg-emerald-500"
                       : "bg-zinc-400 dark:bg-zinc-600"
                   )}
                 />

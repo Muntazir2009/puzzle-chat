@@ -2,27 +2,27 @@
 
 import { createContext, useContext, useCallback, useSyncExternalStore, type ReactNode } from "react";
 
-export type AppTheme = "default" | "golden" | "crimson";
+export type AppTheme = "golden" | "default" | "crimson";
 
 interface ThemeContextValue {
   theme: AppTheme;
   setTheme: (t: AppTheme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: "default", setTheme: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({ theme: "golden", setTheme: () => {} });
 
 const STORAGE_KEY = "puzzle-app-theme";
 
 function readStoredTheme(): AppTheme {
-  if (typeof window === "undefined") return "default";
+  if (typeof window === "undefined") return "golden";
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === "golden" || raw === "crimson") return raw;
-  } catch {}
-  return "default";
+    if (raw === "default" || raw === "crimson") return raw;
+  }
+  catch {}
+  return "golden";
 }
 
-/* Subscribe to storage events (cross-tab sync) and data-theme mutations. */
 let listeners: Array<() => void> = [];
 
 function subscribe(cb: () => void) {
@@ -34,19 +34,18 @@ function getSnapshot(): AppTheme {
   const attr = typeof document !== "undefined"
     ? document.documentElement.getAttribute("data-theme")
     : null;
-  if (attr === "golden" || attr === "crimson") return attr;
-  return "default";
+  if (attr === "default" || attr === "crimson") return attr;
+  return "golden";
 }
 
 function getServerSnapshot(): AppTheme {
-  return "default";
+  return "golden";
 }
 
 function emitChange() {
   listeners.forEach((l) => l());
 }
 
-/* Apply theme to DOM and persist */
 function applyTheme(t: AppTheme) {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-theme", t);
@@ -55,7 +54,6 @@ function applyTheme(t: AppTheme) {
   emitChange();
 }
 
-/* Initialise from localStorage on first client render */
 if (typeof window !== "undefined") {
   const stored = readStoredTheme();
   document.documentElement.setAttribute("data-theme", stored);
