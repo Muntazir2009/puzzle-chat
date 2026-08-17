@@ -594,12 +594,11 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
           className={cn(
             "fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-30 flex items-center gap-1.5",
             "rounded-full",
-            "bg-white/80 dark:bg-neutral-900/80",
-            "border border-black/5 dark:border-[var(--app-accent-subtle)]",
-            "backdrop-blur-md shadow-2xl",
+            "bg-neutral-900/70",
+            "border border-white/10",
+            "backdrop-blur-xl shadow-xl",
             "transition-all duration-200",
-            "focus-within:border-[var(--app-accent-light)]",
-            "focus-within:shadow-[0_0_20px_var(--app-accent-glow)]",
+            "focus-within:border-white/20",
           )}
         >
           {/* Paperclip button — left side of pill */}
@@ -609,7 +608,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               onClick={handlePaperclipClick}
               className={cn(
                 "flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200 active:scale-95",
-                hasAttachment ? "text-[var(--app-accent)]" : "text-muted-foreground",
+                hasAttachment ? "text-[var(--app-accent)]" : "text-white/50 hover:text-white/80",
               )}
               aria-label="Attach file"
             >
@@ -637,7 +636,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             >
               <button
                 type="button"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground active:scale-95"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:text-white/80 active:scale-95"
                 aria-label="Emoji"
               >
                 <Smile className="size-4" />
@@ -657,7 +656,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               rows={1}
               className={cn(
                 "flex-1 resize-none bg-transparent py-3 px-1 text-sm",
-                "placeholder:text-muted-foreground",
+                "text-white placeholder:text-white/40",
                 "focus-visible:outline-none",
                 "max-h-32 overflow-y-auto",
                 "scrollbar-none",
@@ -694,7 +693,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
               </div>
 
               {/* Timer */}
-              <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+              <span className="shrink-0 text-xs font-medium tabular-nums text-white/50">
                 {Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}
               </span>
             </div>
@@ -745,7 +744,6 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                   className="size-9 shrink-0 rounded-full text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
                   style={{
                     background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
-                    boxShadow: `0 10px 15px -3px var(--app-accent-glow)`,
                   }}
                   aria-label="Send message"
                 >
@@ -767,7 +765,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
                 <button
                   type="button"
                   onClick={() => voice.startRecording()}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-muted active:scale-95"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 active:scale-95"
                   aria-label="Record voice"
                 >
                   <Mic className="size-4" />

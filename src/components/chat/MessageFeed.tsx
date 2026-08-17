@@ -796,6 +796,8 @@ function MessageBubble({
   onReact,
   onDeleteMessage,
   searchHighlight,
+  activeActionId,
+  onOpenAction,
 }: {
   message: ChatMessage;
   isOwn: boolean;
@@ -806,9 +808,11 @@ function MessageBubble({
   onReact?: (id: string, emoji: string, add: boolean) => void;
   onDeleteMessage?: (id: string) => void;
   searchHighlight?: string;
+  activeActionId: string | null;
+  onOpenAction: (id: string | null) => void;
 }) {
   const [showTapback, setShowTapback] = useState(false);
-  const [showActionSheet, setShowActionSheet] = useState(false);
+  const showActionSheet = activeActionId === message.id;
   const [showLightbox, setShowLightbox] = useState<string | null>(null);
   const [showReplyArrow, setShowReplyArrow] = useState(false);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -823,14 +827,12 @@ function MessageBubble({
       wasDraggedRef.current = false;
       return;
     }
-    setShowActionSheet((prev) => {
-      if (!prev) setShowTapback(false);
-      return !prev;
-    });
-  }, []);
+    setShowTapback(false);
+    onOpenAction(activeActionId === message.id ? null : message.id);
+  }, [activeActionId, message.id, onOpenAction]);
 
   const handlePressStart = useCallback(() => {
-    setShowActionSheet(false);
+    onOpenAction(null);
     longPressRef.current = setTimeout(() => {
       if (typeof navigator !== "undefined" && "vibrate" in navigator)
         navigator.vibrate(20);
@@ -844,7 +846,7 @@ function MessageBubble({
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setShowActionSheet(false);
+    onOpenAction(null);
     setShowTapback(true);
   }, []);
 
@@ -873,8 +875,8 @@ function MessageBubble({
   const handleDelete = useCallback(() => {
     onDeleteMessage?.(message.id);
     setShowTapback(false);
-    setShowActionSheet(false);
-  }, [message.id, onDeleteMessage]);
+    onOpenAction(null);
+  }, [message.id, onDeleteMessage, onOpenAction]);
 
   const handleActionSheetCopy = useCallback(() => {
     navigator.clipboard
@@ -895,21 +897,21 @@ function MessageBubble({
           variant: "destructive",
         });
       });
-    setShowActionSheet(false);
-  }, [message.content]);
+    onOpenAction(null);
+  }, [message.content, onOpenAction]);
 
   const handleActionSheetReply = useCallback(() => {
     onReplyTo?.(message);
-    setShowActionSheet(false);
-  }, [message, onReplyTo]);
+    onOpenAction(null);
+  }, [message, onReplyTo, onOpenAction]);
 
   const handleActionSheetForward = useCallback(() => {
     toast({
       title: "Forward",
       description: "Forward coming soon!",
     });
-    setShowActionSheet(false);
-  }, []);
+    onOpenAction(null);
+  }, [onOpenAction]);
 
   const isFailed = message.status === "failed";
   const isVoice = message.type === "voice";
@@ -1042,9 +1044,7 @@ function MessageBubble({
                 background: isOwn
                   ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))"
                   : undefined,
-                boxShadow: isOwn
-                  ? "0 4px 6px -1px var(--app-accent-glow)"
-                  : "0 1px 2px 0 var(--app-accent-glow)",
+                boxShadow: undefined,
               } as React.CSSProperties
             }
           >
@@ -1458,6 +1458,7 @@ export function MessageFeed({
 }: MessageFeedProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const isAutoScrollRef = useRef(true);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [showNewBtn, setShowNewBtn] = useState(false);
   const unreadRef = useRef(0);
   const prevCountRef = useRef(messages.length);
@@ -1606,7 +1607,7 @@ export function MessageFeed({
       <div
         ref={parentRef}
         onScroll={handleScroll}
-        onClick={() => onClearSearchHighlight?.()}
+        onClick={() => { onClearSearchHighlight?.(); setActiveActionId(null); }}
         className="h-full w-full select-none overflow-y-auto overscroll-contain"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
@@ -1701,6 +1702,8 @@ export function MessageFeed({
                       onReact={onReact}
                       onDeleteMessage={onDeleteMessage}
                       searchHighlight={searchHighlight}
+                      activeActionId={activeActionId}
+                      onOpenAction={setActiveActionId}
                     />
                   </>
                 ) : null}

@@ -131,7 +131,7 @@
   --app-accent-lighter: #c4b5fd;
   --app-accent-dark: #7c3aed;
   --app-accent-ring: rgba(139, 92, 246, 0.5);
-  --app-accent-glow: rgba(139, 92, 246, 0.3);
+  --app-accent-glow: transparent;
   --app-accent-subtle: rgba(139, 92, 246, 0.08);
   --app-accent-text: oklch(0.55 0.24 285);
   --app-accent-pill-bg: rgba(139, 92, 246, 0.06);
@@ -148,7 +148,7 @@
   --app-accent-lighter: #fde68a;
   --app-accent-dark: #b45309;
   --app-accent-ring: rgba(245, 158, 11, 0.5);
-  --app-accent-glow: rgba(245, 158, 11, 0.3);
+  --app-accent-glow: transparent;
   --app-accent-subtle: rgba(245, 158, 11, 0.08);
   --app-accent-text: oklch(0.75 0.17 75);
   --app-accent-pill-bg: rgba(245, 158, 11, 0.06);
@@ -165,7 +165,7 @@
   --app-accent-lighter: #fda4af;
   --app-accent-dark: #9f1239;
   --app-accent-ring: rgba(225, 29, 72, 0.5);
-  --app-accent-glow: rgba(225, 29, 72, 0.3);
+  --app-accent-glow: transparent;
   --app-accent-subtle: rgba(225, 29, 72, 0.08);
   --app-accent-text: oklch(0.6 0.22 20);
   --app-accent-pill-bg: rgba(225, 29, 72, 0.06);

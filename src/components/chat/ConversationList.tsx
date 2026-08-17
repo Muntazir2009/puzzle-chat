@@ -145,7 +145,6 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
           className="size-9 rounded-xl text-white transition-all hover:opacity-80"
           style={{
             background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
-            boxShadow: `0 4px 6px -1px var(--app-accent-glow)`,
           }}
           aria-label="New chat"
         >
@@ -338,7 +337,6 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
                 className="unread-badge-pulse flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-2 ring-background"
                 style={{
                   background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
-                  boxShadow: `0 1px 2px 0 var(--app-accent-glow)`,
                 }}
               >{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
@@ -449,7 +447,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
               <m.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))', boxShadow: '0 10px 15px -3px var(--app-accent-glow)' }}
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))' }}
                 className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full text-white ring-4 ring-background max-lg:!transform-none"
               >
                 <Plus className="size-4 text-white" />

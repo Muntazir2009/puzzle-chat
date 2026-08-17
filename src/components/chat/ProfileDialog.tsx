@@ -349,7 +349,6 @@ export function ProfileDialog({
               className="rounded-xl text-white transition-opacity hover:opacity-90"
               style={{
                 background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
-                boxShadow: "0 4px 6px -1px var(--app-accent-glow)",
               }}
             >
               {saving ? (

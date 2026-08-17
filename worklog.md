@@ -1081,3 +1081,44 @@ Stage Summary:
 - Theme engine now propagates across: ProfileDialog, EmojiPicker, ChatView, ConversationList, ChatLayout, MessageFeed, ChatBackgroundPicker, globals.css
 - Only remaining hardcoded accent: ChatBackgroundPicker decorative pattern rgba values (by design)
 - Zero lint errors, zero new TypeScript errors
+
+---
+Task ID: ui-fix-stacking-glow-glass
+Agent: Main Agent
+Task: Fix action sheet stacking bug, remove all glow effects, implement glassmorphic input pill
+
+Work Log:
+- **FIX 1 – Action sheet stacking bug (MessageFeed.tsx)**:
+  - Lifted `showActionSheet` state from individual `MessageBubble` components to `MessageFeed` parent as `activeActionId: string | null` state
+  - Added `activeActionId` and `onOpenAction` props to `MessageBubble` interface
+  - Replaced local `useState(false)` with derived `const showActionSheet = activeActionId === message.id`
+  - Replaced all `setShowActionSheet(false/true)` calls with `onOpenAction(null/message.id)`
+  - Updated `handleClick` to call `setShowTapback(false)` before `onOpenAction`, and use `activeActionId` for toggle logic
+  - Added `setActiveActionId(null)` to the scroll container's `onClick` handler so tapping empty space closes any open action sheet
+  - Passed `activeActionId={activeActionId}` and `onOpenAction={setActiveActionId}` to `MessageBubble` render
+- **FIX 2 – Remove all glow effects**:
+  - `MessageFeed.tsx`: Removed `boxShadow` referencing `var(--app-accent-glow)` from message bubble inline style (set to `undefined`)
+  - `ChatLayout.tsx`: Removed `focus-within:shadow-[0_0_20px_var(--app-accent-glow)]` from input pill className
+  - `ChatLayout.tsx`: Removed `boxShadow: 0 10px 15px -3px var(--app-accent-glow)` from send button style
+  - `ChatView.tsx`: Removed `boxShadow` from `PuzzleLogo` component (set to `undefined`)
+  - `ConversationList.tsx`: Removed `boxShadow` from NewChatDialog button, unread badge, and empty state floating badge
+  - `ProfileDialog.tsx`: Removed `boxShadow` from save button
+- **FIX 3 – Glassmorphic input pill (ChatLayout.tsx)**:
+  - Changed `bg-white/80 dark:bg-neutral-900/80` → `bg-neutral-900/70` (always dark)
+  - Changed `border-black/5 dark:border-[var(--app-accent-subtle)]` → `border border-white/10`
+  - Changed `backdrop-blur-md` → `backdrop-blur-xl` (stronger frosted glass)
+  - Changed `shadow-2xl` → `shadow-xl`
+  - Changed `focus-within:border-[var(--app-accent-light)]` → `focus-within:border-white/20`
+  - Changed textarea to `text-white placeholder:text-white/40`
+  - Changed paperclip/emoji/mic icon colors from `text-muted-foreground` to `text-white/50 hover:text-white/80`
+  - Changed recording timer from `text-muted-foreground` to `text-white/50`
+  - Changed mic button hover from `hover:bg-muted` to `hover:bg-white/10`
+- **FIX 4 – Neutralize glow CSS variable (globals.css)**:
+  - Changed `--app-accent-glow` from `rgba(...)` to `transparent` in all 3 theme blocks: default, golden, crimson
+- Ran ESLint on all 5 edited component files: 0 errors (1 pre-existing warning about TanStack Virtual)
+
+Stage Summary:
+- Action sheets no longer stack – only one can be open at a time, tracked at MessageFeed level
+- All `var(--app-accent-glow)` glow effects removed from 6 component files + CSS variable set to transparent
+- Input pill is now always dark glassmorphic (dark bg, white border, strong blur, light text) regardless of theme mode
+- Files modified: `MessageFeed.tsx`, `ChatLayout.tsx`, `ChatView.tsx`, `ConversationList.tsx`, `ProfileDialog.tsx`, `globals.css`

@@ -1,0 +1,790 @@
+     1→"use client";
+     2→
+     3→import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+     4→import { ArrowUp, Mic, MicOff, X, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Loader2, FileText } from "lucide-react";
+     5→import { Button } from "@/components/ui/button";
+     6→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+     7→import { Switch } from "@/components/ui/switch";
+     8→import { Separator } from "@/components/ui/separator";
+     9→import { MessageFeed } from "@/components/chat/MessageFeed";
+    10→import { EmojiPicker } from "@/components/chat/EmojiPicker";
+    11→import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
+    12→import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
+    13→import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+    14→import { useVisualViewport } from "@/hooks/useVisualViewport";
+    15→import { cn } from "@/lib/utils";
+    16→import { m, AnimatePresence } from "framer-motion";
+    17→import { toast } from "@/hooks/use-toast";
+    18→
+    19→/* ------------------------------------------------------------------ */
+    20→/*  Props                                                              */
+    21→/* ------------------------------------------------------------------ */
+    22→
+    23→export interface ChatPartner { id: string; name: string; avatar_url: string | null }
+    24→export interface ChatLayoutProps { currentUserId: string; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
+    25→
+    26→/* ------------------------------------------------------------------ */
+    27→/*  Constants                                                          */
+    28→/* ------------------------------------------------------------------ */
+    29→
+    30→const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+    31→const ACCEPTED_TYPES = "image/*,video/mp4,.pdf,.txt";
+    32→const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+    33→
+    34→/* ------------------------------------------------------------------ */
+    35→/*  Helpers                                                            */
+    36→/* ------------------------------------------------------------------ */
+    37→
+    38→function formatFileSize(bytes: number): string {
+    39→  if (bytes < 1024) return `${bytes} B`;
+    40→  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    41→  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    42→}
+    43→
+    44→function formatLastSeen(lastSeen: string | null): string {
+    45→  if (!lastSeen) return "Offline";
+    46→  const diffMs = Date.now() - new Date(lastSeen).getTime();
+    47→  const diffSec = Math.floor(diffMs / 1000);
+    48→  if (diffSec < 60) return "Seen just now";
+    49→  const diffMin = Math.floor(diffSec / 60);
+    50→  if (diffMin < 60) return `Seen ${diffMin}m ago`;
+    51→  const diffHr = Math.floor(diffMin / 60);
+    52→  if (diffHr < 24) return `Seen ${diffHr}h ago`;
+    53→  const diffDay = Math.floor(diffHr / 24);
+    54→  if (diffDay < 7) return `Seen ${diffDay}d ago`;
+    55→  return `Seen ${new Date(lastSeen).toLocaleDateString()}`;
+    56→}
+    57→
+    58→function StatusDot({ online, size = "size-2.5" }: { online: boolean; size?: string }) {
+    59→  return (
+    60→    <span
+    61→      className={cn(
+    62→        "inline-block rounded-full",
+    63→        size,
+    64→        online ? "bg-emerald-500" : "bg-muted-foreground/50",
+    65→      )}
+    66→    />
+    67→  );
+    68→}
+    69→
+    70→/* ------------------------------------------------------------------ */
+    71→/*  PartnerInfoPanel                                                   */
+    72→/* ------------------------------------------------------------------ */
+    73→
+    74→function PartnerInfoPanel({
+    75→  partner,
+    76→  partnerStatus,
+    77→  open,
+    78→  onClose,
+    79→}: {
+    80→  partner: ChatPartner;
+    81→  partnerStatus: PartnerStatus;
+    82→  open: boolean;
+    83→  onClose: () => void;
+    84→}) {
+    85→  const [muted, setMuted] = useState(false);
+    86→
+    87→  return (
+    88→    <AnimatePresence>
+    89→      {open && (
+    90→        <>
+    91→          {/* Backdrop */}
+    92→          <m.div
+    93→            key="backdrop"
+    94→            initial={{ opacity: 0 }}
+    95→            animate={{ opacity: 1 }}
+    96→            exit={{ opacity: 0 }}
+    97→            transition={{ duration: 0.2 }}
+    98→            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+    99→            onClick={onClose}
+   100→          />
+   101→          {/* Panel */}
+   102→          <m.aside
+   103→            key="panel"
+   104→            initial={{ x: "100%" }}
+   105→            animate={{ x: 0 }}
+   106→            exit={{ x: "100%" }}
+   107→            transition={{ duration: 0.2, ease: "easeOut" }}
+   108→            className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-background border-l shadow-2xl"
+   109→          >
+   110→            {/* Panel header */}
+   111→            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+   112→              <h3 className="text-sm font-semibold">User Info</h3>
+   113→              <button
+   114→                type="button"
+   115→                onClick={onClose}
+   116→                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
+   117→                aria-label="Close panel"
+   118→              >
+   119→                <X className="size-4" />
+   120→              </button>
+   121→            </div>
+   122→
+   123→            {/* Scrollable content */}
+   124→            <div className="flex-1 overflow-y-auto">
+   125→              {/* Avatar + Name + Status */}
+   126→              <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
+   127→                <div className="relative">
+   128→                  <Avatar className="size-20 ring-4 ring-[var(--app-accent-lighter)]/30">
+   129→                    {partner.avatar_url && (
+   130→                      <AvatarImage src={partner.avatar_url} alt={partner.name} />
+   131→                    )}
+   132→                    <AvatarFallback
+   133→                      className="text-xl font-bold text-white"
+   134→                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+   135→                    >
+   136→                      {partner.name.slice(0, 2).toUpperCase()}
+   137→                    </AvatarFallback>
+   138→                  </Avatar>
+   139→                  <span
+   140→                    className={cn(
+   141→                      "absolute bottom-1 right-1 size-3.5 rounded-full ring-2 ring-background",
+   142→                      partnerStatus.online ? "bg-emerald-500" : "bg-muted-foreground/50",
+   143→                    )}
+   144→                  />
+   145→                </div>
+   146→                <div className="flex flex-col items-center gap-1">
+   147→                  <span className="text-lg font-semibold">{partner.name}</span>
+   148→                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   149→                    <StatusDot online={partnerStatus.online} size="size-2" />
+   150→                    <span>
+   151→                      {partnerStatus.online
+   152→                        ? "Online"
+   153→                        : formatLastSeen(partnerStatus.last_seen)}
+   154→                    </span>
+   155→                  </div>
+   156→                </div>
+   157→              </div>
+   158→
+   159→              <Separator />
+   160→
+   161→              {/* Shared media (placeholder) */}
+   162→              <button
+   163→                type="button"
+   164→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   165→              >
+   166→                <div className="flex items-center gap-3">
+   167→                  <ImageIcon className="size-4 text-muted-foreground" />
+   168→                  <span>Shared media</span>
+   169→                </div>
+   170→                <ChevronRight className="size-4 text-muted-foreground" />
+   171→              </button>
+   172→
+   173→              <Separator />
+   174→
+   175→              {/* Shared links (placeholder) */}
+   176→              <button
+   177→                type="button"
+   178→                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
+   179→              >
+   180→                <div className="flex items-center gap-3">
+   181→                  <Link2 className="size-4 text-muted-foreground" />
+   182→                  <span>Shared links</span>
+   183→                </div>
+   184→                <ChevronRight className="size-4 text-muted-foreground" />
+   185→              </button>
+   186→
+   187→              <Separator />
+   188→
+   189→              {/* Mute notifications */}
+   190→              <div className="flex items-center justify-between px-5 py-3.5">
+   191→                <span className="text-sm">Mute notifications</span>
+   192→                <Switch
+   193→                  checked={muted}
+   194→                  onCheckedChange={setMuted}
+   195→                />
+   196→              </div>
+   197→
+   198→              <Separator />
+   199→
+   200→              {/* Block user */}
+   201→              <button
+   202→                type="button"
+   203→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   204→              >
+   205→                <Ban className="size-4" />
+   206→                <span>Block user</span>
+   207→              </button>
+   208→
+   209→              <Separator />
+   210→
+   211→              {/* Clear chat */}
+   212→              <button
+   213→                type="button"
+   214→                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
+   215→              >
+   216→                <Trash2 className="size-4" />
+   217→                <span>Clear chat</span>
+   218→              </button>
+   219→            </div>
+   220→          </m.aside>
+   221→        </>
+   222→      )}
+   223→    </AnimatePresence>
+   224→  );
+   225→}
+   226→
+   227→/* ------------------------------------------------------------------ */
+   228→/*  ChatLayout                                                         */
+   229→/* ------------------------------------------------------------------ */
+   230→
+   231→export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
+   232→  const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore } =
+   233→    useChat({ currentUserId, otherUserId, conversationId, initialMessages });
+   234→
+   235→  const [draft, setDraft] = useState("");
+   236→  const [sendBtnKey, setSendBtnKey] = useState(0);
+   237→  const [isSending, setIsSending] = useState(false);
+   238→  const [vanishMode] = useState(false);
+   239→  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+   240→  const [ephemeralSeconds] = useState<number | null>(null);
+   241→  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
+   242→  const inputRef = useRef<HTMLTextAreaElement>(null);
+   243→  const viewport = useVisualViewport();
+   244→
+   245→  /* Background theme + wallpaper */
+   246→  const { themeId, theme, selectTheme, wallpaper, setWallpaper } = useChatBackground();
+   247→
+   248→  /* Voice */
+   249→  const voice = useVoiceRecorder();
+   250→  const [showVoiceWaveform, setShowVoiceWaveform] = useState(false);
+   251→  const [isSendingVoice, setIsSendingVoice] = useState(false);
+   252→
+   253→  /* Attachment */
+   254→  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+   255→  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+   256→  const [isUploading, setIsUploading] = useState(false);
+   257→  const fileInputRef = useRef<HTMLInputElement>(null);
+   258→
+   259→  const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
+   260→  const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
+   261→
+   262→  /* Compute background style — wallpaper overrides theme */
+   263→  const bgStyle = wallpaper
+   264→    ? { backgroundImage: `url(${wallpaper})`, backgroundSize: "cover", backgroundPosition: "center" }
+   265→    : theme.style;
+   266→
+   267→  useEffect(() => { inputRef.current?.focus(); }, []);
+   268→
+   269→  /* Show voice waveform when recording */
+   270→  useEffect(() => { setShowVoiceWaveform(voice.isRecording); }, [voice.isRecording]);
+   271→
+   272→  /* Global keyboard shortcuts */
+   273→  useEffect(() => {
+   274→    function handleGlobalKey(e: KeyboardEvent) {
+   275→      if (e.key === "Escape") {
+   276→        if (replyTo) { setReplyTo(null); e.preventDefault(); }
+   277→        else if (infoPanelOpen) { setInfoPanelOpen(false); e.preventDefault(); }
+   278→      }
+   279→    }
+   280→    window.addEventListener("keydown", handleGlobalKey);
+   281→    return () => window.removeEventListener("keydown", handleGlobalKey);
+   282→  }, [replyTo, infoPanelOpen]);
+   283→
+   284→  /* Derived values — MUST be declared before any useCallback that
+   285→     references them in its dependency array to avoid TDZ errors
+   286→     in the production webpack bundle. */
+   287→  const hasAttachment = attachmentFile !== null;
+   288→  const hasText = draft.trim().length > 0;
+   289→
+   290→  /* ---- Attachment upload helpers (declared BEFORE handleSubmit
+   291→     because handleSubmit's dependency array includes uploadAttachment;
+   292→     accessing a const before its declaration causes a TDZ crash in the
+   293→     production webpack bundle deployed to Cloudflare Workers). ---- */
+   294→  const clearAttachment = useCallback(() => {
+   295→    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+   296→    setAttachmentFile(null);
+   297→    setAttachmentPreview(null);
+   298→  }, [attachmentPreview]);
+   299→
+   300→  const uploadAttachment = useCallback(async () => {
+   301→    if (!attachmentFile || isUploading) return;
+   302→    setIsUploading(true);
+   303→    try {
+   304→      const fd = new FormData();
+   305→      fd.append("file", attachmentFile);
+   306→      fd.append("conversation_id", conversationId);
+   307→      if (replyTo?.id) fd.append("reply_to_id", replyTo.id);
+   308→      if (vanishMode) fd.append("vanish_mode", "true");
+   309→      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
+   310→
+   311→      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
+   312→      if (!res.ok) {
+   313→        const data = await res.json().catch(() => ({ error: "Upload failed" }));
+   314→        throw new Error(data.error || `Upload failed: ${res.status}`);
+   315→      }
+   316→      /* Message is inserted server-side and pushed via realtime;
+   317→         the useChat hook will pick it up automatically. */
+   318→      clearAttachment();
+   319→      setReplyTo(null);
+   320→    } catch (err) {
+   321→      console.error("[ChatLayout] upload error:", err);
+   322→      toast({
+   323→        title: "Upload failed",
+   324→        description: err instanceof Error ? err.message : "Could not send the file.",
+   325→        variant: "destructive",
+   326→      });
+   327→    } finally {
+   328→      setIsUploading(false);
+   329→    }
+   330→  }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
+   331→
+   332→  const handleSubmit = useCallback(async (e: FormEvent) => {
+   333→    e.preventDefault();
+   334→    /* If an attachment is selected, upload it instead of sending text */
+   335→    if (hasAttachment && !hasText) {
+   336→      await uploadAttachment();
+   337→      return;
+   338→    }
+   339→    /* If there's both text and an attachment, send text first, then upload */
+   340→    const trimmed = draft.trim();
+   341→    if (!trimmed || isSending) return;
+   342→    setIsSending(true);
+   343→    const opts: SendMessageOptions = { vanish_mode: vanishMode, ephemeral_seconds: ephemeralSeconds, reply_to_id: replyTo?.id ?? null };
+   344→    setDraft(""); setReplyTo(null);
+   345→    if (inputRef.current) inputRef.current.style.height = "auto";
+   346→    try {
+   347→      await sendMessage(trimmed, opts);
+   348→      setSendBtnKey((k) => k + 1);
+   349→      /* Upload attachment after text is sent */
+   350→      if (hasAttachment) await uploadAttachment();
+   351→    }
+   352→    finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
+   353→  }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo, hasAttachment, uploadAttachment]);
+   354→
+   355→  const handleVoiceSend = useCallback(async () => {
+   356→    const result = await voice.stopRecording();
+   357→    if (!result || result.duration < 1) return;
+   358→    const blob = result.blob;
+   359→    setIsSendingVoice(true);
+   360→    try {
+   361→      const fd = new FormData();
+   362→      fd.append("file", blob, "voice-note.webm");
+   363→      fd.append("conversation_id", conversationId);
+   364→      fd.append("voice_duration", String(result.duration));
+   365→      fd.append("waveform_data", JSON.stringify(result.amplitudes));
+   366→      if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
+   367→
+   368→      const res = await fetch("/api/messages/voice", { method: "POST", body: fd });
+   369→      if (!res.ok) {
+   370→        const data = await res.json().catch(() => ({ error: "Voice upload failed" }));
+   371→        throw new Error(data.error || `Voice upload failed: ${res.status}`);
+   372→      }
+   373→      /* Message is created server-side and broadcast via realtime. */
+   374→    } catch (err) {
+   375→      console.error("[ChatLayout] voice upload error:", err);
+   376→      toast({
+   377→        title: "Voice note failed",
+   378→        description: err instanceof Error ? err.message : "Could not send the voice note.",
+   379→        variant: "destructive",
+   380→      });
+   381→    } finally {
+   382→      setIsSendingVoice(false);
+   383→    }
+   384→  }, [voice, conversationId, ephemeralSeconds]);
+   385→
+   386→  const handleVoiceCancel = useCallback(async () => {
+   387→    await voice.stopRecording();
+   388→    /* showVoiceWaveform is set to false by the useEffect watching voice.isRecording */
+   389→  }, [voice]);
+   390→
+   391→  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+   392→    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const form = e.currentTarget.closest("form"); if (form) form.requestSubmit(); }
+   393→  }, []);
+   394→
+   395→  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => { setDraft(e.target.value); onTyping(); }, [onTyping]);
+   396→  const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }, []);
+   397→
+   398→  const canSend = hasText || hasAttachment;
+   399→
+   400→  /* ---- Attachment handlers ---------------------------------------- */
+   401→  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+   402→    const file = e.target.files?.[0] ?? null;
+   403→    if (!file) return;
+   404→    if (file.size > MAX_ATTACHMENT_SIZE) {
+   405→      toast({ title: "File too large", description: "Maximum size is 10 MB.", variant: "destructive" });
+   406→      e.target.value = "";
+   407→      return;
+   408→    }
+   409→    setAttachmentFile(file);
+   410→    /* Generate thumbnail preview for images */
+   411→    if (IMAGE_MIME_TYPES.has(file.type)) {
+   412→      const url = URL.createObjectURL(file);
+   413→      setAttachmentPreview(url);
+   414→    } else {
+   415→      setAttachmentPreview(null);
+   416→    }
+   417→    /* Reset input so the same file can be re-selected */
+   418→    e.target.value = "";
+   419→    requestAnimationFrame(() => inputRef.current?.focus());
+   420→  }, []);
+   421→
+   422→  const handlePaperclipClick = useCallback(() => {
+   423→    fileInputRef.current?.click();
+   424→  }, []);
+   425→
+   426→  /* Status text for header */
+   427→  const statusText = isPartnerTyping
+   428→    ? "typing\u2026"
+   429→    : partnerStatus.online
+   430→      ? "Online"
+   431→      : formatLastSeen(partnerStatus.last_seen);
+   432→
+   433→  /* ---- Render --------------------------------------------------- */
+   434→
+   435→  return (
+   436→    <div className="flex w-full flex-col bg-background" style={containerStyle}>
+   437→      <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
+   438→        {/* Header - sticky with glassmorphic blur + shadow */}
+   439→        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--app-accent-subtle)] bg-background/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 px-4">
+   440→          <button
+   441→            type="button"
+   442→            onClick={() => setInfoPanelOpen(true)}
+   443→            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-muted/50 focus-visible:outline-none"
+   444→            aria-label="Open user info"
+   445→          >
+   446→            <Avatar className="size-9 ring-2 ring-[var(--app-accent-lighter)]/30">
+   447→              {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
+   448→              <AvatarFallback
+   449→                className="text-xs font-semibold text-white"
+   450→                style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+   451→              >{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+   452→            </Avatar>
+   453→            <div className="flex flex-col">
+   454→              <span className="text-sm font-semibold leading-tight">{partner.name}</span>
+   455→              <div className="flex items-center gap-1.5">
+   456→                <StatusDot online={partnerStatus.online} />
+   457→                <span
+   458→                  className={cn("text-xs", isPartnerTyping ? "font-medium" : "text-muted-foreground")}
+   459→                  style={isPartnerTyping ? { color: "var(--app-accent)" } : undefined}
+   460→                >{statusText}</span>
+   461→              </div>
+   462→            </div>
+   463→          </button>
+   464→
+   465→          {/* Right-side header actions */}
+   466→          <div className="ml-auto flex items-center gap-1">
+   467→            <ChatBackgroundPicker themeId={themeId} onSelect={selectTheme} wallpaper={wallpaper} onSetWallpaper={setWallpaper} />
+   468→          </div>
+   469→        </header>
+   470→
+   471→        {/* Feed area – pb-28 so messages never get covered by the floating input bar */}
+   472→        <div className="relative min-h-0 flex-1 pb-28">
+   473→          <MessageFeed
+   474→            messages={messages}
+   475→            isLoading={isLoading}
+   476→            isPartnerTyping={isPartnerTyping}
+   477→            currentUserId={currentUserId}
+   478→            partnerName={partner.name}
+   479→            partnerAvatar={partner.avatar_url}
+   480→            backgroundStyle={bgStyle}
+   481→            onMarkAsRead={markAsRead}
+   482→            onVanishMessage={vanishMessage}
+   483→            onDeleteMessage={deleteMessage}
+   484→            onReplyTo={setReplyTo}
+   485→            onReact={sendReaction}
+   486→            loadMore={loadMore}
+   487→            hasMore={hasMore}
+   488→            loadingMore={loadingMore}
+   489→          />
+   490→        </div>
+   491→      </div>
+   492→
+   493→      {/* Hidden file input for attachments */}
+   494→      <input
+   495→        ref={fileInputRef}
+   496→        type="file"
+   497→        accept={ACCEPTED_TYPES}
+   498→        onChange={handleFileSelect}
+   499→        className="hidden"
+   500→        aria-hidden="true"
+   501→      />
+   502→
+   503→      {/* Floating preview bars above the pill */}
+   504→      {(replyTo || attachmentFile) && (
+   505→        <div
+   506→          className="fixed left-4 right-4 max-w-2xl mx-auto z-30 flex flex-col gap-1.5"
+   507→          style={{ bottom: 80 }}
+   508→        >
+   509→          {/* Attachment preview bar */}
+   510→          <AnimatePresence>
+   511→            {attachmentFile && (
+   512→              <m.div
+   513→                initial={{ height: 0, opacity: 0 }}
+   514→                animate={{ height: "auto", opacity: 1 }}
+   515→                exit={{ height: 0, opacity: 0 }}
+   516→                transition={{ duration: 0.15, ease: "easeOut" }}
+   517→                className="overflow-hidden rounded-2xl border backdrop-blur-sm"
+   518→                style={{ backgroundColor: "var(--app-accent-subtle)", borderColor: "var(--app-accent-subtle)" }}
+   519→              >
+   520→                <div className="flex items-center gap-3 px-4 py-2.5">
+   521→                  {attachmentPreview ? (
+   522→                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg" style={{ boxShadow: `0 0 0 2px var(--app-accent-subtle)` }}>
+   523→                      <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
+   524→                    </div>
+   525→                  ) : (
+   526→                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)" }}>
+   527→                      {attachmentFile.type === "application/pdf" ? (
+   528→                        <FileText className="size-5" />
+   529→                      ) : attachmentFile.type.startsWith("video/") ? (
+   530→                        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+   531→                      ) : (
+   532→                        <FileText className="size-5" />
+   533→                      )}
+   534→                    </div>
+   535→                  )}
+   536→                  <div className="min-w-0 flex-1">
+   537→                    <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
+   538→                    <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
+   539→                  </div>
+   540→                  {isUploading ? (
+   541→                    <Loader2 className="size-5 shrink-0 animate-spin" style={{ color: "var(--app-accent)" }} />
+   542→                  ) : (
+   543→                    <button
+   544→                      type="button"
+   545→                      onClick={clearAttachment}
+   546→                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+   547→                      aria-label="Remove attachment"
+   548→                    >
+   549→                      <X className="size-4" />
+   550→                    </button>
+   551→                  )}
+   552→                </div>
+   553→              </m.div>
+   554→            )}
+   555→          </AnimatePresence>
+   556→
+   557→          {/* Reply preview bar */}
+   558→          <AnimatePresence>
+   559→            {replyTo && (
+   560→              <m.div
+   561→                initial={{ height: 0, opacity: 0 }}
+   562→                animate={{ height: "auto", opacity: 1 }}
+   563→                exit={{ height: 0, opacity: 0 }}
+   564→                transition={{ duration: 0.15, ease: "easeOut" }}
+   565→                className="overflow-hidden backdrop-blur-sm rounded-2xl"
+   566→                style={{ backgroundColor: "var(--app-accent-subtle)", borderLeft: "2px solid var(--app-accent)" }}
+   567→              >
+   568→                <div className="flex items-center gap-2 px-4 py-2">
+   569→                  <div className="w-1 h-8 rounded-full" style={{ background: "linear-gradient(to bottom, var(--app-accent-from), var(--app-accent-to))" }} />
+   570→                  <div className="min-w-0 flex-1">
+   571→                    <p className="text-[11px] font-semibold" style={{ color: "var(--app-accent)" }}>{replyTo.sender_name || "Unknown"}</p>
+   572→                    <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
+   573→                  </div>
+   574→                  <div className="flex items-center gap-1.5">
+   575→                    <button
+   576→                      type="button"
+   577→                      onClick={() => setReplyTo(null)}
+   578→                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95"
+   579→                    >
+   580→                      <X className="size-3.5" />
+   581→                    </button>
+   582→                    <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
+   583→                  </div>
+   584→                </div>
+   585→              </m.div>
+   586→            )}
+   587→          </AnimatePresence>
+   588→        </div>
+   589→      )}
+   590→
+   591→      {/* Floating glassmorphic input pill */}
+   592→      <form onSubmit={handleSubmit}>
+   593→        <div
+   594→          className={cn(
+   595→            "fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-30 flex items-center gap-1.5",
+   596→            "rounded-full",
+   597→            "bg-white/80 dark:bg-neutral-900/80",
+   598→            "border border-black/5 dark:border-[var(--app-accent-subtle)]",
+   599→            "backdrop-blur-md shadow-2xl",
+   600→            "transition-all duration-200",
+   601→            "focus-within:border-[var(--app-accent-light)]",
+   602→            "focus-within:shadow-[0_0_20px_var(--app-accent-glow)]",
+   603→          )}
+   604→        >
+   605→          {/* Paperclip button — left side of pill */}
+   606→          {!showVoiceWaveform && (
+   607→            <button
+   608→              type="button"
+   609→              onClick={handlePaperclipClick}
+   610→              className={cn(
+   611→                "flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200 active:scale-95",
+   612→                hasAttachment ? "text-[var(--app-accent)]" : "text-muted-foreground",
+   613→              )}
+   614→              aria-label="Attach file"
+   615→            >
+   616→              <Paperclip className="size-4" />
+   617→            </button>
+   618→          )}
+   619→
+   620→          {/* Emoji button — left side of pill, next to paperclip */}
+   621→          {!showVoiceWaveform && (
+   622→            <EmojiPicker
+   623→              onSelect={(emoji) => {
+   624→                const ta = inputRef.current;
+   625→                if (!ta) return;
+   626→                const start = ta.selectionStart ?? draft.length;
+   627→                const end = ta.selectionEnd ?? draft.length;
+   628→                const before = draft.slice(0, start);
+   629→                const after = draft.slice(end);
+   630→                setDraft(before + emoji + after);
+   631→                requestAnimationFrame(() => {
+   632→                  const pos = start + emoji.length;
+   633→                  ta.focus();
+   634→                  ta.setSelectionRange(pos, pos);
+   635→                });
+   636→              }}
+   637→            >
+   638→              <button
+   639→                type="button"
+   640→                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground active:scale-95"
+   641→                aria-label="Emoji"
+   642→              >
+   643→                <Smile className="size-4" />
+   644→              </button>
+   645→            </EmojiPicker>
+   646→          )}
+   647→
+   648→          {/* Textarea — middle of pill (hidden when recording) */}
+   649→          {!showVoiceWaveform && (
+   650→            <textarea
+   651→              ref={inputRef}
+   652→              value={draft}
+   653→              onChange={handleInputChange}
+   654→              onKeyDown={handleKeyDown}
+   655→              onInput={handleInput}
+   656→              placeholder={replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message..."}
+   657→              rows={1}
+   658→              className={cn(
+   659→                "flex-1 resize-none bg-transparent py-3 px-1 text-sm",
+   660→                "placeholder:text-muted-foreground",
+   661→                "focus-visible:outline-none",
+   662→                "max-h-32 overflow-y-auto",
+   663→                "scrollbar-none",
+   664→              )}
+   665→            />
+   666→          )}
+   667→
+   668→          {/* Voice waveform overlay — replaces textarea inside the pill */}
+   669→          {showVoiceWaveform && (
+   670→            <div className="flex flex-1 items-center gap-3 px-3 py-2.5">
+   671→              {/* Red recording dot */}
+   672→              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+   673→                {voice.isRecording && (
+   674→                  <span className="relative flex size-3">
+   675→                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
+   676→                    <span className="relative inline-flex size-3 rounded-full bg-red-500" />
+   677→                  </span>
+   678→                )}
+   679→              </div>
+   680→
+   681→              {/* Waveform bars */}
+   682→              <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 32 }}>
+   683→                {voice.amplitudes.slice(-40).map((amp, i) => (
+   684→                  <div
+   685→                    key={i}
+   686→                    className="w-[2px] rounded-full transition-all duration-75"
+   687→                    style={{
+   688→                      height: `${Math.max(3, amp * 32)}px`,
+   689→                      backgroundColor: "var(--app-accent)",
+   690→                      opacity: 0.7,
+   691→                    }}
+   692→                  />
+   693→                ))}
+   694→              </div>
+   695→
+   696→              {/* Timer */}
+   697→              <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+   698→                {Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}
+   699→              </span>
+   700→            </div>
+   701→          )}
+   702→
+   703→          {/* Right side of pill: Send / Mic / Voice controls */}
+   704→
+   705→          {/* Cancel recording button */}
+   706→          {showVoiceWaveform && (
+   707→            <button
+   708→              type="button"
+   709→              onClick={handleVoiceCancel}
+   710→              className="flex size-9 shrink-0 items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
+   711→              aria-label="Cancel recording"
+   712→            >
+   713→              <MicOff className="size-4" />
+   714→            </button>
+   715→          )}
+   716→
+   717→          {/* Voice send button */}
+   718→          {showVoiceWaveform && (
+   719→            <button
+   720→              type="button"
+   721→              onClick={handleVoiceSend}
+   722→              disabled={isSendingVoice}
+   723→              className="flex size-9 shrink-0 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-50"
+   724→              style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }}
+   725→              aria-label="Send voice"
+   726→            >
+   727→              {isSendingVoice ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+   728→            </button>
+   729→          )}
+   730→
+   731→          {/* Send button (shown when there's text or attachment) */}
+   732→          {!showVoiceWaveform && canSend && (
+   733→            <AnimatePresence>
+   734→              <m.div
+   735→                key={sendBtnKey}
+   736→                initial={{ scale: 0, opacity: 0, rotate: -90 }}
+   737→                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+   738→                exit={{ scale: 0, opacity: 0 }}
+   739→                transition={{ duration: 0.15, ease: "easeOut" }}
+   740→              >
+   741→                <Button
+   742→                  type="submit"
+   743→                  size="icon"
+   744→                  disabled={isSending || isUploading}
+   745→                  className="size-9 shrink-0 rounded-full text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
+   746→                  style={{
+   747→                    background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+   748→                    boxShadow: `0 10px 15px -3px var(--app-accent-glow)`,
+   749→                  }}
+   750→                  aria-label="Send message"
+   751→                >
+   752→                  <ArrowUp className="size-4" />
+   753→                </Button>
+   754→              </m.div>
+   755→            </AnimatePresence>
+   756→          )}
+   757→
+   758→          {/* Mic button (shown when input is empty and no attachment) */}
+   759→          {!showVoiceWaveform && !canSend && (
+   760→            <AnimatePresence>
+   761→              <m.div
+   762→                initial={{ scale: 0, opacity: 0 }}
+   763→                animate={{ scale: 1, opacity: 1 }}
+   764→                exit={{ scale: 0, opacity: 0 }}
+   765→                transition={{ duration: 0.15, ease: "easeOut" }}
+   766→              >
+   767→                <button
+   768→                  type="button"
+   769→                  onClick={() => voice.startRecording()}
+   770→                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-muted active:scale-95"
+   771→                  aria-label="Record voice"
+   772→                >
+   773→                  <Mic className="size-4" />
+   774→                </button>
+   775→              </m.div>
+   776→            </AnimatePresence>
+   777→          )}
+   778→        </div>
+   779→      </form>
+   780→
+   781→      {/* Partner Info Panel */}
+   782→      <PartnerInfoPanel
+   783→        partner={partner}
+   784→        partnerStatus={partnerStatus}
+   785→        open={infoPanelOpen}
+   786→        onClose={() => setInfoPanelOpen(false)}
+   787→      />
+   788→    </div>
+   789→  );
+   790→}
