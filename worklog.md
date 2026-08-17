@@ -1043,3 +1043,41 @@ Stage Summary:
 - This explains why the minified variable name changed between builds (eE → eN) — different minification passes assign different names
 - Fix: Reordered declarations so `clearAttachment` → `uploadAttachment` → `handleSubmit`
 - Deployed successfully to production
+
+---
+Task ID: theme-propagation-final
+Agent: Main Agent
+Task: Directive #6 — Full theme propagation across remaining components
+
+Work Log:
+- Audited all chat components for hardcoded violet/purple color references
+- **ProfileDialog.tsx**: Replaced all 5 hardcoded violet references:
+  - Avatar blur ring: `from-violet-500/30 to-purple-600/30` → `var(--app-accent-from/to)` with opacity 0.3
+  - Avatar ring: `ring-violet-100 dark:ring-violet-900/50` → `--tw-ring-color: var(--app-accent-lighter)`
+  - Avatar fallback: `from-violet-500 to-purple-600` → `var(--app-accent-from/to)` gradient
+  - Upload overlay button: `bg-violet-500/90` → `background: var(--app-accent)`
+  - Save button: `from-violet-500 to-purple-600 shadow-violet-500/20` → accent gradient + glow
+  - Name input: Added `--tw-ring-color: var(--app-accent-ring)` for focus ring
+- **EmojiPicker.tsx**: Replaced all 4 hardcoded violet references:
+  - Active category tab: `bg-violet-500/15 text-violet-600 dark:text-violet-400` → `var(--app-accent-subtle)` bg
+  - Emoji cell hover: `hover:bg-violet-500/10` → onMouseEnter/Leave with `var(--app-accent-subtle)`
+  - Emoji cell focus: `ring-violet-400/40` → `--tw-ring-color: var(--app-accent-ring)`
+  - Search input focus: `ring-violet-400/30` → `--tw-ring-color: var(--app-accent-ring)`
+- **ChatView.tsx**: Replaced 3 border references:
+  - Desktop sidebar: `border-r` → `style={{ borderRight: '1px solid var(--app-accent-subtle)' }}`
+  - Mobile header: `border-b` → accent subtle border
+  - Mobile back button: `border` → `border: 1px solid var(--app-accent-subtle)`
+  - Loading skeleton header: same treatment
+- **ConversationList.tsx**: Replaced 2 references:
+  - Chats header: `border-b` → accent subtle border
+  - NewChatDialog search input: Added `--tw-ring-color: var(--app-accent-ring)` for focus
+- **ChatBackgroundPicker.tsx**: Already fully themed (verified all interactive elements use accent vars)
+- Ran ESLint on all 4 changed files: 0 errors
+- Ran TypeScript compilation check: 0 new errors (5 pre-existing in unrelated files)
+- Verified only 1 hardcoded violet reference remains: `ChatBackgroundPicker.tsx` pattern constants (decorative, not UI accent)
+
+Stage Summary:
+- All hardcoded violet/purple UI accent colors replaced with CSS custom properties
+- Theme engine now propagates across: ProfileDialog, EmojiPicker, ChatView, ConversationList, ChatLayout, MessageFeed, ChatBackgroundPicker, globals.css
+- Only remaining hardcoded accent: ChatBackgroundPicker decorative pattern rgba values (by design)
+- Zero lint errors, zero new TypeScript errors
