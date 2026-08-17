@@ -124,11 +124,11 @@
   --app-accent-dark: #A16207;
   --app-accent-ring: rgba(234, 179, 8, 0.5);
   --app-accent-glow: transparent;
-  --app-accent-subtle: rgba(234, 179, 8, 0.10);
+  --app-accent-subtle: rgba(234, 179, 8, 0.18);
   --app-accent-text: oklch(0.85 0.18 85);
-  --app-accent-pill-bg: rgba(234, 179, 8, 0.08);
-  --app-accent-pill-border: rgba(234, 179, 8, 0.15);
-  --app-accent-pill-focus-border: rgba(234, 179, 8, 0.40);
+  --app-accent-pill-bg: rgba(234, 179, 8, 0.12);
+  --app-accent-pill-border: rgba(234, 179, 8, 0.25);
+  --app-accent-pill-focus-border: rgba(234, 179, 8, 0.50);
 }
 
 [data-theme="default"] {
@@ -140,11 +140,11 @@
   --app-accent-dark: #7c3aed;
   --app-accent-ring: rgba(139, 92, 246, 0.5);
   --app-accent-glow: transparent;
-  --app-accent-subtle: rgba(139, 92, 246, 0.08);
+  --app-accent-subtle: rgba(139, 92, 246, 0.15);
   --app-accent-text: oklch(0.55 0.24 285);
-  --app-accent-pill-bg: rgba(139, 92, 246, 0.06);
-  --app-accent-pill-border: rgba(139, 92, 246, 0.12);
-  --app-accent-pill-focus-border: rgba(139, 92, 246, 0.35);
+  --app-accent-pill-bg: rgba(139, 92, 246, 0.10);
+  --app-accent-pill-border: rgba(139, 92, 246, 0.20);
+  --app-accent-pill-focus-border: rgba(139, 92, 246, 0.45);
 }
 
 [data-theme="crimson"] {
@@ -156,11 +156,11 @@
   --app-accent-dark: #9f1239;
   --app-accent-ring: rgba(225, 29, 72, 0.5);
   --app-accent-glow: transparent;
-  --app-accent-subtle: rgba(225, 29, 72, 0.08);
+  --app-accent-subtle: rgba(225, 29, 72, 0.15);
   --app-accent-text: oklch(0.6 0.22 20);
-  --app-accent-pill-bg: rgba(225, 29, 72, 0.06);
-  --app-accent-pill-border: rgba(225, 29, 72, 0.12);
-  --app-accent-pill-focus-border: rgba(225, 29, 72, 0.35);
+  --app-accent-pill-bg: rgba(225, 29, 72, 0.10);
+  --app-accent-pill-border: rgba(225, 29, 72, 0.20);
+  --app-accent-pill-focus-border: rgba(225, 29, 72, 0.45);
 }
 
 /* Theme transition — scoped to theme-aware containers only */

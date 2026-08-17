@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from "react";
 import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Info } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
@@ -84,10 +84,10 @@ function NavPill({
   unreadCount: number;
 }) {
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [indicatorY, setIndicatorY] = useState(0);
+  const [indicatorY, setIndicatorY] = useState(8);
   const [indicatorH, setIndicatorH] = useState(40);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     /* Map activeView to the visual index: list=0, settings=1 (chat has no button) */
     const idx = activeView === "settings" ? 1 : 0;
     const el = itemRefs.current[idx];
@@ -105,14 +105,14 @@ function NavPill({
   return (
     <div
       className={cn(
-        "relative fixed left-2 top-1/2 z-50 flex -translate-y-1/2 w-12 flex-col items-center gap-2 rounded-full py-3 px-1.5 shadow-xl",
+        "relative fixed left-2 top-1/2 z-50 flex -translate-y-1/2 w-12 flex-col items-center gap-2 rounded-full py-3 px-1.5 shadow-xl overflow-hidden",
         "sm:left-5",
         "backdrop-blur-xl border border-white/10 bg-black/80",
       )}
     >
       {/* Sliding indicator */}
       <m.div
-        className="absolute left-1 right-1 rounded-full bg-white/10"
+        className="absolute left-1.5 right-1.5 rounded-[10px] bg-white/10"
         animate={{ y: indicatorY, height: indicatorH }}
         transition={{ duration: 0.2, ease: "easeOut" }}
       />
@@ -184,7 +184,7 @@ function SettingsPage({
     .slice(0, 2);
 
   return (
-    <div className="h-full overflow-y-auto pl-14 sm:pl-16">
+    <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-lg px-4 py-6">
         {/* Page title */}
         <h1 className="text-xl font-bold tracking-tight mb-6">Settings</h1>
@@ -420,7 +420,7 @@ export function ChatView({
             <Skeleton className="size-5 rounded" />
             <Skeleton className="size-5 rounded" />
           </div>
-          <div className="flex h-full flex-col items-center justify-center gap-3 pl-14 sm:pl-16">
+          <div className="flex h-full flex-col items-center justify-center gap-3">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Loading chats\u2026</p>
           </div>
@@ -475,6 +475,8 @@ export function ChatView({
               <ErrorBoundary>
                 <ChatLayout
                   currentUserId={userId}
+                  currentUserName={localUserName}
+                  currentUserAvatar={localUserAvatar}
                   otherUserId={activeConv.partner.id}
                   conversationId={activeConv.id}
                   partner={{
@@ -489,7 +491,7 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => handleNavigate("list")}
-                className="absolute left-14 sm:left-16 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:hidden"
+                className="absolute left-14 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:hidden"
                 aria-label="Back to chats"
               >
                 <ArrowLeft className="size-4" />
@@ -506,7 +508,7 @@ export function ChatView({
               className="h-full"
             >
               {/* Branding header */}
-              <div className="flex items-center gap-2.5 pl-14 sm:pl-16 pt-6 pb-2 px-4">
+              <div className="flex items-center gap-2.5 pt-6 pb-2 px-4">
                 <div
                   className="flex size-8 items-center justify-center rounded-xl text-white"
                   style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
@@ -517,7 +519,7 @@ export function ChatView({
               </div>
 
               {/* Conversation list */}
-              <div className="mx-auto h-[calc(100%-60px)] max-w-lg overflow-y-auto pl-14 sm:pl-16">
+              <div className="mx-auto h-[calc(100%-60px)] max-w-lg overflow-y-auto">
                 <ConversationList {...listProps} activeId={null} />
               </div>
             </m.div>

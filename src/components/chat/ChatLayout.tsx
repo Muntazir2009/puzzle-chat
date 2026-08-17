@@ -1,11 +1,9 @@
 "use client";
 
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, MicOff, X, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, ChevronRight, Loader2, FileText } from "lucide-react";
+import { ArrowUp, Mic, MicOff, X, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, Bell, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { MessageFeed } from "@/components/chat/MessageFeed";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
@@ -21,7 +19,7 @@ import { toast } from "@/hooks/use-toast";
 /* ------------------------------------------------------------------ */
 
 export interface ChatPartner { id: string; name: string; avatar_url: string | null }
-export interface ChatLayoutProps { currentUserId: string; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
+export interface ChatLayoutProps { currentUserId: string; currentUserName: string; currentUserAvatar: string | null; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -82,142 +80,71 @@ function PartnerInfoPanel({
   open: boolean;
   onClose: () => void;
 }) {
-  const [muted, setMuted] = useState(false);
+  const statusText = partnerStatus.online
+    ? "Online"
+    : formatLastSeen(partnerStatus.last_seen);
 
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <m.div
-            key="backdrop"
+            key="info-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
-          {/* Panel */}
-          <m.aside
-            key="panel"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+          <m.div
+            key="info-pill"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-background border-l shadow-2xl"
+            className="fixed top-16 left-1/2 z-50 -translate-x-1/2 w-[90%] max-w-md rounded-2xl bg-neutral-900/90 border border-white/10 shadow-2xl backdrop-blur-xl p-4"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Panel header */}
-            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-              <h3 className="text-sm font-semibold">User Info</h3>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
-                aria-label="Close panel"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Avatar + Name + Status */}
-              <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
-                <div className="relative">
-                  <Avatar className="size-20 ring-4 ring-[var(--app-accent-lighter)]/30">
-                    {partner.avatar_url && (
-                      <AvatarImage src={partner.avatar_url} alt={partner.name} />
-                    )}
-                    <AvatarFallback
-                      className="text-xl font-bold text-white"
-                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
-                    >
-                      {partner.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span
-                    className={cn(
-                      "absolute bottom-1 right-1 size-3.5 rounded-full ring-2 ring-background",
-                      partnerStatus.online ? "bg-emerald-500" : "bg-muted-foreground/50",
-                    )}
-                  />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-lg font-semibold">{partner.name}</span>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <StatusDot online={partnerStatus.online} size="size-2" />
-                    <span>
-                      {partnerStatus.online
-                        ? "Online"
-                        : formatLastSeen(partnerStatus.last_seen)}
-                    </span>
-                  </div>
+            {/* Partner avatar + name + status */}
+            <div className="flex items-center gap-3 mb-3">
+              <Avatar className="size-12 ring-2 ring-white/10">
+                {partner.avatar_url && <AvatarImage src={partner.avatar_url} alt={partner.name} />}
+                <AvatarFallback
+                  className="text-sm font-bold text-white"
+                  style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+                >{partner.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-semibold">{partner.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <StatusDot online={partnerStatus.online} />
+                  <span className="text-xs text-white/50">{statusText}</span>
                 </div>
               </div>
-
-              <Separator />
-
-              {/* Shared media (placeholder) */}
-              <button
-                type="button"
-                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-3">
-                  <ImageIcon className="size-4 text-muted-foreground" />
-                  <span>Shared media</span>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
+            </div>
+            {/* Action buttons in a row */}
+            <div className="flex items-center gap-2">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+                <ImageIcon className="size-3.5" /> Shared media
               </button>
-
-              <Separator />
-
-              {/* Shared links (placeholder) */}
-              <button
-                type="button"
-                className="flex w-full items-center justify-between px-5 py-3.5 text-sm text-foreground transition-colors hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-3">
-                  <Link2 className="size-4 text-muted-foreground" />
-                  <span>Shared links</span>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+                <Link2 className="size-3.5" /> Shared links
               </button>
-
-              <Separator />
-
-              {/* Mute notifications */}
-              <div className="flex items-center justify-between px-5 py-3.5">
-                <span className="text-sm">Mute notifications</span>
-                <Switch
-                  checked={muted}
-                  onCheckedChange={setMuted}
-                />
-              </div>
-
-              <Separator />
-
-              {/* Block user */}
-              <button
-                type="button"
-                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
-              >
-                <Ban className="size-4" />
-                <span>Block user</span>
-              </button>
-
-              <Separator />
-
-              {/* Clear chat */}
-              <button
-                type="button"
-                className="flex w-full items-center gap-3 px-5 py-3.5 text-sm text-red-500 transition-colors hover:bg-red-500/5"
-              >
-                <Trash2 className="size-4" />
-                <span>Clear chat</span>
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+                <Bell className="size-3.5" /> Mute
               </button>
             </div>
-          </m.aside>
+            {/* Destructive actions */}
+            <div className="flex items-center gap-2 mt-2">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-red-400 hover:bg-red-500/10">
+                <Ban className="size-3.5" /> Block
+              </button>
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-red-400 hover:bg-red-500/10">
+                <Trash2 className="size-3.5" /> Clear chat
+              </button>
+            </div>
+          </m.div>
         </>
       )}
     </AnimatePresence>
@@ -228,7 +155,7 @@ function PartnerInfoPanel({
 /*  ChatLayout                                                         */
 /* ------------------------------------------------------------------ */
 
-export function ChatLayout({ currentUserId, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
+export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
   const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore } =
     useChat({ currentUserId, otherUserId, conversationId, initialMessages });
 
@@ -441,7 +368,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
     <div className="flex w-full flex-col bg-background" style={containerStyle}>
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
         {/* Header — glassmorphic, minimal, no shadow/glow */}
-        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 pl-14 sm:pl-16 pr-4 border-b border-white/5 bg-black/60 backdrop-blur-2xl">
+        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 px-4 border-b border-white/5 bg-black/60 backdrop-blur-2xl">
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
@@ -474,7 +401,7 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
         </header>
 
         {/* Feed area — pb-24 so messages never get covered by the floating input pill */}
-        <div className="relative min-h-0 flex-1 pb-24 pl-14 sm:pl-16 pr-1">
+        <div className="relative min-h-0 flex-1 pb-24 px-1">
           <MessageFeed
             messages={messages}
             isLoading={isLoading}
@@ -483,6 +410,8 @@ export function ChatLayout({ currentUserId, otherUserId, conversationId, partner
             partnerName={partner.name}
             partnerAvatar={partner.avatar_url}
             backgroundStyle={bgStyle}
+            currentUserName={currentUserName}
+            currentUserAvatar={currentUserAvatar}
             onMarkAsRead={markAsRead}
             onVanishMessage={vanishMessage}
             onDeleteMessage={deleteMessage}

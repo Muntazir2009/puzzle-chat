@@ -1256,3 +1256,56 @@ Stage Summary:
   6. ✅ Full Feature Wiring (all existing functionality preserved)
 - ALL glow effects removed across entire codebase
 - Wallpaper engine properly uses bg-cover bg-center bg-no-repeat
+
+---
+Task ID: 2-a
+Agent: full-stack-developer
+Task: Nav pill indicator fix & remove dead space in ChatView.tsx
+
+Work Log:
+- Changed `useEffect` to `useLayoutEffect` in NavPill to prevent indicator flash on initial render
+- Set initial `indicatorY` to `8` (matches py-3 top padding) and kept `indicatorH` at `40` (matches size-10 button)
+- Changed indicator positioning from `left-1 right-1` (4px) to `left-1.5 right-1.5` (6px) to match the container's `px-1.5` padding exactly
+- Changed indicator rounding from `rounded-full` to `rounded-[10px]` to match the button's full rounding
+- Added `overflow-hidden` to the pill container to prevent the indicator from bleeding outside the rounded pill
+- Removed all `pl-14 sm:pl-16` dead-space padding from: Settings page, Loading state, Branding header, Conversation list container
+- Simplified mobile back button from `left-14 sm:left-16` to `left-14` only
+- All 3-view navigation, AnimatePresence transitions, and ThemeProvider wrapping preserved
+- No changes to ChatLayout.tsx or MessageFeed.tsx
+
+---
+Task ID: 2-b
+Agent: full-stack-developer
+Task: Edit ChatLayout.tsx — remove left offset, replace PartnerInfoPanel with floating glassmorphic pill bar, pass own user info for avatars.
+
+Work Log:
+- Added `Bell` to lucide-react imports.
+- Removed unused imports: `Switch`, `Separator`, `ChevronRight` (no longer needed after PartnerInfoPanel redesign).
+- Added `currentUserName: string` and `currentUserAvatar: string | null` to `ChatLayoutProps` interface.
+- Updated `ChatLayout` function signature to destructure the two new props.
+- Passed `currentUserName` and `currentUserAvatar` as new props to `MessageFeed`.
+- Removed left offset padding from header: `pl-14 sm:pl-16 pr-4` → `px-4`.
+- Removed left offset padding from feed area: `pl-14 sm:pl-16 pr-1` → `px-1`.
+- Replaced the full-height side-sliding `PartnerInfoPanel` (fixed right-0 top-0 bottom-0 aside) with a floating glassmorphic pill bar that appears centered at the top of the chat (fixed top-16, 90% width, max-w-md, rounded-2xl, bg-neutral-900/90, backdrop-blur-xl).
+- The new pill bar contains: partner avatar + name + status row, three action buttons (Shared media, Shared links, Mute) in a row, and two destructive buttons (Block, Clear chat) in a second row.
+- Animation uses framer-motion with opacity/y/scale transitions and a backdrop blur overlay.
+- All existing functionality (floating input pill, voice recording, attachments, reply preview, emoji picker) remains untouched.
+
+---
+Task ID: 2-c
+Agent: full-stack-developer
+Task: MessageFeed – own avatar, action sheet fix, tapback fix
+
+Work Log:
+- Added `currentUserName: string` and `currentUserAvatar: string | null` to `MessageFeedProps` interface
+- Added same two props to `MessageBubble` component props and type definition
+- For own messages (isOwn=true), replaced the placeholder `<div className="w-7 shrink-0"/>` with a proper `Avatar` component rendering the current user's avatar (or gradient fallback with initials) when `showAvatar=true`, mirroring the partner avatar pattern. Uses `--app-accent-from`/`--app-accent-to` gradient for the fallback.
+- Added `message-bubble-row` CSS class to the outer flex container of each `MessageBubble` row
+- Fixed single-tap action sheet immediate-close bug: Changed the scroll container's `onClick` handler from unconditionally calling `setActiveActionId(null)` to only closing when the click target is the scroll container itself or is outside any `.message-bubble-row` element
+- Updated `handlePressEnd` callback comment to clarify tapback stays open for interaction (no functional code change)
+- Updated `MessageGroup` to accept `currentUserName` and `currentUserAvatar` and pass them through to every `MessageBubble`
+- Changed `showAvatar` logic in `MessageGroup` from `!isOwnGroup && isLast` to just `isLast` so own message groups also show avatar on the last message
+- Updated `MessageFeed` component to destructure and pass `currentUserName`/`currentUserAvatar` to `MessageGroup`
+- Verified caller in `ChatLayout.tsx` already passes these props (no caller changes needed)
+- Verified no TypeScript errors with `tsc --noEmit`
+- Dev server compiled successfully after changes

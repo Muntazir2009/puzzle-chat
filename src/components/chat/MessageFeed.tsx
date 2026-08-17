@@ -58,6 +58,8 @@ export interface MessageFeedProps {
   isLoading: boolean;
   isPartnerTyping: boolean;
   currentUserId: string;
+  currentUserName: string;
+  currentUserAvatar: string | null;
   partnerName: string;
   partnerAvatar: string | null;
   backgroundStyle?: React.CSSProperties;
@@ -830,6 +832,8 @@ function MessageBubble({
   partnerName,
   partnerAvatar,
   currentUserId,
+  currentUserName,
+  currentUserAvatar,
   onReplyTo,
   onReact,
   onDeleteMessage,
@@ -845,6 +849,8 @@ function MessageBubble({
   partnerName: string;
   partnerAvatar: string | null;
   currentUserId: string;
+  currentUserName: string;
+  currentUserAvatar: string | null;
   onReplyTo?: (msg: ChatMessage) => void;
   onReact?: (id: string, emoji: string, add: boolean) => void;
   onDeleteMessage?: (id: string) => void;
@@ -883,6 +889,7 @@ function MessageBubble({
 
   const handlePressEnd = useCallback(() => {
     clearTimeout(longPressRef.current);
+    // Don't close tapback here - let it stay open for interaction
   }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -972,7 +979,7 @@ function MessageBubble({
     <>
       <div
         className={cn(
-          "relative flex w-full select-none gap-1.5",
+          "message-bubble-row relative flex w-full select-none gap-1.5",
           isOwn ? "justify-end" : "justify-start",
         )}
       >
@@ -1233,7 +1240,23 @@ function MessageBubble({
           )}
         </div>
 
-        {isOwn && <div className="w-7 shrink-0" />}
+        {isOwn && (
+          <>
+            {showAvatar ? (
+              <Avatar className="size-7 shrink-0 self-end ring-1 ring-white/10">
+                {currentUserAvatar && <AvatarImage src={currentUserAvatar} alt={currentUserName} />}
+                <AvatarFallback
+                  className="text-[10px] font-medium"
+                  style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", color: "var(--app-accent-dark)" }}
+                >
+                  {currentUserName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-0 shrink-0" />
+            )}
+          </>
+        )}
       </div>
 
       {/* Image Lightbox */}
@@ -1256,6 +1279,8 @@ function MessageBubble({
 function MessageGroup({
   messages: groupMessages,
   currentUserId,
+  currentUserName,
+  currentUserAvatar,
   partnerName,
   partnerAvatar,
   onReplyTo,
@@ -1267,6 +1292,8 @@ function MessageGroup({
 }: {
   messages: ChatMessage[];
   currentUserId: string;
+  currentUserName: string;
+  currentUserAvatar: string | null;
   partnerName: string;
   partnerAvatar: string | null;
   onReplyTo?: (msg: ChatMessage) => void;
@@ -1282,7 +1309,7 @@ function MessageGroup({
       {groupMessages.map((msg, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === groupMessages.length - 1;
-        const showAvatar = !isOwnGroup && isLast;
+        const showAvatar = isLast;
         return (
           <MessageBubble
             key={msg.id}
@@ -1293,6 +1320,8 @@ function MessageGroup({
             partnerName={partnerName}
             partnerAvatar={partnerAvatar}
             currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            currentUserAvatar={currentUserAvatar}
             onReplyTo={onReplyTo}
             onReact={onReact}
             onDeleteMessage={onDeleteMessage}
@@ -1510,6 +1539,8 @@ export function MessageFeed({
   isLoading,
   isPartnerTyping,
   currentUserId,
+  currentUserName,
+  currentUserAvatar,
   partnerName,
   partnerAvatar,
   backgroundStyle,
@@ -1695,9 +1726,13 @@ export function MessageFeed({
       <div
         ref={parentRef}
         onScroll={handleScroll}
-        onClick={() => {
+        onClick={(e) => {
           onClearSearchHighlight?.();
-          setActiveActionId(null);
+          // Only close action sheet if click is directly on the scroll container or background
+          const target = e.target as HTMLElement;
+          if (target === e.currentTarget || target.closest('.message-bubble-row') === null) {
+            setActiveActionId(null);
+          }
         }}
         className="h-full w-full select-none overflow-y-auto overscroll-contain"
         style={{ WebkitOverflowScrolling: "touch" }}
@@ -1791,6 +1826,8 @@ export function MessageFeed({
                     <MessageGroup
                       messages={group.messages}
                       currentUserId={currentUserId}
+                      currentUserName={currentUserName}
+                      currentUserAvatar={currentUserAvatar}
                       partnerName={partnerName}
                       partnerAvatar={partnerAvatar}
                       onReplyTo={onReplyTo}
