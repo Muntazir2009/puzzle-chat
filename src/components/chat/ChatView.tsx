@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Info } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart, Sparkles } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
 import { ChatLayout } from "./ChatLayout";
@@ -83,71 +83,53 @@ function NavPill({
   onNavigate: (view: NavView) => void;
   unreadCount: number;
 }) {
-  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [indicatorY, setIndicatorY] = useState(8);
-  const [indicatorH, setIndicatorH] = useState(40);
-
-  useLayoutEffect(() => {
-    /* Map activeView to the visual index: list=0, settings=1 (chat has no button) */
-    const idx = activeView === "settings" ? 1 : 0;
-    const el = itemRefs.current[idx];
-    if (el) {
-      const parent = el.parentElement;
-      if (parent) {
-        const parentRect = parent.getBoundingClientRect();
-        const elRect = el.getBoundingClientRect();
-        setIndicatorY(elRect.top - parentRect.top);
-        setIndicatorH(elRect.height);
-      }
-    }
-  }, [activeView]);
-
   return (
     <div
       className={cn(
-        "relative fixed left-2 top-1/2 z-50 flex -translate-y-1/2 w-12 flex-col items-center gap-2 rounded-full py-3 px-1.5 shadow-xl overflow-hidden",
-        "sm:left-5",
-        "backdrop-blur-xl border border-white/10 bg-black/80",
+        "fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-1 sm:left-4",
+        "rounded-2xl border border-white/[0.12] bg-white/[0.06] backdrop-blur-2xl py-2 px-1.5 shadow-xl",
       )}
     >
-      {/* Sliding indicator */}
-      <m.div
-        className="absolute left-1.5 right-1.5 rounded-[10px] bg-white/10"
-        animate={{ y: indicatorY, height: indicatorH }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-      />
-
-      {/* Chats button — always goes to DM list */}
+      {/* Chats button */}
       <button
-        ref={(el) => { itemRefs.current[0] = el; }}
         type="button"
         onClick={() => onNavigate("list")}
         aria-label="Chats"
         className={cn(
-          "relative z-10 flex size-10 items-center justify-center rounded-full transition-colors duration-150 ease-out",
-          activeView === "list" ? "text-white" : "text-white/50 hover:text-white/90",
+          "relative flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+          activeView === "list"
+            ? "bg-white/10 text-white shadow-sm"
+            : "text-white/40 hover:text-white/70 hover:bg-white/5",
         )}
       >
-        <MessageSquare className="size-5" />
+        <Heart className={cn("size-[18px]", activeView === "list" && "fill-current")} />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-black/80">
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full px-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-black/40"
+            style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+          >
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Settings button — navigates to full settings page */}
+      {/* Sparkle divider */}
+      <div className="flex items-center justify-center py-0.5">
+        <Sparkles className="size-3 text-white/15" />
+      </div>
+
+      {/* Settings button */}
       <button
-        ref={(el) => { itemRefs.current[1] = el; }}
         type="button"
         onClick={() => onNavigate("settings")}
         aria-label="Settings"
         className={cn(
-          "relative z-10 flex size-10 items-center justify-center rounded-full transition-colors duration-150 ease-out",
-          activeView === "settings" ? "text-white" : "text-white/50 hover:text-white/90",
+          "relative flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+          activeView === "settings"
+            ? "bg-white/10 text-white shadow-sm"
+            : "text-white/40 hover:text-white/70 hover:bg-white/5",
         )}
       >
-        <Settings className="size-5" />
+        <Settings className="size-[18px]" />
       </button>
     </div>
   );
@@ -230,19 +212,6 @@ function SettingsPage({
           <div className="px-5 py-4">
             <p className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-white/40">Theme</p>
             <ThemeSelector />
-          </div>
-        </div>
-
-        {/* About section */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden mb-4">
-          <div className="flex items-center gap-3 px-5 py-3.5">
-            <Info className="size-4 text-white/60" />
-            <span className="text-sm font-medium">About</span>
-          </div>
-          <Separator className="bg-white/10" />
-          <div className="px-5 py-4">
-            <p className="text-sm text-white/70">Puzzle — Private 1-on-1 messaging</p>
-            <p className="text-xs text-white/40 mt-1">Built with Next.js, Supabase &amp; Pusher</p>
           </div>
         </div>
 
@@ -416,9 +385,10 @@ export function ChatView({
     return (
       <ThemeProvider>
         <div className="h-dvh w-full bg-background">
-          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 w-12 flex-col items-center gap-2 rounded-full py-3 px-1.5 sm:left-5 backdrop-blur-xl border border-white/10 bg-black/80 shadow-xl">
-            <Skeleton className="size-5 rounded" />
-            <Skeleton className="size-5 rounded" />
+          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-1 rounded-2xl border border-white/[0.12] bg-white/[0.06] backdrop-blur-2xl py-2 px-1.5 shadow-xl sm:left-4">
+            <Skeleton className="size-10 rounded-xl" />
+            <Skeleton className="size-3 rounded" />
+            <Skeleton className="size-10 rounded-xl" />
           </div>
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />

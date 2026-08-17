@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plus, MessageCircle, Loader2, X, Trash2, Pin } from "lucide-react";
+import { Search, Plus, MessageCircle, Loader2, X, Trash2, Pin, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,42 +142,49 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
       <DialogTrigger asChild>
         <Button
           size="icon"
-          className="size-9 rounded-xl text-white transition-all hover:opacity-80"
+          className="size-9 rounded-full text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl active:scale-95"
           style={{
-            background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+            background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))",
+            boxShadow: `0 4px 14px -2px var(--app-accent-ring)`,
           }}
           aria-label="New chat"
         >
           <Plus className="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden rounded-2xl" aria-describedby={undefined}>
-        <DialogHeader className="px-5 pt-5 pb-3">
-          <DialogTitle className="text-base font-semibold">Start a conversation</DialogTitle>
+      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden rounded-3xl" aria-describedby={undefined}>
+        <DialogHeader className="px-6 pt-6 pb-3">
+          <DialogTitle className="text-base font-semibold" style={{ color: "var(--app-accent-light)" }}>Start a conversation</DialogTitle>
         </DialogHeader>
-        <div className="px-5 pb-3">
+        <div className="px-6 pb-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => handleQueryChange(e.target.value)} placeholder="Search by name..." className="h-10 rounded-xl pl-9 pr-9" style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties} />
+            <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
+            <Input
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              placeholder="Search by name..."
+              className="h-11 rounded-2xl border border-border/50 bg-muted/40 pl-11 pr-10 text-sm backdrop-blur-sm transition-all duration-200 focus:bg-muted/60"
+              style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties}
+            />
             {query && (
-              <button type="button" onClick={() => { setQuery(""); setResults([]); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => { setQuery(""); setResults([]); }} className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground">
                 <X className="size-3.5" />
               </button>
             )}
           </div>
         </div>
-        <div className="max-h-64 overflow-y-auto px-2 pb-4">
+        <div className="max-h-64 overflow-y-auto px-3 pb-4">
           {searching ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+            <div className="flex items-center justify-center py-8"><Loader2 className="size-5 animate-spin" style={{ color: "var(--app-accent-light)" }} /></div>
           ) : results.length > 0 ? (
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               {results.map((user) => (
-                <button key={user.id} type="button" disabled={creating === user.id} onClick={() => handleStartChat(user.id, user.name, user.avatar_url)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:opacity-50">
-                  <Avatar className="size-9 shrink-0">
+                <button key={user.id} type="button" disabled={creating === user.id} onClick={() => handleStartChat(user.id, user.name, user.avatar_url)} className="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-200 hover:bg-muted/60 hover:shadow-sm disabled:opacity-50">
+                  <Avatar className="size-10 shrink-0 ring-2 ring-transparent transition-all duration-200 group-hover:ring-2" style={{ '--tw-ring-color': 'var(--app-accent-subtle)' } as React.CSSProperties}>
                     {user.avatar_url && <AvatarImage src={user.avatar_url} alt={user.name} />}
                     <AvatarFallback
                       className="text-xs font-semibold text-white"
-                      style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+                      style={{ background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))" }}
                     >{getInitials(user.name)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
@@ -189,15 +196,15 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
             </div>
           ) : query ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-muted">
-                <MessageCircle className="size-7 text-muted-foreground/50" />
+              <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: "var(--app-accent-subtle)" }}>
+                <MessageCircle className="size-7" style={{ color: "var(--app-accent-light)" }} />
               </div>
               <p className="text-sm text-muted-foreground">No users found</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-muted">
-                <Search className="size-7 text-muted-foreground/50" />
+              <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: "var(--app-accent-subtle)" }}>
+                <Search className="size-7" style={{ color: "var(--app-accent-light)" }} />
               </div>
               <p className="text-sm text-muted-foreground">Type to search for users</p>
             </div>
@@ -280,11 +287,7 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
   const isActive = activeId === conv.id;
 
   return (
-    <>
-    {/* Subtle separator between conversation items */}
-    {index > 0 && (
-      <div className="absolute left-12 right-4 top-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-    )}
+    <div className={cn("px-2 pt-1", index === 0 && "pt-2")}>
     <m.button
       type="button"
       initial={{ opacity: 0, y: 8 }}
@@ -293,28 +296,35 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => onContextMenu(e, conv)}
       className={cn(
-        "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all duration-300 ease-out",
+        "group relative flex w-full items-center gap-3 px-3.5 py-3 text-left",
         "conversation-item-row",
+        "hover:scale-[1.015] active:scale-[0.98]",
         isActive && "active",
-        // Mobile touch feedback
-        "active:scale-[0.98]",
       )}
     >
       <div className="relative shrink-0">
-        <Avatar className="size-11 ring-2 ring-transparent transition-all duration-200">
+        <Avatar className="size-11 transition-all duration-300 ring-2 ring-transparent group-hover:ring-2 group-hover:shadow-lg" style={{
+          '--tw-ring-color': isActive ? 'var(--app-accent-pill-border)' : 'transparent',
+        } as React.CSSProperties}>
           {conv.partner.avatar_url && <AvatarImage src={conv.partner.avatar_url} alt={conv.partner.name} />}
           <AvatarFallback
             className="text-xs font-semibold text-white"
-            style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
+            style={{ background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))" }}
           >{getInitials(conv.partner.name)}</AvatarFallback>
         </Avatar>
         {isOnline && (
-          <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+          <span
+            className="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-background"
+            style={{
+              background: "#34d399",
+              boxShadow: "0 0 6px 1px rgba(52, 211, 153, 0.5)",
+            }}
+          />
         )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1 truncate text-sm transition-colors duration-200">
+          <span className="flex items-center gap-1 truncate text-sm font-medium transition-colors duration-200">
             {conv.partner.name}
             {isRecent && <Pin className="size-3 shrink-0" style={{ color: "var(--app-accent-light)" }} />}
           </span>
@@ -330,13 +340,14 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
           )}
         </div>
         {conv.last_message && (
-          <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="mt-0.5 flex items-center justify-between gap-2">
             <span className={cn("truncate text-xs", isActive && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}<LinkifiedText text={previewText} /></span>
             {conv.unread_count > 0 && (
               <span
                 className="unread-badge-pulse flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-2 ring-background"
                 style={{
-                  background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+                  background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))",
+                  boxShadow: `0 2px 8px -1px var(--app-accent-ring)`,
                 }}
               >{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
@@ -344,7 +355,7 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
         )}
       </div>
     </m.button>
-    </>
+    </div>
   );
 }
 
@@ -416,11 +427,15 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   return (
     <div className="flex h-full flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between px-4" style={{ borderBottom: "1px solid var(--app-accent-subtle)" }}>
-        <h2 className="text-base font-bold tracking-tight">Chats</h2>
+        <h2 className="text-base font-bold tracking-tight" style={{
+          background: "linear-gradient(135deg, var(--app-accent-light), var(--app-accent-lighter))",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}>Chats</h2>
         <NewChatDialog onSelect={onNewChat} />
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto py-1">
         {conversations.length === 0 ? (
           <div
             ref={emptyContainerRef}
@@ -436,27 +451,34 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             }}
             onMouseLeave={() => setParallax({ x: 0, y: 0 })}
           >
-            {/* Illustration: layered chat bubbles */}
+            {/* Illustration: warm soft glow with sparkle icon */}
             <div className="relative">
-              {/* Background decorative ring */}
-              <div className="absolute -inset-6 rounded-full" style={{ background: "radial-gradient(circle, var(--app-accent-subtle), transparent 70%)" }} />
-              <div className="relative flex size-24 items-center justify-center rounded-3xl" style={{ background: "radial-gradient(circle, var(--app-accent-subtle), transparent 70%)" }}>
-                <MessageCircle className="size-12" style={{ color: "var(--app-accent-light)" }} />
+              {/* Soft ambient glow behind */}
+              <div className="absolute -inset-8 rounded-full" style={{ background: "radial-gradient(circle, var(--app-accent-subtle), transparent 70%)" }} />
+              {/* Main icon container */}
+              <div className="relative flex size-24 items-center justify-center rounded-3xl" style={{
+                background: "radial-gradient(circle at 40% 40%, var(--app-accent-subtle), transparent 80%)",
+              }}>
+                <div className="relative">
+                  <MessageCircle className="size-12" style={{ color: "var(--app-accent-light)" }} />
+                  {/* Tiny sparkle accent */}
+                  <Sparkles className="absolute -top-1 -right-1.5 size-3.5" style={{ color: "var(--app-accent-lighter)" }} />
+                </div>
               </div>
               {/* Floating action badge with parallax (desktop only) */}
               <m.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))' }}
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))', boxShadow: `0 4px 14px -2px var(--app-accent-ring)` }}
                 className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full text-white ring-4 ring-background max-lg:!transform-none"
               >
                 <Plus className="size-4 text-white" />
               </m.div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <p className="text-sm font-semibold">No conversations yet</p>
-              <p className="max-w-[200px] text-xs leading-relaxed text-muted-foreground">
-                Tap the <strong style={{ color: "var(--app-accent)" }}>+</strong> button above to find someone and start chatting.
+              <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
+                Tap the <span className="inline-flex items-center justify-center size-4 rounded-full text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))" }}>+</span> button above to find someone and start chatting.
               </p>
             </div>
           </div>
@@ -476,15 +498,15 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.12 }}
-            className="fixed z-50 w-48 overflow-hidden rounded-xl border bg-popover p-1 shadow-xl"
-            style={{ left: ctxPos.x, top: ctxPos.y }}
+            className="fixed z-50 w-48 overflow-hidden rounded-2xl border bg-popover p-1 shadow-xl"
+            style={{ left: ctxPos.x, top: ctxPos.y, borderColor: "var(--app-accent-subtle)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => { onDelete(ctxConv.id); setCtxConv(null); }}
               disabled={deletingId === ctxConv.id}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-red-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
             >
               {deletingId === ctxConv.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
               Delete conversation

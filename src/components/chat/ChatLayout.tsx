@@ -196,7 +196,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
       }
     : theme.style;
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  // Don't auto-focus input on chat open — let user tap when ready
 
   /* Show voice waveform when recording */
   useEffect(() => { setShowVoiceWaveform(voice.isRecording); }, [voice.isRecording]);
@@ -368,7 +368,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
     <div className="flex w-full flex-col bg-background" style={containerStyle}>
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
         {/* Header — glassmorphic, minimal, no shadow/glow */}
-        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 px-4 border-b border-white/5 bg-black/60 backdrop-blur-2xl">
+        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 px-4 border-b border-white/5 bg-white/[0.06] backdrop-blur-2xl">
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
@@ -529,12 +529,12 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             "fixed bottom-4 left-1/2 -translate-x-1/2",
             "w-[90%] max-w-lg",
             "rounded-full",
-            "backdrop-blur-xl bg-black/80",
-            "border border-white/10",
+            "backdrop-blur-2xl bg-white/[0.06]",
+            "border border-white/[0.12]",
             "p-1.5 px-3 shadow-2xl z-40",
             "flex items-center gap-2",
             "transition-all duration-200",
-            "focus-within:border-white/20",
+            "focus-within:border-white/20 focus-within:bg-white/[0.09]",
           )}
         >
           {/* Paperclip button — left side of pill */}

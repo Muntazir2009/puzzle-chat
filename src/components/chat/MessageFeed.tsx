@@ -50,6 +50,26 @@ const REACTION_EMOJIS = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  Double-tap hook                                                      */
+/* ------------------------------------------------------------------ */
+
+function useDoubleTap(
+  onDoubleTap: () => void,
+  delay = 300,
+) {
+  const lastTapRef = useRef(0);
+  return useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapRef.current < delay) {
+      onDoubleTap();
+      lastTapRef.current = 0; // reset
+    } else {
+      lastTapRef.current = now;
+    }
+  }, [onDoubleTap, delay]);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Props                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -840,7 +860,8 @@ function MessageBubble({
   searchHighlight,
   activeActionId,
   onOpenAction,
-  showAvatar,
+  activeTapbackId,
+  onOpenTapback,
 }: {
   message: ChatMessage;
   isOwn: boolean;
@@ -857,9 +878,10 @@ function MessageBubble({
   searchHighlight?: string;
   activeActionId: string | null;
   onOpenAction: (id: string | null) => void;
-  showAvatar: boolean;
+  activeTapbackId: string | null;
+  onOpenTapback: (id: string | null) => void;
 }) {
-  const [showTapback, setShowTapback] = useState(false);
+  const showTapback = activeTapbackId === message.id;
   const showActionSheet = activeActionId === message.id;
   const [showLightbox, setShowLightbox] = useState<string | null>(null);
   const [showReplyArrow, setShowReplyArrow] = useState(false);
@@ -868,35 +890,51 @@ function MessageBubble({
   );
   const wasDraggedRef = useRef(false);
 
+  /* Double-tap to reaction */
+  const handleDoubleTapReaction = useCallback(() => {
+    if (!onReact) return;
+    onReact(message.id, "\u{1F44D}", true);
+  }, [message.id, onReact]);
+
+  const doubleTap = useDoubleTap(handleDoubleTapReaction);
+
   const handleClick = useCallback(() => {
     clearTimeout(longPressRef.current);
     if (wasDraggedRef.current) {
       wasDraggedRef.current = false;
       return;
     }
-    setShowTapback(false);
-    onOpenAction(activeActionId === message.id ? null : message.id);
-  }, [activeActionId, message.id, onOpenAction]);
+    // Double-tap reaction
+    doubleTap();
+    // Toggle action sheet: close if already open for this bubble
+    if (activeActionId === message.id) {
+      onOpenAction(null);
+    } else {
+      onOpenAction(message.id);
+    }
+    // Always close tapback on single click
+    onOpenTapback(null);
+  }, [activeActionId, message.id, onOpenAction, onOpenTapback, doubleTap]);
 
   const handlePressStart = useCallback(() => {
     onOpenAction(null);
+    onOpenTapback(null);
     longPressRef.current = setTimeout(() => {
       if (typeof navigator !== "undefined" && "vibrate" in navigator)
         navigator.vibrate(20);
-      setShowTapback(true);
+      onOpenTapback(message.id);
     }, LONG_PRESS_MS);
-  }, [onOpenAction]);
+  }, [onOpenAction, onOpenTapback, message.id]);
 
   const handlePressEnd = useCallback(() => {
     clearTimeout(longPressRef.current);
-    // Don't close tapback here - let it stay open for interaction
   }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     onOpenAction(null);
-    setShowTapback(true);
-  }, [onOpenAction]);
+    onOpenTapback(message.id);
+  }, [onOpenAction, onOpenTapback, message.id]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard
@@ -917,14 +955,14 @@ function MessageBubble({
           variant: "destructive",
         });
       });
-    setShowTapback(false);
-  }, [message.content]);
+    onOpenTapback(null);
+  }, [message.content, onOpenTapback]);
 
   const handleDelete = useCallback(() => {
     onDeleteMessage?.(message.id);
-    setShowTapback(false);
+    onOpenTapback(null);
     onOpenAction(null);
-  }, [message.id, onDeleteMessage, onOpenAction]);
+  }, [message.id, onDeleteMessage, onOpenTapback, onOpenAction]);
 
   const handleActionSheetCopy = useCallback(() => {
     navigator.clipboard
@@ -946,12 +984,14 @@ function MessageBubble({
         });
       });
     onOpenAction(null);
-  }, [message.content, onOpenAction]);
+    onOpenTapback(null);
+  }, [message.content, onOpenAction, onOpenTapback]);
 
   const handleActionSheetReply = useCallback(() => {
     onReplyTo?.(message);
     onOpenAction(null);
-  }, [message, onReplyTo, onOpenAction]);
+    onOpenTapback(null);
+  }, [message, onReplyTo, onOpenAction, onOpenTapback]);
 
   const handleActionSheetForward = useCallback(() => {
     toast({
@@ -959,7 +999,8 @@ function MessageBubble({
       description: "Forward coming soon!",
     });
     onOpenAction(null);
-  }, [onOpenAction]);
+    onOpenTapback(null);
+  }, [onOpenAction, onOpenTapback]);
 
   const isFailed = message.status === "failed";
   const isVoice = message.type === "voice";
@@ -979,33 +1020,30 @@ function MessageBubble({
     <>
       <div
         className={cn(
-          "message-bubble-row relative flex w-full select-none gap-1.5",
+          "message-bubble-row relative flex w-full select-none gap-1",
           isOwn ? "justify-end" : "justify-start",
         )}
       >
-        {/* Avatar column for other user's messages */}
+        {/* Avatar column for other user's messages — always rendered for stacking */}
         {!isOwn && (
-          <>
-            {showAvatar ? (
-              <Avatar className="size-7 shrink-0 self-end ring-1 ring-white/10">
-                {partnerAvatar && (
-                  <AvatarImage src={partnerAvatar} alt={partnerName} />
-                )}
-                <AvatarFallback
-                  className="text-[10px] font-medium"
-                  style={{
-                    background:
-                      "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
-                    color: "var(--app-accent-dark)",
-                  }}
-                >
-                  {partnerName.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <div className="w-0 shrink-0" />
+          <Avatar className={cn(
+            "shrink-0 self-end ring-1 ring-white/10",
+            isLast ? "size-7" : "size-7 opacity-0 pointer-events-none",
+          )}>
+            {partnerAvatar && (
+              <AvatarImage src={partnerAvatar} alt={partnerName} />
             )}
-          </>
+            <AvatarFallback
+              className="text-[10px] font-medium"
+              style={{
+                background:
+                  "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+                color: "var(--app-accent-dark)",
+              }}
+            >
+              {partnerName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         )}
 
         <AnimatePresence>
@@ -1015,11 +1053,11 @@ function MessageBubble({
               isOwn={isOwn}
               onReact={(emoji, add) => {
                 onReact(message.id, emoji, add);
-                setShowTapback(false);
+                onOpenTapback(null);
               }}
               onReply={() => {
                 onReplyTo?.(message);
-                setShowTapback(false);
+                onOpenTapback(null);
               }}
               onCopy={handleCopy}
               onDelete={isOwn ? handleDelete : undefined}
@@ -1028,9 +1066,7 @@ function MessageBubble({
         </AnimatePresence>
 
         <div
-          className={cn(
-            "flex max-w-[95%] sm:max-w-[85%] flex-col gap-1 select-none",
-          )}
+          className="flex max-w-[95%] sm:max-w-[85%] flex-col gap-0.5 select-none"
         >
           <m.div
             drag="x"
@@ -1241,21 +1277,18 @@ function MessageBubble({
         </div>
 
         {isOwn && (
-          <>
-            {showAvatar ? (
-              <Avatar className="size-7 shrink-0 self-end ring-1 ring-white/10">
-                {currentUserAvatar && <AvatarImage src={currentUserAvatar} alt={currentUserName} />}
-                <AvatarFallback
-                  className="text-[10px] font-medium"
-                  style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", color: "var(--app-accent-dark)" }}
-                >
-                  {currentUserName.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <div className="w-0 shrink-0" />
-            )}
-          </>
+          <Avatar className={cn(
+            "shrink-0 self-end ring-1 ring-white/10",
+            isLast ? "size-7" : "size-7 opacity-0 pointer-events-none",
+          )}>
+            {currentUserAvatar && <AvatarImage src={currentUserAvatar} alt={currentUserName} />}
+            <AvatarFallback
+              className="text-[10px] font-medium"
+              style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", color: "var(--app-accent-dark)" }}
+            >
+              {currentUserName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         )}
       </div>
 
@@ -1289,6 +1322,8 @@ function MessageGroup({
   searchHighlight,
   activeActionId,
   onOpenAction,
+  activeTapbackId,
+  onOpenTapback,
 }: {
   messages: ChatMessage[];
   currentUserId: string;
@@ -1302,14 +1337,15 @@ function MessageGroup({
   searchHighlight?: string;
   activeActionId: string | null;
   onOpenAction: (id: string | null) => void;
+  activeTapbackId: string | null;
+  onOpenTapback: (id: string | null) => void;
 }) {
   const isOwnGroup = groupMessages[0].sender_id === currentUserId;
   return (
-    <div className={cn("flex flex-col gap-1", isOwnGroup ? "items-end" : "items-start")}>
+    <div className={cn("flex flex-col gap-0.5", isOwnGroup ? "items-end" : "items-start")}>
       {groupMessages.map((msg, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === groupMessages.length - 1;
-        const showAvatar = isLast;
         return (
           <MessageBubble
             key={msg.id}
@@ -1328,7 +1364,8 @@ function MessageGroup({
             searchHighlight={searchHighlight}
             activeActionId={activeActionId}
             onOpenAction={onOpenAction}
-            showAvatar={showAvatar}
+            activeTapbackId={activeTapbackId}
+            onOpenTapback={onOpenTapback}
           />
         );
       })}
@@ -1560,6 +1597,7 @@ export function MessageFeed({
   const parentRef = useRef<HTMLDivElement>(null);
   const isAutoScrollRef = useRef(true);
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const [activeTapbackId, setActiveTapbackId] = useState<string | null>(null);
   const [showNewBtn, setShowNewBtn] = useState(false);
   const unreadRef = useRef(0);
   const prevCountRef = useRef(messages.length);
@@ -1728,10 +1766,11 @@ export function MessageFeed({
         onScroll={handleScroll}
         onClick={(e) => {
           onClearSearchHighlight?.();
-          // Only close action sheet if click is directly on the scroll container or background
+          // Close menus if click is directly on the scroll container or background
           const target = e.target as HTMLElement;
           if (target === e.currentTarget || target.closest('.message-bubble-row') === null) {
             setActiveActionId(null);
+            setActiveTapbackId(null);
           }
         }}
         className="h-full w-full select-none overflow-y-auto overscroll-contain"
@@ -1836,6 +1875,8 @@ export function MessageFeed({
                       searchHighlight={searchHighlight}
                       activeActionId={activeActionId}
                       onOpenAction={setActiveActionId}
+                      activeTapbackId={activeTapbackId}
+                      onOpenTapback={setActiveTapbackId}
                     />
                   </>
                 ) : null}

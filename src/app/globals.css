@@ -168,18 +168,22 @@
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-/* Conversation list item hover accents */
+/* Conversation list item — cute soft card style */
 .conversation-item-row {
-  border-left: 3px solid transparent;
-  transition: background-color 0.15s ease-out, border-left-color 0.15s ease-out;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
 }
 .conversation-item-row:hover {
-  border-left-color: var(--app-accent-light);
-  background: linear-gradient(to right, var(--app-accent-subtle), transparent);
+  border-color: var(--app-accent-subtle);
+  background: radial-gradient(ellipse at 20% 50%, var(--app-accent-subtle), transparent 70%);
+  box-shadow: 0 0 20px -4px var(--app-accent-ring), 0 1px 3px -1px oklch(0 0 0 / 0.2);
 }
 .conversation-item-row.active {
-  border-left-color: var(--app-accent);
-  background: linear-gradient(to right, var(--app-accent-subtle), transparent);
+  border-color: var(--app-accent-pill-border);
+  background: radial-gradient(ellipse at 20% 50%, var(--app-accent-subtle), transparent 70%);
+  box-shadow: 0 0 24px -4px var(--app-accent-ring), inset 0 0 20px -8px var(--app-accent-subtle);
 }
 
 @layer base {

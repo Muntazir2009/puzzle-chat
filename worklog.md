@@ -1309,3 +1309,28 @@ Work Log:
 - Verified caller in `ChatLayout.tsx` already passes these props (no caller changes needed)
 - Verified no TypeScript errors with `tsc --noEmit`
 - Dev server compiled successfully after changes
+---
+Task ID: 1
+Agent: Main (fullstack)
+Task: Comprehensive UI fix round — menu stacking, nav redesign, upload fix, double-tap, cute DM list
+
+Work Log:
+- Created /api/messages/upload/route.ts — full file/image upload to Supabase storage with message insertion (was completely missing, causing upload failures)
+- Rewrote MessageBubble interaction system: moved tapback state from per-bubble local state to parent-level activeTapbackId (fixes stacking menus when long-pressing multiple bubbles)
+- Implemented useDoubleTap hook for double-tap-to-reaction (👍) functionality on message bubbles
+- Fixed single-click toggle: clicking same bubble again now properly closes the action sheet
+- Made long-press (tapback) and single-click menus mutually exclusive — opening one closes the other
+- Changed avatar rendering: always renders avatar column with opacity-0 for non-last messages (bubbles visually stack on the profile icon position)
+- Reduced bubble group gap from 1 to 0.5 for tighter stacking
+- Changed ChatLayout input bar from bg-black/80 to bg-white/[0.06] with backdrop-blur-2xl (transparent blur matching chat background)
+- Changed header from bg-black/60 to bg-white/[0.06] backdrop-blur-2xl for consistent glassmorphism
+- Removed auto-focus on chat open (useEffect focus removed) to prevent keyboard from opening
+- Redesigned NavPill: replaced sliding indicator with cute card-style buttons, Heart icon (filled when active) for chats, Sparkles divider, rounded-2xl with transparent blur bg
+- Removed About section from Settings page
+- Redesigned ConversationList with cuter UI: softer card-style items with hover glow, gradient header text, rounded-full new chat button with glow, softer dialog/search styling, warmer empty state
+
+Stage Summary:
+- All 8 tasks completed successfully
+- TypeScript compilation: zero errors in modified files
+- Dev server compiles and serves pages correctly
+- Key files changed: MessageFeed.tsx, ChatLayout.tsx, ChatView.tsx, ConversationList.tsx, globals.css, new: /api/messages/upload/route.ts
