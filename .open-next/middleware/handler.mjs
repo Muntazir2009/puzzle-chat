@@ -8853,11 +8853,16 @@ ${b3}`;
       var ic = e.i(40049);
       if (/* @__PURE__ */ new WeakMap(), ic.default.unstable_postpone, false === ("Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("needs to bail out of prerendering at this point because it used") && "Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("Learn more: https://nextjs.org/docs/messages/ppr-caught-error"))) throw Object.defineProperty(Error("Invariant: isDynamicPostpone misidentified a postpone reason. This is a bug in Next.js"), "__NEXT_ERROR_CODE", { value: "E296", enumerable: false, configurable: true });
       async function ih(e10) {
-        let t10 = em.next({ request: e10 }), r10 = function(e11, t11, r11) {
-          if (!function() {
-            if (il || "u" < typeof process || !process.env?.npm_package_name) return;
-            let e12 = process.env.npm_package_name;
-            iu.includes(e12) && (il = true, console.warn(`
+        let { pathname: t10 } = e10.nextUrl, r10 = t10.startsWith("/login") || t10.startsWith("/auth/callback") || t10.startsWith("/_next") || t10.startsWith("/favicon") || t10.startsWith("/logo") || t10.startsWith("/robots"), s10 = t10.startsWith("/api/");
+        if (r10 || s10) return em.next({ request: e10 });
+        let n10 = process.env.NEXT_PUBLIC_SUPABASE_URL, i2 = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!n10 || !i2) return em.next({ request: e10 });
+        try {
+          let t11 = em.next({ request: e10 }), r11 = function(e11, t12, r12) {
+            if (!function() {
+              if (il || "u" < typeof process || !process.env?.npm_package_name) return;
+              let e12 = process.env.npm_package_name;
+              iu.includes(e12) && (il = true, console.warn(`
 \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
 \u2551 \u26A0\uFE0F  IMPORTANT: Package Consolidation Notice                                \u2551
 \u2551                                                                            \u2551
@@ -8876,116 +8881,117 @@ ${b3}`;
 \u2551 https://supabase.com/docs/guides/auth/server-side                         \u2551
 \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D
     `));
-          }(), !e11 || !t11) throw Error(`Your project's URL and Key are required to create a Supabase client!
+            }(), !e11 || !t12) throw Error(`Your project's URL and Key are required to create a Supabase client!
 
 Check your Supabase project's API settings to find these values
 
 https://supabase.com/dashboard/project/_/settings/api`);
-          let { storage: s11, getAll: n11, setAll: i3, setItems: a3, removedItems: o2 } = function(e12, t12) {
-            let r12, s12, n12 = e12.cookies ?? null, i4 = e12.cookieEncoding, a4 = {}, o3 = {}, l3 = () => {
-              let e13 = (0, n3.parse)(document.cookie);
-              return Object.keys(e13).map((t13) => ({ name: t13, value: e13[t13] ?? "" }));
-            }, u2 = (e13) => {
-              e13.forEach(({ name: e14, value: t13, options: r13 }) => {
-                document.cookie = (0, n3.serialize)(e14, t13, r13);
-              });
-            };
-            if (n12) if ("get" in n12) {
-              let e13 = async (e14) => {
-                let t13 = e14.flatMap((e15) => [e15, ...Array.from({ length: 5 }).map((t14, r14) => `${e15}.${r14}`)]), r13 = [];
-                for (let e15 = 0; e15 < t13.length; e15 += 1) {
-                  let s13 = await n12.get(t13[e15]);
-                  (s13 || "string" == typeof s13) && r13.push({ name: t13[e15], value: s13 });
-                }
-                return r13;
+            let { storage: s12, getAll: n11, setAll: i3, setItems: a2, removedItems: o2 } = function(e12, t13) {
+              let r13, s13, n12 = e12.cookies ?? null, i4 = e12.cookieEncoding, a3 = {}, o3 = {}, l3 = () => {
+                let e13 = (0, n3.parse)(document.cookie);
+                return Object.keys(e13).map((t14) => ({ name: t14, value: e13[t14] ?? "" }));
+              }, u2 = (e13) => {
+                e13.forEach(({ name: e14, value: t14, options: r14 }) => {
+                  document.cookie = (0, n3.serialize)(e14, t14, r14);
+                });
               };
-              if (r12 = async (t13) => await e13(t13), "set" in n12 && "remove" in n12) s12 = async (e14) => {
-                for (let t13 = 0; t13 < e14.length; t13 += 1) {
-                  let { name: r13, value: s13, options: i5 } = e14[t13];
-                  s13 ? await n12.set(r13, s13, i5) : await n12.remove(r13, i5);
-                }
+              if (n12) if ("get" in n12) {
+                let e13 = async (e14) => {
+                  let t14 = e14.flatMap((e15) => [e15, ...Array.from({ length: 5 }).map((t15, r15) => `${e15}.${r15}`)]), r14 = [];
+                  for (let e15 = 0; e15 < t14.length; e15 += 1) {
+                    let s14 = await n12.get(t14[e15]);
+                    (s14 || "string" == typeof s14) && r14.push({ name: t14[e15], value: s14 });
+                  }
+                  return r14;
+                };
+                if (r13 = async (t14) => await e13(t14), "set" in n12 && "remove" in n12) s13 = async (e14) => {
+                  for (let t14 = 0; t14 < e14.length; t14 += 1) {
+                    let { name: r14, value: s14, options: i5 } = e14[t14];
+                    s14 ? await n12.set(r14, s14, i5) : await n12.remove(r14, i5);
+                  }
+                };
+                else if (t13) s13 = async () => {
+                  console.warn("@supabase/ssr: createServerClient was configured without set and remove cookie methods, but the client needs to set cookies. This can lead to issues such as random logouts, early session termination or increased token refresh requests. If in NextJS, check your middleware.ts file, route handlers and server actions for correctness. Consider switching to the getAll and setAll cookie methods instead of get, set and remove which are deprecated and can be difficult to use correctly.");
+                };
+                else throw Error("@supabase/ssr: createBrowserClient requires configuring a getAll and setAll cookie method (deprecated: alternatively both get, set and remove can be used)");
+              } else if ("getAll" in n12) if (r13 = async () => await n12.getAll(), "setAll" in n12) s13 = n12.setAll;
+              else if (t13) s13 = async () => {
+                console.warn("@supabase/ssr: createServerClient was configured without the setAll cookie method, but the client needs to set cookies. This can lead to issues such as random logouts, early session termination or increased token refresh requests. If in NextJS, check your middleware.ts file, route handlers and server actions for correctness.");
               };
-              else if (t12) s12 = async () => {
-                console.warn("@supabase/ssr: createServerClient was configured without set and remove cookie methods, but the client needs to set cookies. This can lead to issues such as random logouts, early session termination or increased token refresh requests. If in NextJS, check your middleware.ts file, route handlers and server actions for correctness. Consider switching to the getAll and setAll cookie methods instead of get, set and remove which are deprecated and can be difficult to use correctly.");
+              else throw Error("@supabase/ssr: createBrowserClient requires configuring both getAll and setAll cookie methods (deprecated: alternatively both get, set and remove can be used)");
+              else if (t13 || 1) throw Error(`@supabase/ssr: ${t13 ? "createServerClient" : "createBrowserClient"} requires configuring getAll and setAll cookie methods (deprecated: alternatively use get, set and remove).`);
+              else r13 = () => l3(), s13 = u2;
+              else if (t13 || 1) if (t13) throw Error("@supabase/ssr: createServerClient must be initialized with cookie options that specify getAll and setAll functions (deprecated, not recommended: alternatively use get, set and remove)");
+              else r13 = () => [], s13 = () => {
+                throw Error("@supabase/ssr: createBrowserClient in non-browser runtimes (including Next.js pre-rendering mode) was not initialized cookie options that specify getAll and setAll functions (deprecated: alternatively use get, set and remove), but they were needed");
               };
-              else throw Error("@supabase/ssr: createBrowserClient requires configuring a getAll and setAll cookie method (deprecated: alternatively both get, set and remove can be used)");
-            } else if ("getAll" in n12) if (r12 = async () => await n12.getAll(), "setAll" in n12) s12 = n12.setAll;
-            else if (t12) s12 = async () => {
-              console.warn("@supabase/ssr: createServerClient was configured without the setAll cookie method, but the client needs to set cookies. This can lead to issues such as random logouts, early session termination or increased token refresh requests. If in NextJS, check your middleware.ts file, route handlers and server actions for correctness.");
-            };
-            else throw Error("@supabase/ssr: createBrowserClient requires configuring both getAll and setAll cookie methods (deprecated: alternatively both get, set and remove can be used)");
-            else if (t12 || 1) throw Error(`@supabase/ssr: ${t12 ? "createServerClient" : "createBrowserClient"} requires configuring getAll and setAll cookie methods (deprecated: alternatively use get, set and remove).`);
-            else r12 = () => l3(), s12 = u2;
-            else if (t12 || 1) if (t12) throw Error("@supabase/ssr: createServerClient must be initialized with cookie options that specify getAll and setAll functions (deprecated, not recommended: alternatively use get, set and remove)");
-            else r12 = () => [], s12 = () => {
-              throw Error("@supabase/ssr: createBrowserClient in non-browser runtimes (including Next.js pre-rendering mode) was not initialized cookie options that specify getAll and setAll functions (deprecated: alternatively use get, set and remove), but they were needed");
-            };
-            else r12 = () => l3(), s12 = u2;
-            return t12 ? { getAll: r12, setAll: s12, setItems: a4, removedItems: o3, storage: { isServer: true, getItem: async (e13) => {
-              if ("string" == typeof a4[e13]) return a4[e13];
-              if (o3[e13]) return null;
-              let t13 = await r12([e13]), s13 = await n9(e13, async (e14) => {
-                let r13 = t13?.find(({ name: t14 }) => t14 === e14) || null;
-                return r13 ? r13.value : null;
-              });
-              return s13 ? "string" != typeof s13 ? s13 : ia(s13) : null;
-            }, setItem: async (t13, n13) => {
-              t13.endsWith("-code-verifier") && await io({ getAll: r12, setAll: s12, setItems: { [t13]: n13 }, removedItems: {} }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i4 }), a4[t13] = n13, delete o3[t13];
-            }, removeItem: async (t13) => {
-              (ii.test(t13) || t13.endsWith("-flows-code-verifier")) && await io({ getAll: r12, setAll: s12, setItems: {}, removedItems: { [t13]: true } }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i4 }), delete a4[t13], o3[t13] = true;
-            } } } : { getAll: r12, setAll: s12, setItems: a4, removedItems: o3, storage: { isServer: false, getItem: async (e13) => {
-              let t13 = await r12([e13]), s13 = await n9(e13, async (e14) => {
-                let r13 = t13?.find(({ name: t14 }) => t14 === e14) || null;
-                return r13 ? r13.value : null;
-              });
-              return s13 ? ia(s13) : null;
-            }, setItem: async (t13, n13) => {
-              let a5 = await r12([t13]), o4 = new Set((a5?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t13))), l4 = n13;
-              "base64url" === i4 && (l4 = is + ir(n13));
-              let u3 = n8(t13, l4);
-              u3.forEach(({ name: e13 }) => {
-                o4.delete(e13);
-              });
-              let c2 = { ...n4, ...e12?.cookieOptions, maxAge: 0 }, h2 = { ...n4, ...e12?.cookieOptions, maxAge: n4.maxAge };
-              delete c2.name, delete h2.name;
-              let d2 = c2.domain ? (() => {
-                let { domain: e13, ...t14 } = c2;
-                return t14;
-              })() : null, p2 = [...d2 ? [...o4].map((e13) => ({ name: e13, value: "", options: d2 })) : [], ...[...o4].map((e13) => ({ name: e13, value: "", options: c2 })), ...u3.map(({ name: e13, value: t14 }) => ({ name: e13, value: t14, options: h2 }))];
-              p2.length > 0 && await s12(p2, {});
-            }, removeItem: async (t13) => {
-              let n13 = await r12([t13]), i5 = (n13?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t13));
-              if (0 === i5.length) return;
-              let a5 = { ...n4, ...e12?.cookieOptions, maxAge: 0 };
-              delete a5.name;
-              let o4 = a5.domain ? (() => {
-                let { domain: e13, ...t14 } = a5;
-                return t14;
-              })() : null, l4 = [...o4 ? i5.map((e13) => ({ name: e13, value: "", options: o4 })) : [], ...i5.map((e13) => ({ name: e13, value: "", options: a5 }))];
-              await s12(l4, {});
-            } } };
-          }({ ...r11, cookieEncoding: r11?.cookieEncoding ?? "base64url" }, true), l2 = new n2(e11, t11, { ...r11, global: { ...r11?.global, headers: { ...r11?.global?.headers, "X-Client-Info": "supabase-ssr/0.12.4 createServerClient" } }, auth: { ...r11?.cookieOptions?.name ? { storageKey: r11.cookieOptions.name } : null, ...r11?.auth, flowType: "pkce", autoRefreshToken: false, detectSessionInUrl: false, persistSession: true, skipAutoInitialize: true, storage: s11, ...r11?.cookies && "encode" in r11.cookies && "tokens-only" === r11.cookies.encode ? { userStorage: r11?.auth?.userStorage ?? /* @__PURE__ */ function(e12 = {}) {
-            return { getItem: (t12) => e12[t12] || null, setItem: (t12, r12) => {
-              e12[t12] = r12;
-            }, removeItem: (t12) => {
-              delete e12[t12];
-            } };
-          }() } : null } });
-          return l2.auth.onAuthStateChange(async (e12) => {
-            (Object.keys(a3).length > 0 || Object.keys(o2).length > 0) && ("SIGNED_IN" === e12 || "TOKEN_REFRESHED" === e12 || "USER_UPDATED" === e12 || "PASSWORD_RECOVERY" === e12 || "SIGNED_OUT" === e12 || "MFA_CHALLENGE_VERIFIED" === e12) && await io({ getAll: n11, setAll: i3, setItems: a3, removedItems: o2 }, { cookieOptions: r11?.cookieOptions ?? null, cookieEncoding: r11?.cookieEncoding ?? "base64url" });
-          }), l2;
-        }("https://njtdajospdunfbfgyymh.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdGRham9zcGR1bmZiZmd5eW1oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NTI3MTYsImV4cCI6MjEwMjQyODcxNn0.A5hF3MXpeBvpCY-2oM1MHzrqEB43fFmoosCfsPIECQQ", { cookies: { getAll: () => e10.cookies.getAll(), setAll(r11) {
-          r11.forEach(({ name: t11, value: r12, options: s11 }) => e10.cookies.set(t11, r12)), t10 = em.next({ request: e10 }), r11.forEach(({ name: e11, value: r12, options: s11 }) => t10.cookies.set(e11, r12, s11));
-        } } }), { data: { user: s10 } } = await r10.auth.getUser(), { pathname: n10 } = e10.nextUrl, i2 = n10.startsWith("/login") || n10.startsWith("/auth/callback") || n10.startsWith("/_next") || n10.startsWith("/favicon") || n10.startsWith("/logo") || n10.startsWith("/robots"), a2 = n10.startsWith("/api/");
-        if (!s10 && !i2 && !a2) {
+              else r13 = () => l3(), s13 = u2;
+              return t13 ? { getAll: r13, setAll: s13, setItems: a3, removedItems: o3, storage: { isServer: true, getItem: async (e13) => {
+                if ("string" == typeof a3[e13]) return a3[e13];
+                if (o3[e13]) return null;
+                let t14 = await r13([e13]), s14 = await n9(e13, async (e14) => {
+                  let r14 = t14?.find(({ name: t15 }) => t15 === e14) || null;
+                  return r14 ? r14.value : null;
+                });
+                return s14 ? "string" != typeof s14 ? s14 : ia(s14) : null;
+              }, setItem: async (t14, n13) => {
+                t14.endsWith("-code-verifier") && await io({ getAll: r13, setAll: s13, setItems: { [t14]: n13 }, removedItems: {} }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i4 }), a3[t14] = n13, delete o3[t14];
+              }, removeItem: async (t14) => {
+                (ii.test(t14) || t14.endsWith("-flows-code-verifier")) && await io({ getAll: r13, setAll: s13, setItems: {}, removedItems: { [t14]: true } }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i4 }), delete a3[t14], o3[t14] = true;
+              } } } : { getAll: r13, setAll: s13, setItems: a3, removedItems: o3, storage: { isServer: false, getItem: async (e13) => {
+                let t14 = await r13([e13]), s14 = await n9(e13, async (e14) => {
+                  let r14 = t14?.find(({ name: t15 }) => t15 === e14) || null;
+                  return r14 ? r14.value : null;
+                });
+                return s14 ? ia(s14) : null;
+              }, setItem: async (t14, n13) => {
+                let a4 = await r13([t14]), o4 = new Set((a4?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t14))), l4 = n13;
+                "base64url" === i4 && (l4 = is + ir(n13));
+                let u3 = n8(t14, l4);
+                u3.forEach(({ name: e13 }) => {
+                  o4.delete(e13);
+                });
+                let c2 = { ...n4, ...e12?.cookieOptions, maxAge: 0 }, h2 = { ...n4, ...e12?.cookieOptions, maxAge: n4.maxAge };
+                delete c2.name, delete h2.name;
+                let d2 = c2.domain ? (() => {
+                  let { domain: e13, ...t15 } = c2;
+                  return t15;
+                })() : null, p2 = [...d2 ? [...o4].map((e13) => ({ name: e13, value: "", options: d2 })) : [], ...[...o4].map((e13) => ({ name: e13, value: "", options: c2 })), ...u3.map(({ name: e13, value: t15 }) => ({ name: e13, value: t15, options: h2 }))];
+                p2.length > 0 && await s13(p2, {});
+              }, removeItem: async (t14) => {
+                let n13 = await r13([t14]), i5 = (n13?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t14));
+                if (0 === i5.length) return;
+                let a4 = { ...n4, ...e12?.cookieOptions, maxAge: 0 };
+                delete a4.name;
+                let o4 = a4.domain ? (() => {
+                  let { domain: e13, ...t15 } = a4;
+                  return t15;
+                })() : null, l4 = [...o4 ? i5.map((e13) => ({ name: e13, value: "", options: o4 })) : [], ...i5.map((e13) => ({ name: e13, value: "", options: a4 }))];
+                await s13(l4, {});
+              } } };
+            }({ ...r12, cookieEncoding: r12?.cookieEncoding ?? "base64url" }, true), l2 = new n2(e11, t12, { ...r12, global: { ...r12?.global, headers: { ...r12?.global?.headers, "X-Client-Info": "supabase-ssr/0.12.4 createServerClient" } }, auth: { ...r12?.cookieOptions?.name ? { storageKey: r12.cookieOptions.name } : null, ...r12?.auth, flowType: "pkce", autoRefreshToken: false, detectSessionInUrl: false, persistSession: true, skipAutoInitialize: true, storage: s12, ...r12?.cookies && "encode" in r12.cookies && "tokens-only" === r12.cookies.encode ? { userStorage: r12?.auth?.userStorage ?? /* @__PURE__ */ function(e12 = {}) {
+              return { getItem: (t13) => e12[t13] || null, setItem: (t13, r13) => {
+                e12[t13] = r13;
+              }, removeItem: (t13) => {
+                delete e12[t13];
+              } };
+            }() } : null } });
+            return l2.auth.onAuthStateChange(async (e12) => {
+              (Object.keys(a2).length > 0 || Object.keys(o2).length > 0) && ("SIGNED_IN" === e12 || "TOKEN_REFRESHED" === e12 || "USER_UPDATED" === e12 || "PASSWORD_RECOVERY" === e12 || "SIGNED_OUT" === e12 || "MFA_CHALLENGE_VERIFIED" === e12) && await io({ getAll: n11, setAll: i3, setItems: a2, removedItems: o2 }, { cookieOptions: r12?.cookieOptions ?? null, cookieEncoding: r12?.cookieEncoding ?? "base64url" });
+            }), l2;
+          }(n10, i2, { cookies: { getAll: () => e10.cookies.getAll(), setAll(r12) {
+            r12.forEach(({ name: t12, value: r13, options: s12 }) => e10.cookies.set(t12, r13)), t11 = em.next({ request: e10 }), r12.forEach(({ name: e11, value: r13, options: s12 }) => t11.cookies.set(e11, r13, s12));
+          } } }), { data: { user: s11 } } = await r11.auth.getUser();
+          if (!s11) {
+            let t12 = e10.nextUrl.clone();
+            return t12.pathname = "/login", em.redirect(t12);
+          }
+          return t11.headers.set("x-user-id", s11.id), t11.headers.set("x-user-email", s11.email ?? ""), t11;
+        } catch (r11) {
+          console.error("[middleware] auth check failed:", r11);
           let t11 = e10.nextUrl.clone();
           return t11.pathname = "/login", em.redirect(t11);
         }
-        if (s10 && n10.startsWith("/login")) {
-          let t11 = e10.nextUrl.clone();
-          return t11.pathname = "/", em.redirect(t11);
-        }
-        return s10 && !i2 && (t10.headers.set("x-user-id", s10.id), t10.headers.set("x-user-email", s10.email ?? "")), t10;
       }
       RegExp(`\\n\\s+at Suspense \\(<anonymous>\\)(?:(?!\\n\\s+at (?:body|div|main|section|article|aside|header|footer|nav|form|p|span|h1|h2|h3|h4|h5|h6) \\(<anonymous>\\))[\\s\\S])*?\\n\\s+at __next_root_layout_boundary__ \\([^\\n]*\\)`), RegExp(`\\n\\s+at __next_metadata_boundary__[\\n\\s]`), RegExp(`\\n\\s+at __next_viewport_boundary__[\\n\\s]`), RegExp(`\\n\\s+at __next_outlet_boundary__[\\n\\s]`), e.s([], 85835), e.i(85835), e.s(["config", 0, { matcher: ["/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"] }, "middleware", () => ih], 96592);
       var id = e.i(96592);
@@ -9588,11 +9594,11 @@ var NEXT_DIR = path.join(__dirname, ".next");
 var OPEN_NEXT_DIR = path.join(__dirname, ".open-next");
 debug({ NEXT_DIR, OPEN_NEXT_DIR });
 var NextConfig = { "distDir": ".next", "cacheComponents": false, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "assetPrefix": "", "output": "standalone", "trailingSlash": false, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [], "qualities": [75], "unoptimized": false }, "reactMaxHeadersLength": 6e3, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "basePath": "", "expireTime": 31536e3, "generateEtags": true, "poweredByHeader": true, "cacheHandlers": {}, "cacheMaxMemorySize": 52428800, "compress": true, "i18n": null, "httpAgentOptions": { "keepAlive": true }, "pageExtensions": ["tsx", "ts", "jsx", "js"], "useFileSystemPublicRoutes": true, "experimental": { "ppr": false, "staleTimes": { "dynamic": 0, "static": 300 }, "dynamicOnHover": false, "inlineCss": false, "authInterrupts": false, "fetchCacheKeyPrefix": "", "isrFlushToDisk": true, "optimizeCss": false, "nextScriptWorkers": false, "disableOptimizedLoading": false, "largePageDataBytes": 128e3, "serverComponentsHmrCache": true, "caseSensitiveRoutes": false, "validateRSCRequestHeaders": false, "useSkewCookie": false, "preloadEntriesOnStart": true, "hideLogsAfterAbort": false, "removeUncaughtErrorAndRejectionListeners": false, "imgOptConcurrency": null, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "imgOptSkipMetadata": null, "imgOptTimeoutInSeconds": 7, "proxyClientMaxBodySize": 10485760, "trustHostHeader": false, "isExperimentalCompile": false }, "skipTrailingSlashRedirect": false, "serverExternalPackages": [] };
-var BuildId = "NUjTlzgS0bMPLbKTiXmUa";
+var BuildId = "IdJGid6TzK5ltxWodWLyJ";
 var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/api", "regex": "^/api(?:/)?$", "routeKeys": {}, "namedRegex": "^/api(?:/)?$" }, { "page": "/api/conversations", "regex": "^/api/conversations(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations(?:/)?$" }, { "page": "/api/conversations/create", "regex": "^/api/conversations/create(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations/create(?:/)?$" }, { "page": "/api/conversations/delete", "regex": "^/api/conversations/delete(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations/delete(?:/)?$" }, { "page": "/api/messages/delete", "regex": "^/api/messages/delete(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/delete(?:/)?$" }, { "page": "/api/messages/history", "regex": "^/api/messages/history(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/history(?:/)?$" }, { "page": "/api/messages/reaction", "regex": "^/api/messages/reaction(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/reaction(?:/)?$" }, { "page": "/api/messages/read", "regex": "^/api/messages/read(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/read(?:/)?$" }, { "page": "/api/messages/search", "regex": "^/api/messages/search(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/search(?:/)?$" }, { "page": "/api/messages/send", "regex": "^/api/messages/send(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/send(?:/)?$" }, { "page": "/api/messages/vanish", "regex": "^/api/messages/vanish(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/vanish(?:/)?$" }, { "page": "/api/messages/voice", "regex": "^/api/messages/voice(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/voice(?:/)?$" }, { "page": "/api/pusher/auth", "regex": "^/api/pusher/auth(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/pusher/auth(?:/)?$" }, { "page": "/api/users/batch-status", "regex": "^/api/users/batch\\-status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/batch\\-status(?:/)?$" }, { "page": "/api/users/heartbeat", "regex": "^/api/users/heartbeat(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/heartbeat(?:/)?$" }, { "page": "/api/users/profile", "regex": "^/api/users/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/profile(?:/)?$" }, { "page": "/api/users/search", "regex": "^/api/users/search(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/search(?:/)?$" }, { "page": "/api/users/status", "regex": "^/api/users/status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/status(?:/)?$" }, { "page": "/auth/callback", "regex": "^/auth/callback(?:/)?$", "routeKeys": {}, "namedRegex": "^/auth/callback(?:/)?$" }, { "page": "/login", "regex": "^/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/login(?:/)?$" }], "dynamic": [], "data": { "static": [], "dynamic": [] } }, "locales": [] };
 var ConfigHeaders = [];
-var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/login": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/login", "dataRoute": "/login.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "08850b74db27d995d7e9e625ce9585f9", "previewModeSigningKey": "41c3b4e3c30457fcde24006b4fc0eb35c203afe5782a01e6ba4dda8f54e7a189", "previewModeEncryptionKey": "5a730f55d09f429099a7f3821151212736243479581a90aa52682460326ac968" } };
-var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_78fa9d6a.js", "server/edge/chunks/[root-of-the-server]__172fb303._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_7057d99f.js"], "name": "middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*))(\\\\.json)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "NUjTlzgS0bMPLbKTiXmUa", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "dWy1R/tMH62Pe3eY47kjUbkDKv59RIC9cuaBPb07ylg=", "__NEXT_PREVIEW_MODE_ID": "08850b74db27d995d7e9e625ce9585f9", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "5a730f55d09f429099a7f3821151212736243479581a90aa52682460326ac968", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "41c3b4e3c30457fcde24006b4fc0eb35c203afe5782a01e6ba4dda8f54e7a189" } } }, "sortedMiddleware": ["/"], "functions": {} };
+var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/login": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/login", "dataRoute": "/login.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "eac91c4653bb08e903d0358acb1395e2", "previewModeSigningKey": "879d7e0800b369dc9a7c488a3bb856592aa48d67b347a6bbfb0358dbbcf5b87d", "previewModeEncryptionKey": "f6c046b9f3c102d01521be8fc062579199267b9fbc9fd9e710e232849075c1fb" } };
+var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_78fa9d6a.js", "server/edge/chunks/[root-of-the-server]__172fb303._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_7057d99f.js"], "name": "middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*))(\\\\.json)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "IdJGid6TzK5ltxWodWLyJ", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "O/Cql1eNrjZOUgTrRppsLfTjn37e1z65qG9jmYJK8ro=", "__NEXT_PREVIEW_MODE_ID": "eac91c4653bb08e903d0358acb1395e2", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "f6c046b9f3c102d01521be8fc062579199267b9fbc9fd9e710e232849075c1fb", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "879d7e0800b369dc9a7c488a3bb856592aa48d67b347a6bbfb0358dbbcf5b87d" } } }, "sortedMiddleware": ["/"], "functions": {} };
 var AppPathRoutesManifest = { "/_global-error/page": "/_global-error", "/_not-found/page": "/_not-found", "/api/conversations/create/route": "/api/conversations/create", "/api/conversations/delete/route": "/api/conversations/delete", "/api/conversations/route": "/api/conversations", "/api/messages/delete/route": "/api/messages/delete", "/api/messages/history/route": "/api/messages/history", "/api/messages/reaction/route": "/api/messages/reaction", "/api/messages/read/route": "/api/messages/read", "/api/messages/search/route": "/api/messages/search", "/api/messages/send/route": "/api/messages/send", "/api/messages/vanish/route": "/api/messages/vanish", "/api/messages/voice/route": "/api/messages/voice", "/api/pusher/auth/route": "/api/pusher/auth", "/api/route": "/api", "/api/users/batch-status/route": "/api/users/batch-status", "/api/users/heartbeat/route": "/api/users/heartbeat", "/api/users/profile/route": "/api/users/profile", "/api/users/search/route": "/api/users/search", "/api/users/status/route": "/api/users/status", "/auth/callback/route": "/auth/callback", "/login/page": "/login", "/page": "/" };
 var FunctionsConfigManifest = { "version": 1, "functions": {} };
 var PagesManifest = { "/404": "pages/404.html", "/500": "pages/500.html" };

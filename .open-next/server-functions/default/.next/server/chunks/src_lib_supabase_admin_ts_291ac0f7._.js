@@ -1,3 +1,3 @@
-module.exports=[13452,e=>{"use strict";var t=e.i(24389);function s(){let e=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!e)throw Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable.");return(0,t.createClient)("https://njtdajospdunfbfgyymh.supabase.co",e,{auth:{persistSession:!1,autoRefreshToken:!1}})}e.s(["createAdminClient",()=>s])}];
+module.exports=[13452,e=>{"use strict";var r=e.i(24389);function i(){let e=process.env.NEXT_PUBLIC_SUPABASE_URL,i=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!e)throw Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable.");if(!i)throw Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable.");return(0,r.createClient)(e,i,{auth:{persistSession:!1,autoRefreshToken:!1}})}e.s(["createAdminClient",()=>i])}];
 
 //# sourceMappingURL=src_lib_supabase_admin_ts_291ac0f7._.js.map

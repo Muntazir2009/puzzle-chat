@@ -10,8 +10,6 @@ import type { Database } from "./database.types";
  * credentials are not yet configured.
  */
 export async function createClient() {
-  const cookieStore = await cookies();
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -29,6 +27,19 @@ export async function createClient() {
     );
   }
 
+  let cookieStore: Awaited<ReturnType<typeof cookies>>;
+  try {
+    cookieStore = await cookies();
+  } catch {
+    /* On some edge runtimes (e.g. Cloudflare Workers) the cookies()
+       API may not be available in certain contexts. Fall back to
+       a no-op cookie jar so the client can at least be created. */
+    cookieStore = {
+      getAll: () => [],
+      set: () => {},
+    } as unknown as Awaited<ReturnType<typeof cookies>>;
+  }
+
   return createServerClient<Database>(url, key, {
     cookies: {
       getAll() {
@@ -40,8 +51,8 @@ export async function createClient() {
             cookieStore.set(name, value, options)
           );
         } catch {
-          // The `setAll` method is called from a Server Component.
-          // This can be ignored if you have middleware refreshing sessions.
+          /* setAll is called from Server Components and can be
+             safely ignored when middleware handles refresh. */
         }
       },
     },
