@@ -42,3 +42,31 @@ Stage Summary:
 - Pusher secret not configured locally (only in CF wrangler.jsonc)
 - Feature wiring (Pusher realtime, reactions API) needs Supabase connection to test
 - 21st.dev / Aceternity UI component integration (deferred — would require npm installs and testing)
+---
+Task ID: 1
+Agent: Main
+Task: Push all changes and optimize web performance for all network types
+
+Work Log:
+- Pushed existing uncommitted changes to git (cleanup stale files)
+- Switched Framer Motion LazyMotion from domMax (~30KB) to domAnimation (~10KB) - saves ~20KB initial JS
+- Added preconnect/dns-prefetch hints for Supabase and Pusher CDNs in layout.tsx head
+- Added meta theme-color for mobile browser chrome
+- Dynamic imported EmojiPicker (336 lines) and ProfileDialog (365 lines) as code-split chunks
+- Rewrote useChat.ts: extracted shared parseMsg() function (was duplicated 3x), lazy-init Supabase Realtime client, batched markAsRead with 500ms debounce, added AbortController for fetch cleanup
+- Wrapped MessageBubble, MessageGroup, ConversationItemRow, ReceiptIcon, ReactionPills in React.memo to prevent unnecessary re-renders
+- Replaced per-row AnimatePresence animations in ConversationList with static renders
+- Simplified ChatView navigation transitions from multi-axis (x/y) to simple opacity fades
+- Optimized /api/conversations: replaced N+1 last-message queries (one per conversation) with single batch query
+- Made page.tsx upsert fire-and-forget (non-blocking), removed admin client fallback
+- Added optimizePackageImports for lucide-react, date-fns, framer-motion in next.config.ts
+- Added dynamic/revalidate headers in page.tsx for no-cache SSR
+- Verified zero TypeScript errors in src/ directory
+
+Stage Summary:
+- All changes pushed to main branch (commits ea3a5a2, a5fcbe6)
+- Estimated initial JS bundle reduction: ~25-35KB (domMax→domAnimation + dynamic imports + optimizePackageImports)
+- API performance: conversations endpoint reduced from N+1 to 2 queries
+- Network: preconnect hints eliminate ~100-300ms connection setup for Supabase/Pusher on first load
+- Runtime: React.memo on bubble components prevents re-rendering all messages when one changes
+- Runtime: batched markAsRead reduces API calls during rapid message arrival
