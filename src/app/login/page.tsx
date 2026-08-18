@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useState } from "react";
+import { type FormEvent, useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { m, AnimatePresence } from "framer-motion";
@@ -27,10 +27,12 @@ const APP_DOMAIN = "puzzle.app";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const supabase = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return null;
+    return createBrowserClient(url, key);
+  }, []);
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [username, setUsername] = useState("");
@@ -49,6 +51,10 @@ export default function LoginPage() {
       setLoading(true);
 
       try {
+        if (!supabase) {
+          setError("Supabase is not configured. Please check environment variables.");
+          return;
+        }
         if (isSignUp) {
           if (!username.trim() || !password) return;
           const { error: signUpErr } = await supabase.auth.signUp({
@@ -176,22 +182,20 @@ export default function LoginPage() {
             </AnimatePresence>
 
             {/* Submit */}
-            <m.div whileTap={{ scale: 0.98 }}>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 py-3.5 text-sm font-bold text-zinc-900 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:via-yellow-400 hover:to-orange-400 disabled:opacity-50 transition-all duration-300"
-              >
-                {loading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <>
-                    {isSignUp ? "Create account" : "Sign in"}
-                    <ArrowRight className="ml-2 size-4" />
-                  </>
-                )}
-              </Button>
-            </m.div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 py-3.5 text-sm font-bold text-zinc-900 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:via-yellow-400 hover:to-orange-400 disabled:opacity-50 transition-all duration-300 active:scale-[0.98]"
+            >
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <>
+                  {isSignUp ? "Create account" : "Sign in"}
+                  <ArrowRight className="ml-2 size-4" />
+                </>
+              )}
+            </Button>
 
             {/* Toggle */}
             <p className="pt-1 text-center text-sm text-zinc-400">
