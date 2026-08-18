@@ -188,12 +188,16 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
 
   /* Compute background style — wallpaper overrides theme */
   const bgStyle = wallpaper
-    ? {
-        backgroundImage: `url(${wallpaper})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }
+    ? wallpaper.startsWith('url(') || wallpaper.startsWith('http')
+      ? {
+          backgroundImage: `url(${wallpaper})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }
+      : {
+          background: wallpaper,
+        }
     : theme.style;
 
   // Don't auto-focus input on chat open — let user tap when ready
@@ -401,7 +405,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
         </header>
 
         {/* Feed area — pb-24 so messages never get covered by the floating input pill */}
-        <div className="relative min-h-0 flex-1 pb-24 px-1">
+        <div className="relative min-h-0 flex-1 pb-24">
           <MessageFeed
             messages={messages}
             isLoading={isLoading}
@@ -529,12 +533,12 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             "fixed bottom-4 left-1/2 -translate-x-1/2",
             "w-[90%] max-w-lg",
             "rounded-full",
-            "backdrop-blur-2xl bg-white/[0.06]",
+            "backdrop-blur-2xl bg-white/[0.08]",
             "border border-white/[0.12]",
             "p-1.5 px-3 shadow-2xl z-40",
             "flex items-center gap-2",
             "transition-all duration-200",
-            "focus-within:border-white/20 focus-within:bg-white/[0.09]",
+            "focus-within:border-white/25 focus-within:bg-white/[0.12]",
           )}
         >
           {/* Paperclip button — left side of pill */}

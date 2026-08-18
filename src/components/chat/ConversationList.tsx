@@ -287,7 +287,7 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
   const isActive = activeId === conv.id;
 
   return (
-    <div className={cn("px-2 pt-1", index === 0 && "pt-2")}>
+    <div className={cn("px-2 pt-0.5", index === 0 && "pt-1")}>
     <m.button
       type="button"
       initial={{ opacity: 0, y: 8 }}
@@ -296,14 +296,13 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => onContextMenu(e, conv)}
       className={cn(
-        "group relative flex w-full items-center gap-3 px-3.5 py-3 text-left",
-        "conversation-item-row",
-        "hover:scale-[1.015] active:scale-[0.98]",
-        isActive && "active",
+        "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left",
+        "cute-conv-row",
+        isActive && "cute-conv-active",
       )}
     >
       <div className="relative shrink-0">
-        <Avatar className="size-11 transition-all duration-300 ring-2 ring-transparent group-hover:ring-2 group-hover:shadow-lg" style={{
+        <Avatar className="size-11 transition-all duration-300 ring-2 ring-transparent group-hover:shadow-lg" style={{
           '--tw-ring-color': isActive ? 'var(--app-accent-pill-border)' : 'transparent',
         } as React.CSSProperties}>
           {conv.partner.avatar_url && <AvatarImage src={conv.partner.avatar_url} alt={conv.partner.name} />}
@@ -324,27 +323,31 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1 truncate text-sm font-medium transition-colors duration-200">
+          <span className={cn(
+            "truncate text-sm transition-colors duration-200",
+            isActive ? "font-semibold" : "font-medium",
+          )}>
             {conv.partner.name}
-            {isRecent && <Pin className="size-3 shrink-0" style={{ color: "var(--app-accent-light)" }} />}
+            {isRecent && <Pin className="inline size-3 ml-1 -mt-0.5" style={{ color: "var(--app-accent-light)" }} />}
           </span>
           {conv.last_message && (
             <span
               className={cn(
                 "shrink-0 text-[11px] tabular-nums transition-colors duration-200",
-                isActive ? "text-foreground/40" : "text-muted-foreground/70",
                 conv.unread_count > 0 && "font-medium",
               )}
-              style={conv.unread_count > 0 ? { color: "var(--app-accent)" } : undefined}
+              style={conv.unread_count > 0 ? { color: "var(--app-accent)" } : { color: "rgba(255,255,255,0.35)" }}
             >{timeAgo(conv.last_message.created_at)}</span>
           )}
         </div>
         {conv.last_message && (
           <div className="mt-0.5 flex items-center justify-between gap-2">
-            <span className={cn("truncate text-xs", isActive && conv.unread_count > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground")}>{conv.last_message.sender_id === currentUserId ? "You: " : ""}<LinkifiedText text={previewText} /></span>
+            <span className={cn("truncate text-xs", conv.unread_count > 0 ? "text-white/60 font-medium" : "text-white/40")}>
+              {conv.last_message.sender_id === currentUserId ? "You: " : ""}<LinkifiedText text={previewText} />
+            </span>
             {conv.unread_count > 0 && (
               <span
-                className="unread-badge-pulse flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-2 ring-background"
+                className="unread-badge-pulse flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white"
                 style={{
                   background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))",
                   boxShadow: `0 2px 8px -1px var(--app-accent-ring)`,

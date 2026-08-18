@@ -58,14 +58,15 @@ function useDoubleTap(
   delay = 300,
 ) {
   const lastTapRef = useRef(0);
-  return useCallback(() => {
+  return useCallback((): boolean => {
     const now = Date.now();
     if (now - lastTapRef.current < delay) {
+      lastTapRef.current = 0;
       onDoubleTap();
-      lastTapRef.current = 0; // reset
-    } else {
-      lastTapRef.current = now;
+      return true; // is double tap
     }
+    lastTapRef.current = now;
+    return false; // is single tap
   }, [onDoubleTap, delay]);
 }
 
@@ -904,19 +905,25 @@ function MessageBubble({
       wasDraggedRef.current = false;
       return;
     }
-    // Double-tap reaction
-    doubleTap();
-    // Toggle action sheet: close if already open for this bubble
+    // Check double-tap first
+    const isDouble = doubleTap();
+    if (isDouble) {
+      // Double tap — close any open menus (reaction was already sent by hook)
+      onOpenAction(null);
+      onOpenTapback(null);
+      return;
+    }
+    // Single tap — toggle action sheet
     if (activeActionId === message.id) {
       onOpenAction(null);
     } else {
       onOpenAction(message.id);
+      onOpenTapback(null);
     }
-    // Always close tapback on single click
-    onOpenTapback(null);
   }, [activeActionId, message.id, onOpenAction, onOpenTapback, doubleTap]);
 
   const handlePressStart = useCallback(() => {
+    // Close any previously open menu from ANY bubble (prevent stacking)
     onOpenAction(null);
     onOpenTapback(null);
     longPressRef.current = setTimeout(() => {
@@ -1020,30 +1027,38 @@ function MessageBubble({
     <>
       <div
         className={cn(
-          "message-bubble-row relative flex w-full select-none gap-1",
+          "message-bubble-row relative flex w-full select-none",
           isOwn ? "justify-end" : "justify-start",
+          !isLast && isOwn ? "-mt-0.5" : "",
+          !isLast && !isOwn ? "-mt-0.5" : "",
         )}
       >
         {/* Avatar column for other user's messages — always rendered for stacking */}
         {!isOwn && (
-          <Avatar className={cn(
-            "shrink-0 self-end ring-1 ring-white/10",
-            isLast ? "size-7" : "size-7 opacity-0 pointer-events-none",
+          <div className={cn(
+            "shrink-0 self-end",
+            isLast ? "mr-2" : "w-7 mr-0",
           )}>
-            {partnerAvatar && (
-              <AvatarImage src={partnerAvatar} alt={partnerName} />
+            {isLast ? (
+              <Avatar className="size-7 ring-1 ring-white/10">
+                {partnerAvatar && (
+                  <AvatarImage src={partnerAvatar} alt={partnerName} />
+                )}
+                <AvatarFallback
+                  className="text-[10px] font-medium"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+                    color: "var(--app-accent-dark)",
+                  }}
+                >
+                  {partnerName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-7" />
             )}
-            <AvatarFallback
-              className="text-[10px] font-medium"
-              style={{
-                background:
-                  "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
-                color: "var(--app-accent-dark)",
-              }}
-            >
-              {partnerName.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          </div>
         )}
 
         <AnimatePresence>
@@ -1277,18 +1292,24 @@ function MessageBubble({
         </div>
 
         {isOwn && (
-          <Avatar className={cn(
-            "shrink-0 self-end ring-1 ring-white/10",
-            isLast ? "size-7" : "size-7 opacity-0 pointer-events-none",
+          <div className={cn(
+            "shrink-0 self-end",
+            isLast ? "ml-2" : "w-7 ml-0",
           )}>
-            {currentUserAvatar && <AvatarImage src={currentUserAvatar} alt={currentUserName} />}
-            <AvatarFallback
-              className="text-[10px] font-medium"
-              style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", color: "var(--app-accent-dark)" }}
-            >
-              {currentUserName.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+            {isLast ? (
+              <Avatar className="size-7 ring-1 ring-white/10">
+                {currentUserAvatar && <AvatarImage src={currentUserAvatar} alt={currentUserName} />}
+                <AvatarFallback
+                  className="text-[10px] font-medium"
+                  style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", color: "var(--app-accent-dark)" }}
+                >
+                  {currentUserName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-7" />
+            )}
+          </div>
         )}
       </div>
 
@@ -1342,7 +1363,7 @@ function MessageGroup({
 }) {
   const isOwnGroup = groupMessages[0].sender_id === currentUserId;
   return (
-    <div className={cn("flex flex-col gap-0.5", isOwnGroup ? "items-end" : "items-start")}>
+    <div className={cn("flex flex-col", isOwnGroup ? "items-end" : "items-start")}>
       {groupMessages.map((msg, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === groupMessages.length - 1;

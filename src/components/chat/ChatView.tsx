@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart, Sparkles, Flower2, Star } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
 import { ChatLayout } from "./ChatLayout";
@@ -86,25 +86,29 @@ function NavPill({
   return (
     <div
       className={cn(
-        "fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-1 sm:left-4",
-        "rounded-2xl border border-white/[0.12] bg-white/[0.06] backdrop-blur-2xl py-2 px-1.5 shadow-xl",
+        "fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-0.5 sm:left-4",
+        "rounded-3xl py-2.5 px-2",
+        "paper-nav-pill",
       )}
     >
+      {/* Decorative mini star */}
+      <Star className="size-2.5 mb-1 rotate-12" style={{ color: "var(--app-accent-lighter)", opacity: 0.6 }} />
+
       {/* Chats button */}
       <button
         type="button"
         onClick={() => onNavigate("list")}
         aria-label="Chats"
         className={cn(
-          "relative flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+          "relative flex size-11 items-center justify-center rounded-2xl transition-all duration-300",
           activeView === "list"
-            ? "bg-white/10 text-white shadow-sm"
-            : "text-white/40 hover:text-white/70 hover:bg-white/5",
+            ? "paper-nav-active"
+            : "text-white/50 hover:text-white/80 hover:bg-white/[0.08]",
         )}
       >
-        <Heart className={cn("size-[18px]", activeView === "list" && "fill-current")} />
+        <Heart className={cn("size-[18px] transition-all duration-300", activeView === "list" && "fill-current scale-110")} />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full px-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-black/40"
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full px-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-black/30"
             style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
           >
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -112,9 +116,9 @@ function NavPill({
         )}
       </button>
 
-      {/* Sparkle divider */}
-      <div className="flex items-center justify-center py-0.5">
-        <Sparkles className="size-3 text-white/15" />
+      {/* Cute flower divider */}
+      <div className="flex items-center justify-center py-1">
+        <Flower2 className="size-3.5 rotate-12" style={{ color: "var(--app-accent-lighter)", opacity: 0.45 }} />
       </div>
 
       {/* Settings button */}
@@ -123,14 +127,17 @@ function NavPill({
         onClick={() => onNavigate("settings")}
         aria-label="Settings"
         className={cn(
-          "relative flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+          "relative flex size-11 items-center justify-center rounded-2xl transition-all duration-300",
           activeView === "settings"
-            ? "bg-white/10 text-white shadow-sm"
-            : "text-white/40 hover:text-white/70 hover:bg-white/5",
+            ? "paper-nav-active"
+            : "text-white/50 hover:text-white/80 hover:bg-white/[0.08]",
         )}
       >
         <Settings className="size-[18px]" />
       </button>
+
+      {/* Bottom decorative sparkle */}
+      <Sparkles className="size-2 mt-1" style={{ color: "var(--app-accent-lighter)", opacity: 0.4 }} />
     </div>
   );
 }
@@ -385,10 +392,10 @@ export function ChatView({
     return (
       <ThemeProvider>
         <div className="h-dvh w-full bg-background">
-          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-1 rounded-2xl border border-white/[0.12] bg-white/[0.06] backdrop-blur-2xl py-2 px-1.5 shadow-xl sm:left-4">
-            <Skeleton className="size-10 rounded-xl" />
+          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-1 rounded-3xl py-2.5 px-2 paper-nav-pill sm:left-4">
+            <Skeleton className="size-11 rounded-2xl" />
             <Skeleton className="size-3 rounded" />
-            <Skeleton className="size-10 rounded-xl" />
+            <Skeleton className="size-11 rounded-2xl" />
           </div>
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -461,7 +468,7 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => handleNavigate("list")}
-                className="absolute left-14 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:hidden"
+                className="absolute left-12 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:left-14 sm:hidden"
                 aria-label="Back to chats"
               >
                 <ArrowLeft className="size-4" />
