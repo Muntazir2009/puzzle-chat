@@ -1,54 +1,39 @@
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { ChatView } from "@/components/chat/ChatView";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home() {
-  let userId = "";
-  let userName = "User";
+  /* The middleware already validated the session and injected user info
+     into request headers. Read them here to avoid a second Supabase call
+     that would require cookies() on the edge. */
+  const headersList = await headers();
+  const userId = headersList.get("x-user-id") ?? "";
+  const userEmail = headersList.get("x-user-email") ?? null;
+
+  /* If middleware didn't set headers (shouldn't happen), the client-side
+     auth check in ChatView will redirect to /login. */
+  const userName = userEmail?.split("@")[0] ?? "User";
+
+  /* Try to fetch profile from Supabase for avatar + display name.
+     If this fails on the edge, ChatView still works with defaults. */
   let userAvatar: string | null = null;
-  let userEmail: string | null = null;
-
-  try {
-    /* Dynamic import keeps Supabase off the cold-start critical path
-       and avoids crashes when the module cannot resolve at build time. */
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) redirect("/login");
-
-    userId = user.id;
-    userEmail = user.email ?? null;
-    userName =
-      user.user_metadata?.name ?? user.email?.split("@")[0] ?? "User";
-
-    /* Fire-and-forget upsert (non-blocking for the page render). */
-    supabase
-      .from("users")
-      .upsert({ id: user.id, name: userName }, { onConflict: "id" })
-      .catch(() => {});
-
-    /* Fetch profile in parallel with the upsert */
-    const { data: profile } = await supabase
-      .from("users")
-      .select("id, name, avatar_url")
-      .eq("id", user.id)
-      .single();
-
-    if (profile) {
-      userName = profile.name ?? userName;
-      userAvatar = profile.avatar_url ?? null;
+  if (userId) {
+    try {
+      const { createClient } = await import("@/lib/supabase/server");
+      const supabase = await createClient();
+      const { data: profile } = await supabase
+        .from("users")
+        .select("name, avatar_url")
+        .eq("id", userId)
+        .single();
+      if (profile) {
+        userAvatar = profile.avatar_url ?? null;
+      }
+    } catch {
+      // Non-critical — avatar is optional
     }
-  } catch (err) {
-    /* If Supabase is unreachable or cookies() fails on the edge,
-       fall back to the login page rather than showing a 500. */
-    console.error("[page] SSR auth failed:", err);
-    redirect("/login");
   }
 
   return (

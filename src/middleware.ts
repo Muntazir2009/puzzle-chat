@@ -7,38 +7,29 @@ import { NextResponse, type NextRequest } from "next/server";
  * - Refreshes the session cookie on every request.
  * - Redirects unauthenticated users to /login.
  * - Redirects authenticated users away from /login to /.
- * - Lets public assets and API auth routes through.
+ * - Lets static assets and API routes through.
  *
- * Wrapped in try/catch so a misconfigured Supabase or a network
- * blip on the edge worker never returns a 500 to the client.
+ * Wrapped in try/catch so edge runtime errors never return a 500.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  /* Public paths that don't need auth */
-  const isPublicPath =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/auth/callback") ||
+  /* Static assets and API routes skip auth entirely */
+  const isStaticAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/logo") ||
     pathname.startsWith("/robots");
-
-  /* API auth routes (Pusher auth, etc.) are validated inside the handler */
   const isApiRoute = pathname.startsWith("/api/");
 
-  /* Fast path: public assets skip Supabase entirely */
-  if (isPublicPath || isApiRoute) {
+  if (isStaticAsset || isApiRoute) {
     return NextResponse.next({ request });
   }
 
-  /* Only talk to Supabase when we actually need auth info */
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    /* No credentials configured — let the request through and let
-       the page/API handle the missing-config case itself. */
     return NextResponse.next({ request });
   }
 
@@ -51,7 +42,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({ request });
@@ -66,6 +57,18 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    /* Redirect authenticated users away from /login */
+    if (user && pathname.startsWith("/login")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+
+    /* /auth/callback is public — just let the cookie refresh happen */
+    if (pathname.startsWith("/auth/callback")) {
+      return supabaseResponse;
+    }
+
     /* Redirect unauthenticated users to login */
     if (!user) {
       const url = request.nextUrl.clone();
@@ -73,16 +76,19 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    /* Inject user info into headers so server components can read it
-       without an extra Supabase call. */
+    /* Inject user info into headers so page.tsx can read them
+       without calling Supabase a second time. */
     supabaseResponse.headers.set("x-user-id", user.id);
     supabaseResponse.headers.set("x-user-email", user.email ?? "");
 
     return supabaseResponse;
   } catch (err) {
-    /* Any error in Supabase auth (network, invalid token, etc.)
-       — redirect to login rather than returning a 500. */
     console.error("[middleware] auth check failed:", err);
+    /* Only redirect to /login for protected routes;
+       /login and /auth/callback pass through on error. */
+    if (pathname.startsWith("/login") || pathname.startsWith("/auth/callback")) {
+      return NextResponse.next({ request });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -91,12 +97,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all routes except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - public assets (favicon.ico, robots.txt, etc.)
-     */
     "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
