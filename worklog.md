@@ -70,3 +70,22 @@ Stage Summary:
 - Network: preconnect hints eliminate ~100-300ms connection setup for Supabase/Pusher on first load
 - Runtime: React.memo on bubble components prevents re-rendering all messages when one changes
 - Runtime: batched markAsRead reduces API calls during rapid message arrival
+
+---
+Task ID: 2
+Agent: Main
+Task: Push to Cloudflare Workers
+
+Work Log:
+- Fixed login page: lazy Supabase client init via useMemo to prevent build-time crash
+- Replaced whileTap (domAnimation doesn't support) with CSS active:scale-[0.98]
+- Built with NEXT_PUBLIC_* env vars: `npx @opennextjs/cloudflare build` — success in 25.6s
+- Build produced 22 static pages, all 20 API routes, middleware
+- Attempted wrangler deploy — no CLOUDFLARE_API_TOKEN in this environment
+- Committed build artifacts (.open-next/) and pushed to main
+
+Stage Summary:
+- Build succeeds with 0 errors
+- .open-next/worker.js generated and committed
+- Deploy requires CLOUDFLARE_API_TOKEN env var (user must run `wrangler deploy` from their terminal)
+- Pushed as commit 1d5a4f9
