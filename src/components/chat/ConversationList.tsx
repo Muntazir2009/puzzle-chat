@@ -273,7 +273,7 @@ const LinkifiedText = React.memo(function LinkifiedText({ text, className }: { t
 /*  ConversationItemRow                                                */
 /* ------------------------------------------------------------------ */
 
-function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect, onContextMenu, index }: {
+const ConversationItemRow = React.memo(function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect, onContextMenu, index }: {
   conv: ConversationItem;
   activeId: string | null;
   currentUserId: string;
@@ -288,11 +288,8 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
 
   return (
     <div className={cn("px-2 pt-0.5", index === 0 && "pt-1")}>
-    <m.button
+    <button
       type="button"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -16 }}
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => onContextMenu(e, conv)}
       className={cn(
@@ -357,10 +354,10 @@ function ConversationItemRow({ conv, activeId, currentUserId, isOnline, onSelect
           </div>
         )}
       </div>
-    </m.button>
+    </button>
     </div>
   );
-}
+});
 
 /* ------------------------------------------------------------------ */
 /*  ConversationList (main export)                                     */
@@ -486,11 +483,11 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             </div>
           </div>
         ) : (
-          <AnimatePresence initial={false}>
-            {conversations.map((conv, idx) => (
-              <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} index={idx} />
-            ))}
-          </AnimatePresence>
+          <>
+          {conversations.map((conv, idx) => (
+            <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} index={idx} />
+          ))}
+          </>
         )}
       </div>
 

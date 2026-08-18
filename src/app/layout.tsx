@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { LazyMotion, domMax } from "framer-motion";
+import { LazyMotion, domAnimation } from "framer-motion";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,10 +41,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://njtdajospdunfbfgyymh.supabase.co"} />
+        <link rel="preconnect" href="https://ws-ap2.pusher.com" />
+        <link rel="preconnect" href="https://sockjs-ap2.pusher.com" />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://njtdajospdunfbfgyymh.supabase.co"} />
+        <link rel="dns-prefetch" href="https://ws-ap2.pusher.com" />
+        <meta name="theme-color" content="#0a0a0a" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <LazyMotion features={domMax} strict>
+        <LazyMotion features={domAnimation} strict>
           {children}
         </LazyMotion>
         <Toaster />

@@ -102,7 +102,7 @@ export interface MessageFeedProps {
 /*  ReceiptIcon                                                        */
 /* ------------------------------------------------------------------ */
 
-function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
+const ReceiptIcon = React.memo(function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
   if (status === "sending")
     return (
       <svg
@@ -138,7 +138,7 @@ function ReceiptIcon({ status }: { status: ChatMessage["status"] }) {
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );
-}
+});
 
 /* ------------------------------------------------------------------ */
 /*  Ephemeral Timer (circular SVG countdown)                           */
@@ -735,7 +735,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
 /*  Reaction Pills (below bubble, overlapping bottom edge)             */
 /* ------------------------------------------------------------------ */
 
-function ReactionPills({
+const ReactionPills = React.memo(function ReactionPills({
   reactions,
   isOwn,
   onReact,
@@ -802,7 +802,7 @@ function ReactionPills({
       })}
     </div>
   );
-}
+});
 
 /* ------------------------------------------------------------------ */
 /*  Bubble rounding helper for grouped messages                        */
@@ -845,7 +845,7 @@ function getBubbleRounding({
 /*  MessageBubble                                                      */
 /* ------------------------------------------------------------------ */
 
-function MessageBubble({
+const MessageBubble = React.memo(function MessageBubble({
   message,
   isOwn,
   isFirst,
@@ -1324,13 +1324,13 @@ function MessageBubble({
       </AnimatePresence>
     </>
   );
-}
+});
 
 /* ------------------------------------------------------------------ */
 /*  MessageGroup                                                       */
 /* ------------------------------------------------------------------ */
 
-function MessageGroup({
+const MessageGroup = React.memo(function MessageGroup({
   messages: groupMessages,
   currentUserId,
   currentUserName,
@@ -1392,7 +1392,7 @@ function MessageGroup({
       })}
     </div>
   );
-}
+});
 
 /* ------------------------------------------------------------------ */
 /*  DateSeparator                                                      */

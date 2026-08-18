@@ -4,8 +4,9 @@ import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart, Sparkles, Flower2, Star } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
+import dynamic from "next/dynamic";
 import { ChatLayout } from "./ChatLayout";
-import { ProfileDialog } from "./ProfileDialog";
+const ProfileDialog = dynamic(() => import("./ProfileDialog").then(m => ({ default: m.ProfileDialog })), { ssr: false });
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -422,10 +423,10 @@ export function ChatView({
             /* ---- Settings page ---- */
             <m.div
               key="settings"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
               className="h-full"
             >
               <SettingsPage
@@ -443,10 +444,10 @@ export function ChatView({
             /* ---- Active chat ---- */
             <m.div
               key={activeConv.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
               className="relative h-full"
             >
               <ErrorBoundary>
@@ -478,10 +479,10 @@ export function ChatView({
             /* ---- Conversation list ---- */
             <m.div
               key="conv-list"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
               className="h-full"
             >
               {/* Branding header */}

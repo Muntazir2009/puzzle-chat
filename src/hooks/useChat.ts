@@ -10,14 +10,46 @@ import type { ChatChannelEvents } from "@/lib/pusher-server";
 import type { Channel } from "pusher-js";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
 import { createBrowserClient } from "@supabase/ssr";
+import type { ChatMessage } from "./useChat";
 
 /* ------------------------------------------------------------------ */
-/*  Supabase Realtime client (singleton, module-level)                 */
+/*  Shared message parser (used by fetchHistory, loadMore, realtime)  */
 /* ------------------------------------------------------------------ */
-const supabaseRealtime = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+
+function parseMsg(raw: Record<string, unknown>): ChatMessage {
+  return {
+    id: (raw.id as string) ?? "",
+    conversation_id: (raw.conversation_id as string) ?? "",
+    sender_id: (raw.sender_id as string) ?? "",
+    sender_name: (raw.sender_name as string) ?? "",
+    reply_to_id: (raw.reply_to_id as string) ?? null,
+    reply_to_content: (raw.reply_to_content as string) ?? null,
+    reply_to_sender_name: (raw.reply_to_sender_name as string) ?? null,
+    content: (raw.content as string) ?? "",
+    type: (raw.type as ChatMessage["type"]) ?? "text",
+    status: (raw.status as ChatMessage["status"]) ?? "sent",
+    vanish_mode: Boolean(raw.vanish_mode),
+    ephemeral_seconds: (raw.ephemeral_seconds as number) ?? null,
+    voice_duration: (raw.voice_duration as number) ?? null,
+    waveform_data: Array.isArray(raw.waveform_data) ? (raw.waveform_data as number[]) : null,
+    reactions: (raw.reactions && typeof raw.reactions === "object" ? raw.reactions : {}) as Record<string, string[]>,
+    created_at: (raw.created_at as string) ?? new Date().toISOString(),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Lazy Supabase Realtime client — created on first use, not import  */
+/* ------------------------------------------------------------------ */
+let _supabaseRealtime: ReturnType<typeof createBrowserClient> | null = null;
+function getSupabaseRealtime() {
+  if (!_supabaseRealtime) {
+    _supabaseRealtime = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return _supabaseRealtime;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -80,6 +112,7 @@ export interface UseChatReturn {
 }
 
 const TYPING_DEBOUNCE_MS = 2_000;
+const READ_BATCH_MS = 500;
 
 export function useChat({
   currentUserId,
@@ -104,18 +137,34 @@ export function useChat({
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<Channel | undefined>(undefined);
 
+  /* Batched markAsRead: accumulate IDs and send in one request */
+  const readBatchRef = useRef<string[]>([]);
+  const readTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushReadBatch = useCallback((convId: string) => {
+    const ids = readBatchRef.current.splice(0);
+    if (ids.length === 0) return;
+    fetch("/api/messages/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: convId, message_ids: ids }),
+    }).catch(() => {});
+  }, []);
+
   /* ---- Heartbeat (keeps last_seen up-to-date) -------------------- */
   useHeartbeat();
 
   /* ---- Fetch initial partner status ------------------------------ */
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     async function fetchStatus() {
       try {
         const res = await fetch("/api/users/status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_ids: [otherUserId] }),
+          signal: controller.signal,
         });
         if (!res.ok) return;
         const data = await res.json();
@@ -126,11 +175,11 @@ export function useChat({
           });
         }
       } catch {
-        /* silent */
+        /* silent — aborted or network error */
       }
     }
     fetchStatus();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [otherUserId]);
 
   /* ---- Presence channel for real-time online status --------------- */
@@ -146,9 +195,7 @@ export function useChat({
     }
 
     function onMemberAdded(member: { id: string }) {
-      if (member.id === otherUserId) {
-        setPartnerStatus((prev) => ({ ...prev, online: true }));
-      }
+      if (member.id === otherUserId) setPartnerStatus((prev) => ({ ...prev, online: true }));
     }
 
     function onMemberRemoved(member: { id: string }) {
@@ -171,40 +218,22 @@ export function useChat({
 
   /* ---- Load history --------------------------------------------- */
   useEffect(() => {
-    /* Skip fetch for temp (not-yet-created) conversations */
     if (conversationId.startsWith("temp-")) {
-      setIsLoading(false);
-      setHasMore(false);
-      return;
+      setIsLoading(false); setHasMore(false); return;
     }
     if (initialMessages.length > 0) { setIsLoading(false); setHasMore(false); return; }
     let cancelled = false;
+    const controller = new AbortController();
     async function fetchHistory() {
       try {
         const res = await fetch(
-          `/api/messages/history?conversation_id=${conversationId}`
+          `/api/messages/history?conversation_id=${conversationId}`,
+          { signal: controller.signal }
         );
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
-          const msgs = (data.messages ?? []).map((raw: Record<string, unknown>) => ({
-            id: (raw.id as string) ?? "",
-            conversation_id: (raw.conversation_id as string) ?? "",
-            sender_id: (raw.sender_id as string) ?? "",
-            sender_name: (raw.sender_name as string) ?? "",
-            reply_to_id: (raw.reply_to_id as string) ?? null,
-            reply_to_content: (raw.reply_to_content as string) ?? null,
-            reply_to_sender_name: (raw.reply_to_sender_name as string) ?? null,
-            content: (raw.content as string) ?? "",
-            type: (raw.type as ChatMessage["type"]) ?? "text",
-            status: (raw.status as ChatMessage["status"]) ?? "sent",
-            vanish_mode: Boolean(raw.vanish_mode),
-            ephemeral_seconds: (raw.ephemeral_seconds as number) ?? null,
-            voice_duration: (raw.voice_duration as number) ?? null,
-            waveform_data: Array.isArray(raw.waveform_data) ? (raw.waveform_data as number[]) : null,
-            reactions: (raw.reactions && typeof raw.reactions === "object" ? raw.reactions : {}) as Record<string, string[]>,
-            created_at: (raw.created_at as string) ?? new Date().toISOString(),
-          }));
+          const msgs = (data.messages ?? []).map(parseMsg);
           setMessages(msgs);
           setHasMore(data.has_more);
           nextCursorRef.current = data.next_cursor;
@@ -215,7 +244,7 @@ export function useChat({
       }
     }
     fetchHistory();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [conversationId, currentUserId, initialMessages.length]);
 
   /* ---- Pusher --------------------------------------------------- */
@@ -234,12 +263,15 @@ export function useChat({
         reactions: data.reactions ?? {}, created_at: data.created_at,
       };
       setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
+      /* Batch auto-read for incoming messages */
       if (data.sender_id !== currentUserId) {
-        fetch("/api/messages/read", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversation_id: data.conversation_id, message_ids: [data.id] }),
-        }).catch(() => {});
+        readBatchRef.current.push(data.id);
+        if (!readTimerRef.current) {
+          readTimerRef.current = setTimeout(() => {
+            flushReadBatch(data.conversation_id);
+            readTimerRef.current = null;
+          }, READ_BATCH_MS);
+        }
       }
     }
 
@@ -270,8 +302,7 @@ export function useChat({
           if (!arr.includes(data.user_id)) reactions[data.emoji] = [...arr, data.user_id];
         } else {
           const arr = (reactions[data.emoji] || []).filter((id) => id !== data.user_id);
-          if (arr.length === 0) delete reactions[data.emoji];
-          else reactions[data.emoji] = arr;
+          if (arr.length === 0) delete reactions[data.emoji]; else reactions[data.emoji] = arr;
         }
         return { ...m, reactions };
       }));
@@ -303,84 +334,35 @@ export function useChat({
       pusherClient.unsubscribe(channelName);
       channelRef.current = undefined;
     };
-  }, [channelName, currentUserId]);
+  }, [channelName, currentUserId, flushReadBatch]);
 
   /* ---- Supabase Realtime Fallback -------------------------------- */
-  /*
-   * On Cloudflare Workers the server-side Pusher SDK cannot broadcast,
-   * so messages are persisted but never delivered via Pusher.
-   * This Supabase Realtime subscription catches INSERT / DELETE / UPDATE
-   * events on the messages table so the UI stays live.
-   *
-   * Deduplication (prev.some(m => m.id === incoming.id)) ensures that
-   * messages already delivered via Pusher or the send-response are not
-   * duplicated.
-   */
   useEffect(() => {
     if (conversationId.startsWith("temp-")) return;
+    const supabaseRealtime = getSupabaseRealtime();
 
     const channel = supabaseRealtime
       .channel(`messages-${conversationId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
-          const raw = payload.new as Record<string, unknown>;
-          const incoming: ChatMessage = {
-            id: (raw.id as string) ?? "",
-            conversation_id: (raw.conversation_id as string) ?? "",
-            sender_id: (raw.sender_id as string) ?? "",
-            sender_name: (raw.sender_name as string) ?? "",
-            reply_to_id: (raw.reply_to_id as string) ?? null,
-            reply_to_content: (raw.reply_to_content as string) ?? null,
-            reply_to_sender_name: (raw.reply_to_sender_name as string) ?? null,
-            content: (raw.content as string) ?? "",
-            type: (raw.type as ChatMessage["type"]) ?? "text",
-            status: (raw.status as ChatMessage["status"]) ?? "sent",
-            vanish_mode: Boolean(raw.vanish_mode),
-            ephemeral_seconds: (raw.ephemeral_seconds as number) ?? null,
-            voice_duration: (raw.voice_duration as number) ?? null,
-            waveform_data: Array.isArray(raw.waveform_data)
-              ? (raw.waveform_data as number[])
-              : null,
-            reactions:
-              (raw.reactions && typeof raw.reactions === "object"
-                ? raw.reactions
-                : {}) as Record<string, string[]>,
-            created_at: (raw.created_at as string) ?? new Date().toISOString(),
-          };
-
-          // Deduplicate — Pusher or the send response may have already delivered it
-          setMessages((prev) =>
-            prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]
-          );
-
-          // Auto-mark as read for incoming messages from the other user
+          const incoming = parseMsg(payload.new as Record<string, unknown>);
+          setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
           if (incoming.sender_id !== currentUserId) {
-            fetch("/api/messages/read", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                conversation_id: incoming.conversation_id,
-                message_ids: [incoming.id],
-              }),
-            }).catch(() => {});
+            readBatchRef.current.push(incoming.id);
+            if (!readTimerRef.current) {
+              readTimerRef.current = setTimeout(() => {
+                flushReadBatch(incoming.conversation_id);
+                readTimerRef.current = null;
+              }, READ_BATCH_MS);
+            }
           }
         }
       )
       .on(
         "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
+        { event: "DELETE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
           const deletedId = payload.old.id as string;
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
@@ -388,37 +370,24 @@ export function useChat({
       )
       .on(
         "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
+        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
           const raw = payload.new as Record<string, unknown>;
           const updatedId = raw.id as string;
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.id !== updatedId) return m;
-              const reactions =
-                (raw.reactions && typeof raw.reactions === "object"
-                  ? raw.reactions
-                  : {}) as Record<string, string[]>;
-              return {
-                ...m,
-                reactions,
-                status: (raw.status as ChatMessage["status"]) ?? m.status,
-              };
-            })
-          );
+          setMessages((prev) => prev.map((m) => {
+            if (m.id !== updatedId) return m;
+            return {
+              ...m,
+              reactions: (raw.reactions && typeof raw.reactions === "object" ? raw.reactions : {}) as Record<string, string[]>,
+              status: (raw.status as ChatMessage["status"]) ?? m.status,
+            };
+          }));
         }
       )
       .subscribe();
 
-    return () => {
-      supabaseRealtime.removeChannel(channel);
-    };
-  }, [conversationId, currentUserId]);
+    return () => { supabaseRealtime.removeChannel(channel); };
+  }, [conversationId, currentUserId, flushReadBatch]);
 
   /* ---- Send ----------------------------------------------------- */
   const sendMessage = useCallback(
@@ -456,14 +425,15 @@ export function useChat({
 
   const markAsRead = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
-    try {
-      await fetch("/api/messages/read", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: conversationId, message_ids: messageIds }),
-      });
-    } catch (err) { console.error(err); }
-  }, [conversationId, currentUserId]);
+    /* Add to batch and schedule flush */
+    readBatchRef.current.push(...messageIds);
+    if (!readTimerRef.current) {
+      readTimerRef.current = setTimeout(() => {
+        flushReadBatch(conversationId);
+        readTimerRef.current = null;
+      }, READ_BATCH_MS);
+    }
+  }, [conversationId, flushReadBatch]);
 
   const vanishMessage = useCallback(async (messageId: string) => {
     try {
@@ -531,24 +501,7 @@ export function useChat({
       const data = await res.json();
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
-        const older = (data.messages ?? []).map((raw: Record<string, unknown>) => ({
-          id: (raw.id as string) ?? "",
-          conversation_id: (raw.conversation_id as string) ?? "",
-          sender_id: (raw.sender_id as string) ?? "",
-          sender_name: (raw.sender_name as string) ?? "",
-          reply_to_id: (raw.reply_to_id as string) ?? null,
-          reply_to_content: (raw.reply_to_content as string) ?? null,
-          reply_to_sender_name: (raw.reply_to_sender_name as string) ?? null,
-          content: (raw.content as string) ?? "",
-          type: (raw.type as ChatMessage["type"]) ?? "text",
-          status: (raw.status as ChatMessage["status"]) ?? "sent",
-          vanish_mode: Boolean(raw.vanish_mode),
-          ephemeral_seconds: (raw.ephemeral_seconds as number) ?? null,
-          voice_duration: (raw.voice_duration as number) ?? null,
-          waveform_data: Array.isArray(raw.waveform_data) ? (raw.waveform_data as number[]) : null,
-          reactions: (raw.reactions && typeof raw.reactions === "object" ? raw.reactions : {}) as Record<string, string[]>,
-          created_at: (raw.created_at as string) ?? new Date().toISOString(),
-        })).filter((m) => !existingIds.has(m.id));
+        const older = (data.messages ?? []).map(parseMsg).filter((m) => !existingIds.has(m.id));
         return [...older, ...prev];
       });
       setHasMore(data.has_more);
@@ -560,8 +513,19 @@ export function useChat({
     }
   }, [conversationId, loadingMore, hasMore]);
 
-  /* ---- Cleanup typing timer on unmount ------------------------------ */
-  useEffect(() => { return () => { if (typingTimerRef.current) clearTimeout(typingTimerRef.current); }; }, []);
+  /* ---- Cleanup on unmount ------------------------------------------ */
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (readTimerRef.current) {
+        clearTimeout(readTimerRef.current);
+        /* Flush any remaining read batch */
+        if (readBatchRef.current.length > 0) {
+          flushReadBatch(conversationId);
+        }
+      }
+    };
+  }, [conversationId, flushReadBatch]);
 
   return { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore };
 }

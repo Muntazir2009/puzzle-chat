@@ -48,21 +48,20 @@ export async function GET(req: NextRequest) {
       (partners ?? []).map((u) => [u.id, u])
     );
 
-    /* 4. Fetch last message per conversation in parallel */
-    const lastMessagePromises = conversationIds.map(async (convId) => {
-      const { data } = await supabase
-        .from("messages")
-        .select("content, created_at, sender_id")
-        .eq("conversation_id", convId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-      return { convId, message: data ?? null };
-    });
-    const lastMessages = await Promise.all(lastMessagePromises);
-    const lastMessageMap = new Map(
-      lastMessages.map((r) => [r.convId, r.message])
-    );
+    /* 4. Fetch last messages per conversation — single query using distinct on */
+    const { data: lastMessages } = await supabase
+      .from("messages")
+      .select("conversation_id, content, created_at, sender_id")
+      .in("conversation_id", conversationIds)
+      .order("created_at", { ascending: false });
+
+    /* Pick the most recent message per conversation from the sorted list */
+    const lastMessageMap = new Map<string, (typeof lastMessages)[number]>();
+    for (const msg of lastMessages ?? []) {
+      if (!lastMessageMap.has(msg.conversation_id)) {
+        lastMessageMap.set(msg.conversation_id, msg);
+      }
+    }
 
     /* 5. Fetch unread message counts per conversation */
     const { data: unreadMessages } = await supabase

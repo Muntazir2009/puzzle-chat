@@ -1,18 +1,20 @@
 "use client";
 
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { ArrowUp, Mic, MicOff, X, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, Bell, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageFeed } from "@/components/chat/MessageFeed";
-import { EmojiPicker } from "@/components/chat/EmojiPicker";
-import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
 import { useChat, type ChatMessage, type SendMessageOptions, type PartnerStatus } from "@/hooks/useChat";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { cn } from "@/lib/utils";
 import { m, AnimatePresence } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
+
+const EmojiPicker = dynamic(() => import("@/components/chat/EmojiPicker").then(m => ({ default: m.EmojiPicker })), { ssr: false, loading: () => <div className="size-8" /> });
+import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
