@@ -373,12 +373,12 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
   return (
     <div className="flex w-full flex-col bg-background" style={containerStyle}>
       <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
-        {/* Header — glassmorphic, minimal, no shadow/glow */}
-        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 px-4 border-b border-white/5 bg-white/[0.06] backdrop-blur-2xl">
+        {/* Floating pill header */}
+        <header className="sticky top-3 z-30 mx-3 flex items-center gap-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.08] border border-white/[0.12] shadow-2xl transition-all duration-300 focus-within:bg-white/[0.12] focus-within:border-white/[0.18] focus-within:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_0_rgba(255,255,255,0.08)]">
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
-            className="flex items-center gap-3 rounded-lg p-1 -ml-1 transition-colors hover:bg-white/5 focus-visible:outline-none"
+            className="flex flex-1 items-center gap-3 rounded-lg p-0 transition-colors hover:bg-white/5 focus-visible:outline-none"
             aria-label="Open user info"
           >
             <Avatar className="size-8 ring-2 ring-[var(--app-accent-lighter)]/30">
@@ -401,13 +401,13 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
           </button>
 
           {/* Right-side header actions */}
-          <div className="ml-auto flex items-center gap-1">
+          <div className="shrink-0 flex items-center gap-1">
             <ChatBackgroundPicker themeId={themeId} onSelect={selectTheme} wallpaper={wallpaper} onSetWallpaper={setWallpaper} />
           </div>
         </header>
 
         {/* Feed area — pb-24 so messages never get covered by the floating input pill */}
-        <div className="relative min-h-0 flex-1 pb-24">
+        <div className="relative min-h-0 flex-1 pb-24 pt-14">
           <MessageFeed
             messages={messages}
             isLoading={isLoading}
@@ -535,12 +535,12 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             "fixed bottom-4 left-1/2 -translate-x-1/2",
             "w-[90%] max-w-lg",
             "rounded-full",
-            "backdrop-blur-2xl bg-white/[0.08]",
-            "border border-white/[0.12]",
+            "backdrop-blur-2xl bg-white/[0.06]",
+            "border border-white/[0.08]",
             "p-1.5 px-3 shadow-2xl z-40",
             "flex items-center gap-2",
             "transition-all duration-200",
-            "focus-within:border-white/25 focus-within:bg-white/[0.12]",
+            "focus-within:bg-white/[0.10] focus-within:border-white/[0.15]",
           )}
         >
           {/* Paperclip button — left side of pill */}

@@ -69,17 +69,20 @@ export async function middleware(request: NextRequest) {
       return supabaseResponse;
     }
 
-    /* Redirect unauthenticated users to login */
-    if (!user) {
+    /* Redirect unauthenticated users to login (but not if already on /login) */
+    if (!user && !pathname.startsWith("/login")) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);
     }
 
     /* Inject user info into headers so page.tsx can read them
-       without calling Supabase a second time. */
-    supabaseResponse.headers.set("x-user-id", user.id);
-    supabaseResponse.headers.set("x-user-email", user.email ?? "");
+       without calling Supabase a second time. Only for authenticated users
+       on protected routes. */
+    if (user) {
+      supabaseResponse.headers.set("x-user-id", user.id);
+      supabaseResponse.headers.set("x-user-email", user.email ?? "");
+    }
 
     return supabaseResponse;
   } catch (err) {

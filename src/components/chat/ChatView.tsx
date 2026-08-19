@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart, Sparkles, Flower2, Star } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
 import dynamic from "next/dynamic";
@@ -32,8 +32,6 @@ export interface ChatViewProps {
 /* ------------------------------------------------------------------ */
 
 type NavView = "list" | "chat" | "settings";
-
-const NAV_INDICES: Record<NavView, number> = { list: 0, chat: 1, settings: 2 };
 
 /* ------------------------------------------------------------------ */
 /*  Theme selector                                                     */
@@ -72,7 +70,7 @@ function ThemeSelector() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Nav Pill — always visible, 3 targets: Chats / (active chat) / Settings */
+/*  Nav Pill — 2 targets: Chats + Settings */
 /* ------------------------------------------------------------------ */
 
 function NavPill({
@@ -89,12 +87,9 @@ function NavPill({
       className={cn(
         "fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-0.5 sm:left-4",
         "rounded-3xl py-2.5 px-2",
-        "paper-nav-pill",
+        "liquid-nav-pill",
       )}
     >
-      {/* Decorative mini star */}
-      <Star className="size-2.5 mb-1 rotate-12" style={{ color: "var(--app-accent-lighter)", opacity: 0.6 }} />
-
       {/* Chats button */}
       <button
         type="button"
@@ -103,7 +98,7 @@ function NavPill({
         className={cn(
           "relative flex size-11 items-center justify-center rounded-2xl transition-all duration-300",
           activeView === "list"
-            ? "paper-nav-active"
+            ? "liquid-nav-active"
             : "text-white/50 hover:text-white/80 hover:bg-white/[0.08]",
         )}
       >
@@ -117,11 +112,6 @@ function NavPill({
         )}
       </button>
 
-      {/* Cute flower divider */}
-      <div className="flex items-center justify-center py-1">
-        <Flower2 className="size-3.5 rotate-12" style={{ color: "var(--app-accent-lighter)", opacity: 0.45 }} />
-      </div>
-
       {/* Settings button */}
       <button
         type="button"
@@ -130,15 +120,12 @@ function NavPill({
         className={cn(
           "relative flex size-11 items-center justify-center rounded-2xl transition-all duration-300",
           activeView === "settings"
-            ? "paper-nav-active"
+            ? "liquid-nav-active"
             : "text-white/50 hover:text-white/80 hover:bg-white/[0.08]",
         )}
       >
         <Settings className="size-[18px]" />
       </button>
-
-      {/* Bottom decorative sparkle */}
-      <Sparkles className="size-2 mt-1" style={{ color: "var(--app-accent-lighter)", opacity: 0.4 }} />
     </div>
   );
 }
@@ -393,9 +380,8 @@ export function ChatView({
     return (
       <ThemeProvider>
         <div className="h-dvh w-full bg-background">
-          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-1 rounded-3xl py-2.5 px-2 paper-nav-pill sm:left-4">
+          <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-0.5 rounded-3xl py-2.5 px-2 liquid-nav-pill sm:left-4">
             <Skeleton className="size-11 rounded-2xl" />
-            <Skeleton className="size-3 rounded" />
             <Skeleton className="size-11 rounded-2xl" />
           </div>
           <div className="flex h-full flex-col items-center justify-center gap-3">

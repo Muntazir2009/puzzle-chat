@@ -886,6 +886,9 @@ const MessageBubble = React.memo(function MessageBubble({
   const showActionSheet = activeActionId === message.id;
   const [showLightbox, setShowLightbox] = useState<string | null>(null);
   const [showReplyArrow, setShowReplyArrow] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const touchCurrentRef = useRef({ x: 0, y: 0 });
   const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -1032,6 +1035,46 @@ const MessageBubble = React.memo(function MessageBubble({
           !isLast && isOwn ? "-mt-0.5" : "",
           !isLast && !isOwn ? "-mt-0.5" : "",
         )}
+        style={{ touchAction: "pan-y" }}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          touchStartRef.current = { x: t.clientX, y: t.clientY };
+          touchCurrentRef.current = { x: t.clientX, y: t.clientY };
+        }}
+        onTouchMove={(e) => {
+          const t = e.touches[0];
+          touchCurrentRef.current = { x: t.clientX, y: t.clientY };
+          const startX = touchStartRef.current.x;
+          const startY = touchStartRef.current.y;
+          let deltaX = t.clientX - startX;
+          const deltaY = t.clientY - startY;
+          // Determine swipe direction: right swipe for any bubble, left swipe for own
+          const effectiveDelta = isOwn ? -deltaX : deltaX;
+          // Only apply horizontal swipe if clearly horizontal
+          if (Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && effectiveDelta > 0) {
+            e.preventDefault();
+            const clamped = Math.min(effectiveDelta, 80);
+            setSwipeX(isOwn ? -clamped : clamped);
+            setShowReplyArrow(clamped > 50);
+            wasDraggedRef.current = true;
+          }
+        }}
+        onTouchEnd={() => {
+          const startX = touchStartRef.current.x;
+          const startY = touchStartRef.current.y;
+          const endX = touchCurrentRef.current.x;
+          const endY = touchCurrentRef.current.y;
+          const deltaX = endX - startX;
+          const deltaY = endY - startY;
+          const effectiveDelta = isOwn ? -deltaX : deltaX;
+          if (Math.abs(effectiveDelta) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && onReplyTo) {
+            onReplyTo(message);
+          }
+          setSwipeX(0);
+          setShowReplyArrow(false);
+          // Reset wasDragged after a tick so click handler can check it
+          setTimeout(() => { wasDraggedRef.current = false; }, 0);
+        }}
       >
         {/* Avatar column for other user's messages — always rendered for stacking */}
         {!isOwn && (
@@ -1081,26 +1124,10 @@ const MessageBubble = React.memo(function MessageBubble({
         </AnimatePresence>
 
         <div
-          className="flex max-w-[95%] sm:max-w-[85%] flex-col gap-0.5 select-none"
+          style={{ transform: swipeX !== 0 ? `translateX(${swipeX}px)` : undefined, transition: swipeX === 0 ? 'transform 0.2s ease-out' : undefined, display: 'flex', maxWidth: isOwn ? '95%' : undefined }}
+          className="max-w-[95%] sm:max-w-[85%] flex-col gap-0.5 select-none"
         >
-          <m.div
-            drag="x"
-            dragConstraints={{ left: 0, right: 80 }}
-            dragElastic={0.15}
-            dragSnapToOrigin
-            dragMomentum={false}
-            onDrag={(_, info) => {
-              if (info.offset.x < 0) return;
-              wasDraggedRef.current = true;
-              setShowReplyArrow(info.offset.x > 50);
-            }}
-            onDragEnd={(_, info) => {
-              if (info.offset.x > 50 && onReplyTo) {
-                onReplyTo(message);
-              }
-              setShowReplyArrow(false);
-              wasDraggedRef.current = false;
-            }}
+          <div
             onClick={handleClick}
             onPointerDown={handlePressStart}
             onPointerUp={handlePressEnd}
@@ -1128,15 +1155,13 @@ const MessageBubble = React.memo(function MessageBubble({
             }
           >
             {/* Reply arrow indicator for swipe-to-reply */}
-            <m.div
-              className="absolute left-0 top-1/2 -translate-y-1/2 -ml-2 z-10"
-              animate={
-                showReplyArrow
-                  ? { scale: 1.2, opacity: 1 }
-                  : { scale: 0.5, opacity: 0 }
-              }
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              style={{ pointerEvents: "none" }}
+            <div
+              className="absolute left-0 top-1/2 -translate-y-1/2 -ml-2 z-10 transition-all duration-200"
+              style={{
+                transform: `translateY(-50%) scale(${showReplyArrow ? 1.2 : 0.5})`,
+                opacity: showReplyArrow ? 1 : 0,
+                pointerEvents: "none",
+              }}
             >
               <div
                 className="size-8 rounded-full flex items-center justify-center"
@@ -1144,7 +1169,7 @@ const MessageBubble = React.memo(function MessageBubble({
               >
                 <Reply className="size-4 text-white rotate-180" />
               </div>
-            </m.div>
+            </div>
 
             {/* Message Action Sheet (single-tap menu) */}
             <AnimatePresence>
@@ -1236,7 +1261,7 @@ const MessageBubble = React.memo(function MessageBubble({
                 <span>View once</span>
               </div>
             )}
-          </m.div>
+          </div>
 
           {/* Timestamp + receipt for voice/image (text messages have inline timestamp) */}
           {!isText && (
@@ -1363,7 +1388,7 @@ const MessageGroup = React.memo(function MessageGroup({
 }) {
   const isOwnGroup = groupMessages[0].sender_id === currentUserId;
   return (
-    <div className={cn("flex flex-col", isOwnGroup ? "items-end" : "items-start")}>
+    <div className={cn("flex flex-col gap-1.5", isOwnGroup ? "items-end" : "items-start")}>
       {groupMessages.map((msg, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === groupMessages.length - 1;
@@ -1656,7 +1681,7 @@ export function MessageFeed({
     overscan: OVERSCAN,
     paddingStart: 16,
     paddingEnd: 16,
-    gap: 12,
+    gap: 16,
   });
 
   const handleScroll = useCallback(

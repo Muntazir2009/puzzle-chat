@@ -2262,10 +2262,10 @@ var require_root_of_the_server_172fb303 = __commonJS({
             var r3 = {};
             for (var s3 in e2) t3[s3] && t3[s3].length % 2 == 0 ? r3[s3] = t3[s3].concat(e2[s3]) : r3[s3] = e2[s3];
             return r3;
-          }, V = function(e2) {
+          }, W = function(e2) {
             for (var t3 = {}, r3 = 0; r3 < e2.length; r3++) t3[e2[r3].toUpperCase()] = e2[r3];
             return t3;
-          }, W = function(e2, t3) {
+          }, V = function(e2, t3) {
             return typeof e2 === l && -1 !== F(t3).indexOf(F(e2));
           }, F = function(e2) {
             return e2.toLowerCase();
@@ -2279,8 +2279,8 @@ var require_root_of_the_server_172fb303 = __commonJS({
             }
           }, K = function(e2, t3) {
             for (var r3 in t3) if (typeof t3[r3] === o && t3[r3].length > 0) {
-              for (var s3 = 0; s3 < t3[r3].length; s3++) if (W(t3[r3][s3], e2)) return "?" === r3 ? void 0 : r3;
-            } else if (W(t3[r3], e2)) return "?" === r3 ? void 0 : r3;
+              for (var s3 = 0; s3 < t3[r3].length; s3++) if (V(t3[r3][s3], e2)) return "?" === r3 ? void 0 : r3;
+            } else if (V(t3[r3], e2)) return "?" === r3 ? void 0 : r3;
             return e2;
           }, J = { ME: "4.90", "NT 3.11": "NT3.51", "NT 4.0": "NT4.0", 2e3: "NT 5.0", XP: ["NT 5.1", "NT 5.2"], Vista: "NT 6.0", 7: "NT 6.1", 8: "NT 6.2", 8.1: "NT 6.3", 10: ["NT 6.4", "NT 10.0"], RT: "ARM" }, X = { browser: [[/\b(?:crmo|crios)\/([\w\.]+)/i], [f, [h, "Chrome"]], [/edg(?:e|ios|a)?\/([\w\.]+)/i], [f, [h, "Edge"]], [/(opera mini)\/([-\w\.]+)/i, /(opera [mobiletab]{3,6})\b.+version\/([-\w\.]+)/i, /(opera)(?:.+version\/|[\/ ]+)([\w\.]+)/i], [h, f], [/opios[\/ ]+([\w\.]+)/i], [f, [h, j + " Mini"]], [/\bopr\/([\w\.]+)/i], [f, [h, j]], [/(kindle)\/([\w\.]+)/i, /(lunascape|maxthon|netfront|jasmine|blazer)[\/ ]?([\w\.]*)/i, /(avant |iemobile|slim)(?:browser)?[\/ ]?([\w\.]*)/i, /(ba?idubrowser)[\/ ]?([\w\.]+)/i, /(?:ms|\()(ie) ([\w\.]+)/i, /(flock|rockmelt|midori|epiphany|silk|skyfire|bolt|iron|vivaldi|iridium|phantomjs|bowser|quark|qupzilla|falkon|rekonq|puffin|brave|whale(?!.+naver)|qqbrowserlite|qq|duckduckgo)\/([-\w\.]+)/i, /(heytap|ovi)browser\/([\d\.]+)/i, /(weibo)__([\d\.]+)/i], [h, f], [/(?:\buc? ?browser|(?:juc.+)ucweb)[\/ ]?([\w\.]+)/i], [f, [h, "UC" + O]], [/microm.+\bqbcore\/([\w\.]+)/i, /\bqbcore\/([\w\.]+).+microm/i], [f, [h, "WeChat(Win) Desktop"]], [/micromessenger\/([\w\.]+)/i], [f, [h, "WeChat"]], [/konqueror\/([\w\.]+)/i], [f, [h, "Konqueror"]], [/trident.+rv[: ]([\w\.]{1,9})\b.+like gecko/i], [f, [h, "IE"]], [/ya(?:search)?browser\/([\w\.]+)/i], [f, [h, "Yandex"]], [/(avast|avg)\/([\w\.]+)/i], [[h, /(.+)/, "$1 Secure " + O], f], [/\bfocus\/([\w\.]+)/i], [f, [h, C + " Focus"]], [/\bopt\/([\w\.]+)/i], [f, [h, j + " Touch"]], [/coc_coc\w+\/([\w\.]+)/i], [f, [h, "Coc Coc"]], [/dolfin\/([\w\.]+)/i], [f, [h, "Dolphin"]], [/coast\/([\w\.]+)/i], [f, [h, j + " Coast"]], [/miuibrowser\/([\w\.]+)/i], [f, [h, "MIUI " + O]], [/fxios\/([-\w\.]+)/i], [f, [h, C]], [/\bqihu|(qi?ho?o?|360)browser/i], [[h, "360 " + O]], [/(oculus|samsung|sailfish|huawei)browser\/([\w\.]+)/i], [[h, /(.+)/, "$1 " + O], f], [/(comodo_dragon)\/([\w\.]+)/i], [[h, /_/g, " "], f], [/(electron)\/([\w\.]+) safari/i, /(tesla)(?: qtcarbrowser|\/(20\d\d\.[-\w\.]+))/i, /m?(qqbrowser|baiduboxapp|2345Explorer)[\/ ]?([\w\.]+)/i], [h, f], [/(metasr)[\/ ]?([\w\.]+)/i, /(lbbrowser)/i, /\[(linkedin)app\]/i], [h], [/((?:fban\/fbios|fb_iab\/fb4a)(?!.+fbav)|;fbav\/([\w\.]+);)/i], [[h, M], f], [/(kakao(?:talk|story))[\/ ]([\w\.]+)/i, /(naver)\(.*?(\d+\.[\w\.]+).*\)/i, /safari (line)\/([\w\.]+)/i, /\b(line)\/([\w\.]+)\/iab/i, /(chromium|instagram)[\/ ]([-\w\.]+)/i], [h, f], [/\bgsa\/([\w\.]+) .*safari\//i], [f, [h, "GSA"]], [/musical_ly(?:.+app_?version\/|_)([\w\.]+)/i], [f, [h, "TikTok"]], [/headlesschrome(?:\/([\w\.]+)| )/i], [f, [h, R + " Headless"]], [/ wv\).+(chrome)\/([\w\.]+)/i], [[h, R + " WebView"], f], [/droid.+ version\/([\w\.]+)\b.+(?:mobile safari|safari)/i], [f, [h, "Android " + O]], [/(chrome|omniweb|arora|[tizenoka]{5} ?browser)\/v?([\w\.]+)/i], [h, f], [/version\/([\w\.\,]+) .*mobile\/\w+ (safari)/i], [f, [h, "Mobile Safari"]], [/version\/([\w(\.|\,)]+) .*(mobile ?safari|safari)/i], [f, h], [/webkit.+?(mobile ?safari|safari)(\/[\w\.]+)/i], [h, [f, K, { "1.0": "/8", 1.2: "/1", 1.3: "/3", "2.0": "/412", "2.0.2": "/416", "2.0.3": "/417", "2.0.4": "/419", "?": "/" }]], [/(webkit|khtml)\/([\w\.]+)/i], [h, f], [/(navigator|netscape\d?)\/([-\w\.]+)/i], [[h, "Netscape"], f], [/mobile vr; rv:([\w\.]+)\).+firefox/i], [f, [h, C + " Reality"]], [/ekiohf.+(flow)\/([\w\.]+)/i, /(swiftfox)/i, /(icedragon|iceweasel|camino|chimera|fennec|maemo browser|minimo|conkeror|klar)[\/ ]?([\w\.\+]+)/i, /(seamonkey|k-meleon|icecat|iceape|firebird|phoenix|palemoon|basilisk|waterfox)\/([-\w\.]+)$/i, /(firefox)\/([\w\.]+)/i, /(mozilla)\/([\w\.]+) .+rv\:.+gecko\/\d+/i, /(polaris|lynx|dillo|icab|doris|amaya|w3m|netsurf|sleipnir|obigo|mosaic|(?:go|ice|up)[\. ]?browser)[-\/ ]?v?([\w\.]+)/i, /(links) \(([\w\.]+)/i, /panasonic;(viera)/i], [h, f], [/(cobalt)\/([\w\.]+)/i], [h, [f, /master.|lts./, ""]]], cpu: [[/(?:(amd|x(?:(?:86|64)[-_])?|wow|win)64)[;\)]/i], [[g, "amd64"]], [/(ia32(?=;))/i], [[g, F]], [/((?:i[346]|x)86)[;\)]/i], [[g, "ia32"]], [/\b(aarch64|arm(v?8e?l?|_?64))\b/i], [[g, "arm64"]], [/\b(arm(?:v[67])?ht?n?[fl]p?)\b/i], [[g, "armhf"]], [/windows (ce|mobile); ppc;/i], [[g, "arm"]], [/((?:ppc|powerpc)(?:64)?)(?: mac|;|\))/i], [[g, /ower/, "", F]], [/(sun4\w)[;\)]/i], [[g, "sparc"]], [/((?:avr32|ia64(?=;))|68k(?=\))|\barm(?=v(?:[1-7]|[5-7]1)l?|;|eabi)|(?=atmel )avr|(?:irix|mips|sparc)(?:64)?\b|pa-risc)/i], [[g, F]]], device: [[/\b(sch-i[89]0\d|shw-m380s|sm-[ptx]\w{2,4}|gt-[pn]\d{2,4}|sgh-t8[56]9|nexus 10)/i], [c, [p, N], [d, y]], [/\b((?:s[cgp]h|gt|sm)-\w+|sc[g-]?[\d]+a?|galaxy nexus)/i, /samsung[- ]([-\w]+)/i, /sec-(sgh\w+)/i], [c, [p, N], [d, b]], [/(?:\/|\()(ip(?:hone|od)[\w, ]*)(?:\/|;)/i], [c, [p, S], [d, b]], [/\((ipad);[-\w\),; ]+apple/i, /applecoremedia\/[\w\.]+ \((ipad)/i, /\b(ipad)\d\d?,\d\d?[;\]].+ios/i], [c, [p, S], [d, y]], [/(macintosh);/i], [c, [p, S]], [/\b(sh-?[altvz]?\d\d[a-ekm]?)/i], [c, [p, $], [d, b]], [/\b((?:ag[rs][23]?|bah2?|sht?|btv)-a?[lw]\d{2})\b(?!.+d\/s)/i], [c, [p, x], [d, y]], [/(?:huawei|honor)([-\w ]+)[;\)]/i, /\b(nexus 6p|\w{2,4}e?-[atu]?[ln][\dx][012359c][adn]?)\b(?!.+d\/s)/i], [c, [p, x], [d, b]], [/\b(poco[\w ]+)(?: bui|\))/i, /\b; (\w+) build\/hm\1/i, /\b(hm[-_ ]?note?[_ ]?(?:\d\w)?) bui/i, /\b(redmi[\-_ ]?(?:note|k)?[\w_ ]+)(?: bui|\))/i, /\b(mi[-_ ]?(?:a\d|one|one[_ ]plus|note lte|max|cc)?[_ ]?(?:\d?\w?)[_ ]?(?:plus|se|lite)?)(?: bui|\))/i], [[c, /_/g, " "], [p, D], [d, b]], [/\b(mi[-_ ]?(?:pad)(?:[\w_ ]+))(?: bui|\))/i], [[c, /_/g, " "], [p, D], [d, y]], [/; (\w+) bui.+ oppo/i, /\b(cph[12]\d{3}|p(?:af|c[al]|d\w|e[ar])[mt]\d0|x9007|a101op)\b/i], [c, [p, "OPPO"], [d, b]], [/vivo (\w+)(?: bui|\))/i, /\b(v[12]\d{3}\w?[at])(?: bui|;)/i], [c, [p, "Vivo"], [d, b]], [/\b(rmx[12]\d{3})(?: bui|;|\))/i], [c, [p, "Realme"], [d, b]], [/\b(milestone|droid(?:[2-4x]| (?:bionic|x2|pro|razr))?:?( 4g)?)\b[\w ]+build\//i, /\bmot(?:orola)?[- ](\w*)/i, /((?:moto[\w\(\) ]+|xt\d{3,4}|nexus 6)(?= bui|\)))/i], [c, [p, I], [d, b]], [/\b(mz60\d|xoom[2 ]{0,2}) build\//i], [c, [p, I], [d, y]], [/((?=lg)?[vl]k\-?\d{3}) bui| 3\.[-\w; ]{10}lg?-([06cv9]{3,4})/i], [c, [p, "LG"], [d, y]], [/(lm(?:-?f100[nv]?|-[\w\.]+)(?= bui|\))|nexus [45])/i, /\blg[-e;\/ ]+((?!browser|netcast|android tv)\w+)/i, /\blg-?([\d\w]+) bui/i], [c, [p, "LG"], [d, b]], [/(ideatab[-\w ]+)/i, /lenovo ?(s[56]000[-\w]+|tab(?:[\w ]+)|yt[-\d\w]{6}|tb[-\d\w]{6})/i], [c, [p, "Lenovo"], [d, y]], [/(?:maemo|nokia).*(n900|lumia \d+)/i, /nokia[-_ ]?([-\w\.]*)/i], [[c, /_/g, " "], [p, "Nokia"], [d, b]], [/(pixel c)\b/i], [c, [p, P], [d, y]], [/droid.+; (pixel[\daxl ]{0,6})(?: bui|\))/i], [c, [p, P], [d, b]], [/droid.+ (a?\d[0-2]{2}so|[c-g]\d{4}|so[-gl]\w+|xq-a\w[4-7][12])(?= bui|\).+chrome\/(?![1-6]{0,1}\d\.))/i], [c, [p, L], [d, b]], [/sony tablet [ps]/i, /\b(?:sony)?sgp\w+(?: bui|\))/i], [[c, "Xperia Tablet"], [p, L], [d, y]], [/ (kb2005|in20[12]5|be20[12][59])\b/i, /(?:one)?(?:plus)? (a\d0\d\d)(?: b|\))/i], [c, [p, "OnePlus"], [d, b]], [/(alexa)webm/i, /(kf[a-z]{2}wi|aeo[c-r]{2})( bui|\))/i, /(kf[a-z]+)( bui|\)).+silk\//i], [c, [p, k], [d, y]], [/((?:sd|kf)[0349hijorstuw]+)( bui|\)).+silk\//i], [[c, /(.+)/g, "Fire Phone $1"], [p, k], [d, b]], [/(playbook);[-\w\),; ]+(rim)/i], [c, p, [d, y]], [/\b((?:bb[a-f]|st[hv])100-\d)/i, /\(bb10; (\w+)/i], [c, [p, T], [d, b]], [/(?:\b|asus_)(transfo[prime ]{4,10} \w+|eeepc|slider \w+|nexus 7|padfone|p00[cj])/i], [c, [p, E], [d, y]], [/ (z[bes]6[027][012][km][ls]|zenfone \d\w?)\b/i], [c, [p, E], [d, b]], [/(nexus 9)/i], [c, [p, "HTC"], [d, y]], [/(htc)[-;_ ]{1,2}([\w ]+(?=\)| bui)|\w+)/i, /(zte)[- ]([\w ]+?)(?: bui|\/|\))/i, /(alcatel|geeksphone|nexian|panasonic(?!(?:;|\.))|sony(?!-bra))[-_ ]?([-\w]*)/i], [p, [c, /_/g, " "], [d, b]], [/droid.+; ([ab][1-7]-?[0178a]\d\d?)/i], [c, [p, "Acer"], [d, y]], [/droid.+; (m[1-5] note) bui/i, /\bmz-([-\w]{2,})/i], [c, [p, "Meizu"], [d, b]], [/(blackberry|benq|palm(?=\-)|sonyericsson|acer|asus|dell|meizu|motorola|polytron)[-_ ]?([-\w]*)/i, /(hp) ([\w ]+\w)/i, /(asus)-?(\w+)/i, /(microsoft); (lumia[\w ]+)/i, /(lenovo)[-_ ]?([-\w]+)/i, /(jolla)/i, /(oppo) ?([\w ]+) bui/i], [p, c, [d, b]], [/(kobo)\s(ereader|touch)/i, /(archos) (gamepad2?)/i, /(hp).+(touchpad(?!.+tablet)|tablet)/i, /(kindle)\/([\w\.]+)/i, /(nook)[\w ]+build\/(\w+)/i, /(dell) (strea[kpr\d ]*[\dko])/i, /(le[- ]+pan)[- ]+(\w{1,9}) bui/i, /(trinity)[- ]*(t\d{3}) bui/i, /(gigaset)[- ]+(q\w{1,9}) bui/i, /(vodafone) ([\w ]+)(?:\)| bui)/i], [p, c, [d, y]], [/(surface duo)/i], [c, [p, A], [d, y]], [/droid [\d\.]+; (fp\du?)(?: b|\))/i], [c, [p, "Fairphone"], [d, b]], [/(u304aa)/i], [c, [p, "AT&T"], [d, b]], [/\bsie-(\w*)/i], [c, [p, "Siemens"], [d, b]], [/\b(rct\w+) b/i], [c, [p, "RCA"], [d, y]], [/\b(venue[\d ]{2,7}) b/i], [c, [p, "Dell"], [d, y]], [/\b(q(?:mv|ta)\w+) b/i], [c, [p, "Verizon"], [d, y]], [/\b(?:barnes[& ]+noble |bn[rt])([\w\+ ]*) b/i], [c, [p, "Barnes & Noble"], [d, y]], [/\b(tm\d{3}\w+) b/i], [c, [p, "NuVision"], [d, y]], [/\b(k88) b/i], [c, [p, "ZTE"], [d, y]], [/\b(nx\d{3}j) b/i], [c, [p, "ZTE"], [d, b]], [/\b(gen\d{3}) b.+49h/i], [c, [p, "Swiss"], [d, b]], [/\b(zur\d{3}) b/i], [c, [p, "Swiss"], [d, y]], [/\b((zeki)?tb.*\b) b/i], [c, [p, "Zeki"], [d, y]], [/\b([yr]\d{2}) b/i, /\b(dragon[- ]+touch |dt)(\w{5}) b/i], [[p, "Dragon Touch"], c, [d, y]], [/\b(ns-?\w{0,9}) b/i], [c, [p, "Insignia"], [d, y]], [/\b((nxa|next)-?\w{0,9}) b/i], [c, [p, "NextBook"], [d, y]], [/\b(xtreme\_)?(v(1[045]|2[015]|[3469]0|7[05])) b/i], [[p, "Voice"], c, [d, b]], [/\b(lvtel\-)?(v1[12]) b/i], [[p, "LvTel"], c, [d, b]], [/\b(ph-1) /i], [c, [p, "Essential"], [d, b]], [/\b(v(100md|700na|7011|917g).*\b) b/i], [c, [p, "Envizen"], [d, y]], [/\b(trio[-\w\. ]+) b/i], [c, [p, "MachSpeed"], [d, y]], [/\btu_(1491) b/i], [c, [p, "Rotor"], [d, y]], [/(shield[\w ]+) b/i], [c, [p, "Nvidia"], [d, y]], [/(sprint) (\w+)/i], [p, c, [d, b]], [/(kin\.[onetw]{3})/i], [[c, /\./g, " "], [p, A], [d, b]], [/droid.+; (cc6666?|et5[16]|mc[239][23]x?|vc8[03]x?)\)/i], [c, [p, U], [d, y]], [/droid.+; (ec30|ps20|tc[2-8]\d[kx])\)/i], [c, [p, U], [d, b]], [/smart-tv.+(samsung)/i], [p, [d, w]], [/hbbtv.+maple;(\d+)/i], [[c, /^/, "SmartTV"], [p, N], [d, w]], [/(nux; netcast.+smarttv|lg (netcast\.tv-201\d|android tv))/i], [[p, "LG"], [d, w]], [/(apple) ?tv/i], [p, [c, S + " TV"], [d, w]], [/crkey/i], [[c, R + "cast"], [p, P], [d, w]], [/droid.+aft(\w)( bui|\))/i], [c, [p, k], [d, w]], [/\(dtv[\);].+(aquos)/i, /(aquos-tv[\w ]+)\)/i], [c, [p, $], [d, w]], [/(bravia[\w ]+)( bui|\))/i], [c, [p, L], [d, w]], [/(mitv-\w{5}) bui/i], [c, [p, D], [d, w]], [/Hbbtv.*(technisat) (.*);/i], [p, c, [d, w]], [/\b(roku)[\dx]*[\)\/]((?:dvp-)?[\d\.]*)/i, /hbbtv\/\d+\.\d+\.\d+ +\([\w\+ ]*; *([\w\d][^;]*);([^;]*)/i], [[p, G], [c, G], [d, w]], [/\b(android tv|smart[- ]?tv|opera tv|tv; rv:)\b/i], [[d, w]], [/(ouya)/i, /(nintendo) ([wids3utch]+)/i], [p, c, [d, m]], [/droid.+; (shield) bui/i], [c, [p, "Nvidia"], [d, m]], [/(playstation [345portablevi]+)/i], [c, [p, L], [d, m]], [/\b(xbox(?: one)?(?!; xbox))[\); ]/i], [c, [p, A], [d, m]], [/((pebble))app/i], [p, c, [d, v]], [/(watch)(?: ?os[,\/]|\d,\d\/)[\d\.]+/i], [c, [p, S], [d, v]], [/droid.+; (glass) \d/i], [c, [p, P], [d, v]], [/droid.+; (wt63?0{2,3})\)/i], [c, [p, U], [d, v]], [/(quest( 2| pro)?)/i], [c, [p, M], [d, v]], [/(tesla)(?: qtcarbrowser|\/[-\w\.]+)/i], [p, [d, _]], [/(aeobc)\b/i], [c, [p, k], [d, _]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+? mobile safari/i], [c, [d, b]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+?(?! mobile) safari/i], [c, [d, y]], [/\b((tablet|tab)[;\/]|focus\/\d(?!.+mobile))/i], [[d, y]], [/(phone|mobile(?:[;\/]| [ \w\/\.]*safari)|pda(?=.+windows ce))/i], [[d, b]], [/(android[-\w\. ]{0,9});.+buil/i], [c, [p, "Generic"]]], engine: [[/windows.+ edge\/([\w\.]+)/i], [f, [h, "EdgeHTML"]], [/webkit\/537\.36.+chrome\/(?!27)([\w\.]+)/i], [f, [h, "Blink"]], [/(presto)\/([\w\.]+)/i, /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i, /ekioh(flow)\/([\w\.]+)/i, /(khtml|tasman|links)[\/ ]\(?([\w\.]+)/i, /(icab)[\/ ]([23]\.[\d\.]+)/i, /\b(libweb)/i], [h, f], [/rv\:([\w\.]{1,9})\b.+(gecko)/i], [f, h]], os: [[/microsoft (windows) (vista|xp)/i], [h, f], [/(windows) nt 6\.2; (arm)/i, /(windows (?:phone(?: os)?|mobile))[\/ ]?([\d\.\w ]*)/i, /(windows)[\/ ]?([ntce\d\. ]+\w)(?!.+xbox)/i], [h, [f, K, J]], [/(win(?=3|9|n)|win 9x )([nt\d\.]+)/i], [[h, "Windows"], [f, K, J]], [/ip[honead]{2,4}\b(?:.*os ([\w]+) like mac|; opera)/i, /ios;fbsv\/([\d\.]+)/i, /cfnetwork\/.+darwin/i], [[f, /_/g, "."], [h, "iOS"]], [/(mac os x) ?([\w\. ]*)/i, /(macintosh|mac_powerpc\b)(?!.+haiku)/i], [[h, q], [f, /_/g, "."]], [/droid ([\w\.]+)\b.+(android[- ]x86|harmonyos)/i], [f, h], [/(android|webos|qnx|bada|rim tablet os|maemo|meego|sailfish)[-\/ ]?([\w\.]*)/i, /(blackberry)\w*\/([\w\.]*)/i, /(tizen|kaios)[\/ ]([\w\.]+)/i, /\((series40);/i], [h, f], [/\(bb(10);/i], [f, [h, T]], [/(?:symbian ?os|symbos|s60(?=;)|series60)[-\/ ]?([\w\.]*)/i], [f, [h, "Symbian"]], [/mozilla\/[\d\.]+ \((?:mobile|tablet|tv|mobile; [\w ]+); rv:.+ gecko\/([\w\.]+)/i], [f, [h, C + " OS"]], [/web0s;.+rt(tv)/i, /\b(?:hp)?wos(?:browser)?\/([\w\.]+)/i], [f, [h, "webOS"]], [/watch(?: ?os[,\/]|\d,\d\/)([\d\.]+)/i], [f, [h, "watchOS"]], [/crkey\/([\d\.]+)/i], [f, [h, R + "cast"]], [/(cros) [\w]+(?:\)| ([\w\.]+)\b)/i], [[h, B], f], [/panasonic;(viera)/i, /(netrange)mmh/i, /(nettv)\/(\d+\.[\w\.]+)/i, /(nintendo|playstation) ([wids345portablevuch]+)/i, /(xbox); +xbox ([^\);]+)/i, /\b(joli|palm)\b ?(?:os)?\/?([\w\.]*)/i, /(mint)[\/\(\) ]?(\w*)/i, /(mageia|vectorlinux)[; ]/i, /([kxln]?ubuntu|debian|suse|opensuse|gentoo|arch(?= linux)|slackware|fedora|mandriva|centos|pclinuxos|red ?hat|zenwalk|linpus|raspbian|plan 9|minix|risc os|contiki|deepin|manjaro|elementary os|sabayon|linspire)(?: gnu\/linux)?(?: enterprise)?(?:[- ]linux)?(?:-gnu)?[-\/ ]?(?!chrom|package)([-\w\.]*)/i, /(hurd|linux) ?([\w\.]*)/i, /(gnu) ?([\w\.]*)/i, /\b([-frentopcghs]{0,5}bsd|dragonfly)[\/ ]?(?!amd|[ix346]{1,2}86)([\w\.]*)/i, /(haiku) (\w+)/i], [h, f], [/(sunos) ?([\w\.\d]*)/i], [[h, "Solaris"], f], [/((?:open)?solaris)[-\/ ]?([\w\.]*)/i, /(aix) ((\d)(?=\.|\)| )[\w\.])*/i, /\b(beos|os\/2|amigaos|morphos|openvms|fuchsia|hp-ux|serenityos)/i, /(unix) ?([\w\.]*)/i], [h, f]] }, Y = function(e2, t3) {
             if (typeof e2 === o && (t3 = e2, e2 = void 0), !(this instanceof Y)) return new Y(e2, t3).getResult();
@@ -2308,7 +2308,7 @@ var require_root_of_the_server_172fb303 = __commonJS({
               return n3 = typeof e3 === l && e3.length > 350 ? G(e3, 350) : e3, this;
             }, this.setUA(n3), this;
           };
-          if (Y.VERSION = "1.0.35", Y.BROWSER = V([h, f, u]), Y.CPU = V([g]), Y.DEVICE = V([c, p, d, m, b, w, y, v, _]), Y.ENGINE = Y.OS = V([h, f]), typeof r2 !== a) t2.exports && (r2 = t2.exports = Y), r2.UAParser = Y;
+          if (Y.VERSION = "1.0.35", Y.BROWSER = W([h, f, u]), Y.CPU = W([g]), Y.DEVICE = W([c, p, d, m, b, w, y, v, _]), Y.ENGINE = Y.OS = W([h, f]), typeof r2 !== a) t2.exports && (r2 = t2.exports = Y), r2.UAParser = Y;
           else if (typeof define === i2 && define.amd) e.r, void 0 !== Y && e.v(Y);
           else typeof s2 !== a && (s2.UAParser = Y);
           var Q = typeof s2 !== a && (s2.jQuery || s2.Zepto);
@@ -2860,7 +2860,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return new L(String(this), this[$].options);
         }
       }
-      var D, U, M, B, q, H, V, W, F, G, z, K, J, X, Y, Q, Z, ee, et, er, es, en, ei, ea, eo, el, eu = e.i(28042);
+      var D, U, M, B, q, H, W, V, F, G, z, K, J, X, Y, Q, Z, ee, et, er, es, en, ei, ea, eo, el, eu = e.i(28042);
       let ec = Symbol("internal request");
       class eh extends Request {
         constructor(e10, t10 = {}) {
@@ -3142,7 +3142,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
       function eI(e10, t10) {
         if ("action" !== e10.phase) throw new eC();
       }
-      var ej = ((D = ej || {}).handleRequest = "BaseServer.handleRequest", D.run = "BaseServer.run", D.pipe = "BaseServer.pipe", D.getStaticHTML = "BaseServer.getStaticHTML", D.render = "BaseServer.render", D.renderToResponseWithComponents = "BaseServer.renderToResponseWithComponents", D.renderToResponse = "BaseServer.renderToResponse", D.renderToHTML = "BaseServer.renderToHTML", D.renderError = "BaseServer.renderError", D.renderErrorToResponse = "BaseServer.renderErrorToResponse", D.renderErrorToHTML = "BaseServer.renderErrorToHTML", D.render404 = "BaseServer.render404", D), eN = ((U = eN || {}).loadDefaultErrorComponents = "LoadComponents.loadDefaultErrorComponents", U.loadComponents = "LoadComponents.loadComponents", U), e$ = ((M = e$ || {}).getRequestHandler = "NextServer.getRequestHandler", M.getRequestHandlerWithMetadata = "NextServer.getRequestHandlerWithMetadata", M.getServer = "NextServer.getServer", M.getServerRequestHandler = "NextServer.getServerRequestHandler", M.createServer = "createServer.createServer", M), eL = ((B = eL || {}).compression = "NextNodeServer.compression", B.getBuildId = "NextNodeServer.getBuildId", B.createComponentTree = "NextNodeServer.createComponentTree", B.clientComponentLoading = "NextNodeServer.clientComponentLoading", B.getLayoutOrPageModule = "NextNodeServer.getLayoutOrPageModule", B.generateStaticRoutes = "NextNodeServer.generateStaticRoutes", B.generateFsStaticRoutes = "NextNodeServer.generateFsStaticRoutes", B.generatePublicRoutes = "NextNodeServer.generatePublicRoutes", B.generateImageRoutes = "NextNodeServer.generateImageRoutes.route", B.sendRenderResult = "NextNodeServer.sendRenderResult", B.proxyRequest = "NextNodeServer.proxyRequest", B.runApi = "NextNodeServer.runApi", B.render = "NextNodeServer.render", B.renderHTML = "NextNodeServer.renderHTML", B.imageOptimizer = "NextNodeServer.imageOptimizer", B.getPagePath = "NextNodeServer.getPagePath", B.getRoutesManifest = "NextNodeServer.getRoutesManifest", B.findPageComponents = "NextNodeServer.findPageComponents", B.getFontManifest = "NextNodeServer.getFontManifest", B.getServerComponentManifest = "NextNodeServer.getServerComponentManifest", B.getRequestHandler = "NextNodeServer.getRequestHandler", B.renderToHTML = "NextNodeServer.renderToHTML", B.renderError = "NextNodeServer.renderError", B.renderErrorToHTML = "NextNodeServer.renderErrorToHTML", B.render404 = "NextNodeServer.render404", B.startResponse = "NextNodeServer.startResponse", B.route = "route", B.onProxyReq = "onProxyReq", B.apiResolver = "apiResolver", B.internalFetch = "internalFetch", B), eD = ((q = eD || {}).startServer = "startServer.startServer", q), eU = ((H = eU || {}).getServerSideProps = "Render.getServerSideProps", H.getStaticProps = "Render.getStaticProps", H.renderToString = "Render.renderToString", H.renderDocument = "Render.renderDocument", H.createBodyResult = "Render.createBodyResult", H), eM = ((V = eM || {}).renderToString = "AppRender.renderToString", V.renderToReadableStream = "AppRender.renderToReadableStream", V.getBodyResult = "AppRender.getBodyResult", V.fetch = "AppRender.fetch", V), eB = ((W = eB || {}).executeRoute = "Router.executeRoute", W), eq = ((F = eq || {}).runHandler = "Node.runHandler", F), eH = ((G = eH || {}).runHandler = "AppRouteRouteHandlers.runHandler", G), eV = ((z = eV || {}).generateMetadata = "ResolveMetadata.generateMetadata", z.generateViewport = "ResolveMetadata.generateViewport", z), eW = ((K = eW || {}).execute = "Middleware.execute", K);
+      var ej = ((D = ej || {}).handleRequest = "BaseServer.handleRequest", D.run = "BaseServer.run", D.pipe = "BaseServer.pipe", D.getStaticHTML = "BaseServer.getStaticHTML", D.render = "BaseServer.render", D.renderToResponseWithComponents = "BaseServer.renderToResponseWithComponents", D.renderToResponse = "BaseServer.renderToResponse", D.renderToHTML = "BaseServer.renderToHTML", D.renderError = "BaseServer.renderError", D.renderErrorToResponse = "BaseServer.renderErrorToResponse", D.renderErrorToHTML = "BaseServer.renderErrorToHTML", D.render404 = "BaseServer.render404", D), eN = ((U = eN || {}).loadDefaultErrorComponents = "LoadComponents.loadDefaultErrorComponents", U.loadComponents = "LoadComponents.loadComponents", U), e$ = ((M = e$ || {}).getRequestHandler = "NextServer.getRequestHandler", M.getRequestHandlerWithMetadata = "NextServer.getRequestHandlerWithMetadata", M.getServer = "NextServer.getServer", M.getServerRequestHandler = "NextServer.getServerRequestHandler", M.createServer = "createServer.createServer", M), eL = ((B = eL || {}).compression = "NextNodeServer.compression", B.getBuildId = "NextNodeServer.getBuildId", B.createComponentTree = "NextNodeServer.createComponentTree", B.clientComponentLoading = "NextNodeServer.clientComponentLoading", B.getLayoutOrPageModule = "NextNodeServer.getLayoutOrPageModule", B.generateStaticRoutes = "NextNodeServer.generateStaticRoutes", B.generateFsStaticRoutes = "NextNodeServer.generateFsStaticRoutes", B.generatePublicRoutes = "NextNodeServer.generatePublicRoutes", B.generateImageRoutes = "NextNodeServer.generateImageRoutes.route", B.sendRenderResult = "NextNodeServer.sendRenderResult", B.proxyRequest = "NextNodeServer.proxyRequest", B.runApi = "NextNodeServer.runApi", B.render = "NextNodeServer.render", B.renderHTML = "NextNodeServer.renderHTML", B.imageOptimizer = "NextNodeServer.imageOptimizer", B.getPagePath = "NextNodeServer.getPagePath", B.getRoutesManifest = "NextNodeServer.getRoutesManifest", B.findPageComponents = "NextNodeServer.findPageComponents", B.getFontManifest = "NextNodeServer.getFontManifest", B.getServerComponentManifest = "NextNodeServer.getServerComponentManifest", B.getRequestHandler = "NextNodeServer.getRequestHandler", B.renderToHTML = "NextNodeServer.renderToHTML", B.renderError = "NextNodeServer.renderError", B.renderErrorToHTML = "NextNodeServer.renderErrorToHTML", B.render404 = "NextNodeServer.render404", B.startResponse = "NextNodeServer.startResponse", B.route = "route", B.onProxyReq = "onProxyReq", B.apiResolver = "apiResolver", B.internalFetch = "internalFetch", B), eD = ((q = eD || {}).startServer = "startServer.startServer", q), eU = ((H = eU || {}).getServerSideProps = "Render.getServerSideProps", H.getStaticProps = "Render.getStaticProps", H.renderToString = "Render.renderToString", H.renderDocument = "Render.renderDocument", H.createBodyResult = "Render.createBodyResult", H), eM = ((W = eM || {}).renderToString = "AppRender.renderToString", W.renderToReadableStream = "AppRender.renderToReadableStream", W.getBodyResult = "AppRender.getBodyResult", W.fetch = "AppRender.fetch", W), eB = ((V = eB || {}).executeRoute = "Router.executeRoute", V), eq = ((F = eq || {}).runHandler = "Node.runHandler", F), eH = ((G = eH || {}).runHandler = "AppRouteRouteHandlers.runHandler", G), eW = ((z = eW || {}).generateMetadata = "ResolveMetadata.generateMetadata", z.generateViewport = "ResolveMetadata.generateViewport", z), eV = ((K = eV || {}).execute = "Middleware.execute", K);
       let eF = /* @__PURE__ */ new Set(["Middleware.execute", "BaseServer.handleRequest", "Render.getServerSideProps", "Render.getStaticProps", "AppRender.fetch", "AppRender.getBodyResult", "Render.renderDocument", "Node.runHandler", "AppRouteRouteHandlers.runHandler", "ResolveMetadata.generateMetadata", "ResolveMetadata.generateViewport", "NextNodeServer.createComponentTree", "NextNodeServer.findPageComponents", "NextNodeServer.getLayoutOrPageModule", "NextNodeServer.startResponse", "NextNodeServer.clientComponentLoading"]), eG = /* @__PURE__ */ new Set(["NextNodeServer.findPageComponents", "NextNodeServer.createComponentTree", "NextNodeServer.clientComponentLoading"]);
       function ez(e10) {
         return null !== e10 && "object" == typeof e10 && "then" in e10 && "function" == typeof e10.then;
@@ -3488,7 +3488,7 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
         if ((a2 = await tS(v2, () => {
           if ("/middleware" === t10.page || "/src/middleware" === t10.page || "/proxy" === t10.page || "/src/proxy" === t10.page) {
             let e10 = k2.waitUntil.bind(k2), r11 = new tb();
-            return e8().trace(eW.execute, { spanName: `middleware ${v2.method}`, attributes: { "http.target": v2.nextUrl.pathname, "http.method": v2.method } }, async () => {
+            return e8().trace(eV.execute, { spanName: `middleware ${v2.method}`, attributes: { "http.target": v2.nextUrl.pathname, "http.method": v2.method } }, async () => {
               try {
                 var s11, n11, i3, a3, l3, u3;
                 let c3 = ty(), h2 = await tv("/", v2.nextUrl, null), d3 = (l3 = v2.nextUrl, u3 = (e11) => {
@@ -3895,8 +3895,8 @@ ${c2.stack}`);
           return this.headers.append("Prefer", "handling=strict"), this.headers.append("Prefer", `max-affected=${e10}`), this;
         }
       };
-      let tV = RegExp("[,()]");
-      var tW = class extends tH {
+      let tW = RegExp("[,()]");
+      var tV = class extends tH {
         throwOnError() {
           return super.throwOnError();
         }
@@ -3949,11 +3949,11 @@ ${c2.stack}`);
           return this.url.searchParams.append(e10, `isdistinct.${t10}`), this;
         }
         in(e10, t10) {
-          let r10 = Array.from(new Set(t10)).map((e11) => "string" == typeof e11 && tV.test(e11) ? `"${e11}"` : `${e11}`).join(",");
+          let r10 = Array.from(new Set(t10)).map((e11) => "string" == typeof e11 && tW.test(e11) ? `"${e11}"` : `${e11}`).join(",");
           return this.url.searchParams.append(e10, `in.(${r10})`), this;
         }
         notIn(e10, t10) {
-          let r10 = Array.from(new Set(t10)).map((e11) => "string" == typeof e11 && tV.test(e11) ? `"${e11}"` : `${e11}`).join(",");
+          let r10 = Array.from(new Set(t10)).map((e11) => "string" == typeof e11 && tW.test(e11) ? `"${e11}"` : `${e11}`).join(",");
           return this.url.searchParams.append(e10, `not.in.(${r10})`), this;
         }
         contains(e10, t10) {
@@ -4010,7 +4010,7 @@ ${c2.stack}`);
         }
         select(e10, t10) {
           let { head: r10 = false, count: s10 } = null != t10 ? t10 : {}, n10 = false, i2 = (null != e10 ? e10 : "*").split("").map((e11) => /\s/.test(e11) && !n10 ? "" : ('"' === e11 && (n10 = !n10), e11)).join(""), { url: a2, headers: o2 } = this.cloneRequestState();
-          return a2.searchParams.set("select", i2), s10 && o2.append("Prefer", `count=${s10}`), new tW({ method: r10 ? "HEAD" : "GET", url: a2, headers: o2, schema: this.schema, fetch: this.fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
+          return a2.searchParams.set("select", i2), s10 && o2.append("Prefer", `count=${s10}`), new tV({ method: r10 ? "HEAD" : "GET", url: a2, headers: o2, schema: this.schema, fetch: this.fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
         }
         insert(e10, { count: t10, defaultToNull: r10 = true } = {}) {
           var s10;
@@ -4022,7 +4022,7 @@ ${c2.stack}`);
               n10.searchParams.set("columns", e11.join(","));
             }
           }
-          return new tW({ method: "POST", url: n10, headers: i2, schema: this.schema, body: e10, fetch: null != (s10 = this.fetch) ? s10 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
+          return new tV({ method: "POST", url: n10, headers: i2, schema: this.schema, body: e10, fetch: null != (s10 = this.fetch) ? s10 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
         }
         upsert(e10, { onConflict: t10, ignoreDuplicates: r10 = false, count: s10, defaultToNull: n10 = true } = {}) {
           var i2;
@@ -4034,17 +4034,17 @@ ${c2.stack}`);
               a2.searchParams.set("columns", e11.join(","));
             }
           }
-          return new tW({ method: "POST", url: a2, headers: o2, schema: this.schema, body: e10, fetch: null != (i2 = this.fetch) ? i2 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
+          return new tV({ method: "POST", url: a2, headers: o2, schema: this.schema, body: e10, fetch: null != (i2 = this.fetch) ? i2 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
         }
         update(e10, { count: t10 } = {}) {
           var r10;
           let { url: s10, headers: n10 } = this.cloneRequestState();
-          return t10 && n10.append("Prefer", `count=${t10}`), new tW({ method: "PATCH", url: s10, headers: n10, schema: this.schema, body: e10, fetch: null != (r10 = this.fetch) ? r10 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
+          return t10 && n10.append("Prefer", `count=${t10}`), new tV({ method: "PATCH", url: s10, headers: n10, schema: this.schema, body: e10, fetch: null != (r10 = this.fetch) ? r10 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
         }
         delete({ count: e10 } = {}) {
           var t10;
           let { url: r10, headers: s10 } = this.cloneRequestState();
-          return e10 && s10.append("Prefer", `count=${e10}`), new tW({ method: "DELETE", url: r10, headers: s10, schema: this.schema, fetch: null != (t10 = this.fetch) ? t10 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
+          return e10 && s10.append("Prefer", `count=${e10}`), new tV({ method: "DELETE", url: r10, headers: s10, schema: this.schema, fetch: null != (t10 = this.fetch) ? t10 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
         }
       }, tG = class e10 {
         constructor(e11, { headers: t10 = {}, schema: r10, fetch: s10, timeout: n10, urlLengthLimit: i2 = 8e3, retry: a2 } = {}) {
@@ -4078,7 +4078,7 @@ ${c2.stack}`);
             l2.searchParams.append(e12, t11);
           })) : (a2 = "POST", o2 = t10);
           let h2 = new Headers(this.headers);
-          return c2 ? h2.set("Prefer", n10 ? `count=${n10},return=minimal` : "return=minimal") : n10 && h2.set("Prefer", `count=${n10}`), new tW({ method: a2, url: l2, headers: h2, schema: this.schemaName, body: o2, fetch: null != (i2 = this.fetch) ? i2 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
+          return c2 ? h2.set("Prefer", n10 ? `count=${n10},return=minimal` : "return=minimal") : n10 && h2.set("Prefer", `count=${n10}`), new tV({ method: a2, url: l2, headers: h2, schema: this.schemaName, body: o2, fetch: null != (i2 = this.fetch) ? i2 : fetch, urlLengthLimit: this.urlLengthLimit, retry: this.retry });
         }
       };
       let tz = class {
@@ -5902,7 +5902,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
         }
         return e10;
       }
-      var rV = class extends Error {
+      var rW = class extends Error {
         constructor(e10, t10 = "storage", r10, s10) {
           super(e10), this.__isStorageError = true, this.namespace = t10, this.name = "vectors" === t10 ? "StorageVectorsError" : "StorageError", this.status = r10, this.statusCode = s10;
         }
@@ -5910,17 +5910,17 @@ Suggested solution: ${e10.workaround}`), Error(t10);
           return { name: this.name, message: this.message, status: this.status, statusCode: this.statusCode };
         }
       };
-      function rW(e10) {
+      function rV(e10) {
         return "object" == typeof e10 && null !== e10 && "__isStorageError" in e10;
       }
-      var rF = class extends rV {
+      var rF = class extends rW {
         constructor(e10, t10, r10, s10 = "storage", n10) {
           super(e10, s10, t10, r10), this.name = "vectors" === s10 ? "StorageVectorsApiError" : "StorageApiError", this.status = t10, this.statusCode = r10, this.code = n10;
         }
         toJSON() {
           return rH(rH({}, super.toJSON()), {}, { code: this.code });
         }
-      }, rG = class extends rV {
+      }, rG = class extends rW {
         constructor(e10, t10, r10 = "storage") {
           super(e10, r10), this.name = "vectors" === r10 ? "StorageVectorsUnknownError" : "StorageUnknownError", this.originalError = t10;
         }
@@ -6011,7 +6011,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
             return { data: await e10(), error: null };
           } catch (e11) {
             if (this.shouldThrowOnError) throw e11;
-            if (rW(e11)) return { data: null, error: e11 };
+            if (rV(e11)) return { data: null, error: e11 };
             throw e11;
           }
         }
@@ -6038,7 +6038,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
             return { data: (await this.downloadFn()).body, error: null };
           } catch (e10) {
             if (this.shouldThrowOnError) throw e10;
-            if (rW(e10)) return { data: null, error: e10 };
+            if (rV(e10)) return { data: null, error: e10 };
             throw e10;
           }
         }
@@ -6068,7 +6068,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
             return { data: await (await this.downloadFn()).blob(), error: null };
           } catch (e10) {
             if (this.shouldThrowOnError) throw e10;
-            if (rW(e10)) return { data: null, error: e10 };
+            if (rV(e10)) return { data: null, error: e10 };
             throw e10;
           }
         }
@@ -6105,7 +6105,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
             let s10 = r10._getFinalPath(e10), n10 = rH({}, r10.headers);
             (null == t10 ? void 0 : t10.upsert) && (n10["x-upsert"] = "true");
             let i2 = await r1(r10.fetch, `${r10.url}/object/upload/sign/${s10}`, {}, { headers: n10 }), a2 = new URL(r10.url + i2.url), o2 = a2.searchParams.get("token");
-            if (!o2) throw new rV("No token returned by API");
+            if (!o2) throw new rW("No token returned by API");
             return { signedUrl: a2.toString(), path: e10, token: o2 };
           });
         }
@@ -6156,7 +6156,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
             return await r3(this.fetch, `${this.url}/object/${r10}`, { headers: this.headers }), { data: true, error: null };
           } catch (e11) {
             if (this.shouldThrowOnError) throw e11;
-            if (rW(e11)) {
+            if (rV(e11)) {
               let r11 = e11 instanceof rF ? e11.status : e11 instanceof rG ? null == (t10 = e11.originalError) ? void 0 : t10.status : void 0;
               if (void 0 !== r11 && [400, 404].includes(r11)) return { data: false, error: e11 };
             }
@@ -6281,7 +6281,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
         }
         from(e10) {
           var t10 = this;
-          if (!(!(!e10 || "string" != typeof e10 || 0 === e10.length || e10.length > 100 || e10.trim() !== e10 || e10.includes("/") || e10.includes("\\")) && /^[\w!.\*'() &$@=;:+,?-]+$/.test(e10))) throw new rV("Invalid bucket name: File, folder, and bucket names must follow AWS object key naming guidelines and should avoid the use of any other characters.");
+          if (!(!(!e10 || "string" != typeof e10 || 0 === e10.length || e10.length > 100 || e10.trim() !== e10 || e10.includes("/") || e10.includes("\\")) && /^[\w!.\*'() &$@=;:+,?-]+$/.test(e10))) throw new rW("Invalid bucket name: File, folder, and bucket names must follow AWS object key naming guidelines and should avoid the use of any other characters.");
           let r10 = new rM({ baseUrl: this.url, catalogName: e10, auth: { type: "custom", getHeaders: async () => t10.headers }, fetch: this.fetch }), s10 = this.shouldThrowOnError;
           return new Proxy(r10, { get(e11, t11) {
             let r11 = e11[t11];
@@ -6578,7 +6578,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
         };
         return e10.forEach((e11) => sU(e11, r10, s10)), sU(null, r10, s10), t10.join("");
       }
-      let sV = (e10) => e10 ? (...t10) => e10(...t10) : (...e11) => fetch(...e11), sW = async (e10, t10, r10) => {
+      let sW = (e10) => e10 ? (...t10) => e10(...t10) : (...e11) => fetch(...e11), sV = async (e10, t10, r10) => {
         await e10.setItem(t10, JSON.stringify(r10));
       }, sF = async (e10, t10) => {
         let r10 = await e10.getItem(t10);
@@ -6630,13 +6630,13 @@ Suggested solution: ${e10.workaround}`), Error(t10);
         return Array.isArray(r10) ? r10.filter((e11) => null !== s0(e11)) : [];
       }
       async function s4(e10, t10, r10, s10, n10) {
-        await sW(e10, s1(t10, r10), s10);
+        await sV(e10, s1(t10, r10), s10);
         let i2 = (await s3(e10, t10)).filter((e11) => e11 !== r10);
         for (i2.push(r10); i2.length > 5; ) {
           let r11 = i2.shift();
           await sG(e10, s1(t10, r11)), null == n10 || n10(r11);
         }
-        await sW(e10, s2(t10), i2), await sW(e10, `${t10}-code-verifier`, s10);
+        await sV(e10, s2(t10), i2), await sV(e10, `${t10}-code-verifier`, s10);
       }
       async function s5(e10, t10, r10) {
         if (r10) {
@@ -6652,7 +6652,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
         let n10 = s1(t10, r10), i2 = await sF(e10, n10);
         await sG(e10, n10);
         let a2 = await s3(e10, t10), o2 = a2.filter((e11) => e11 !== r10);
-        o2.length !== a2.length && (o2.length > 0 ? await sW(e10, s2(t10), o2) : await sG(e10, s2(t10))), null != i2 && i2 === await sF(e10, s10) && await sG(e10, s10);
+        o2.length !== a2.length && (o2.length > 0 ? await sV(e10, s2(t10), o2) : await sG(e10, s2(t10))), null != i2 && i2 === await sF(e10, s10) && await sG(e10, s10);
       }
       async function s8(e10, t10) {
         for (let r10 of await s3(e10, t10)) await sG(e10, s1(t10, r10));
@@ -6791,7 +6791,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
       let nm = ["global", "local", "others"];
       class nb {
         constructor({ url: e10 = "", headers: t10 = {}, fetch: r10, experimental: s10 }) {
-          this.url = e10, this.headers = t10, this.fetch = sV(r10), this.experimental = null != s10 ? s10 : {}, this.mfa = { listFactors: this._listFactors.bind(this), deleteFactor: this._deleteFactor.bind(this) }, this.oauth = { listClients: this._listOAuthClients.bind(this), createClient: this._createOAuthClient.bind(this), getClient: this._getOAuthClient.bind(this), updateClient: this._updateOAuthClient.bind(this), deleteClient: this._deleteOAuthClient.bind(this), regenerateClientSecret: this._regenerateOAuthClientSecret.bind(this) }, this.customProviders = { listProviders: this._listCustomProviders.bind(this), createProvider: this._createCustomProvider.bind(this), getProvider: this._getCustomProvider.bind(this), updateProvider: this._updateCustomProvider.bind(this), deleteProvider: this._deleteCustomProvider.bind(this) }, this.passkey = { listPasskeys: this._adminListPasskeys.bind(this), deletePasskey: this._adminDeletePasskey.bind(this) };
+          this.url = e10, this.headers = t10, this.fetch = sW(r10), this.experimental = null != s10 ? s10 : {}, this.mfa = { listFactors: this._listFactors.bind(this), deleteFactor: this._deleteFactor.bind(this) }, this.oauth = { listClients: this._listOAuthClients.bind(this), createClient: this._createOAuthClient.bind(this), getClient: this._getOAuthClient.bind(this), updateClient: this._updateOAuthClient.bind(this), deleteClient: this._deleteOAuthClient.bind(this), regenerateClientSecret: this._regenerateOAuthClientSecret.bind(this) }, this.customProviders = { listProviders: this._listCustomProviders.bind(this), createProvider: this._createCustomProvider.bind(this), getProvider: this._getCustomProvider.bind(this), updateProvider: this._updateCustomProvider.bind(this), deleteProvider: this._deleteCustomProvider.bind(this) }, this.passkey = { listPasskeys: this._adminListPasskeys.bind(this), deletePasskey: this._adminDeletePasskey.bind(this) };
         }
         async signOut(e10, t10 = nm[0]) {
           if (0 > nm.indexOf(t10)) throw Error(`@supabase/auth-js: Parameter scope must be one of ${nm.join(", ")}`);
@@ -7248,7 +7248,7 @@ Suggested solution: ${e10.workaround}`), Error(t10);
           var t10, r10;
           this.userStorage = null, this.memoryStorage = null, this.stateChangeEmitters = /* @__PURE__ */ new Map(), this.autoRefreshTicker = null, this.autoRefreshTickTimeout = null, this.visibilityChangedCallback = null, this.refreshingDeferred = null, this.lastRefreshFailure = null, this._sessionRemovalEpoch = 0, this.initializePromise = null, this._pendingInitNotifications = null, this.detectSessionInUrl = true, this.hasCustomAuthorizationHeader = false, this.suppressGetSessionWarning = false, this.lock = null, this.lockAcquired = false, this.pendingInLock = [], this.broadcastChannel = null, this.logger = console.log;
           const s10 = Object.assign(Object.assign({}, n$), e10);
-          this.storageKey = s10.storageKey, this.instanceID = null != (t10 = nD.nextInstanceID[this.storageKey]) ? t10 : 0, nD.nextInstanceID[this.storageKey] = this.instanceID + 1, this.logDebugMessages = !!s10.debug, "function" == typeof s10.debug && (this.logger = s10.debug), this.instanceID, this.persistSession = s10.persistSession, this.autoRefreshToken = s10.autoRefreshToken, this.experimental = null != (r10 = s10.experimental) ? r10 : {}, this.admin = new nb({ url: s10.url, headers: s10.headers, fetch: s10.fetch, experimental: this.experimental }), this.url = s10.url, this.headers = s10.headers, this.fetch = sV(s10.fetch), this.detectSessionInUrl = s10.detectSessionInUrl, this.flowType = s10.flowType, this.hasCustomAuthorizationHeader = s10.hasCustomAuthorizationHeader, this.throwOnError = s10.throwOnError, this.lockAcquireTimeout = s10.lockAcquireTimeout, null != s10.lock && (this.lock = s10.lock), this.jwks || (this.jwks = { keys: [] }, this.jwks_cached_at = Number.MIN_SAFE_INTEGER), this.mfa = { verify: this._verify.bind(this), enroll: this._enroll.bind(this), unenroll: this._unenroll.bind(this), challenge: this._challenge.bind(this), listFactors: this._listFactors.bind(this), challengeAndVerify: this._challengeAndVerify.bind(this), getAuthenticatorAssuranceLevel: this._getAuthenticatorAssuranceLevel.bind(this), webauthn: new nN(this) }, this.oauth = { getAuthorizationDetails: this._getAuthorizationDetails.bind(this), approveAuthorization: this._approveAuthorization.bind(this), denyAuthorization: this._denyAuthorization.bind(this), listGrants: this._listOAuthGrants.bind(this), revokeGrant: this._revokeOAuthGrant.bind(this) }, this.passkey = { startRegistration: this._startPasskeyRegistration.bind(this), verifyRegistration: this._verifyPasskeyRegistration.bind(this), startAuthentication: this._startPasskeyAuthentication.bind(this), verifyAuthentication: this._verifyPasskeyAuthentication.bind(this), list: this._listPasskeys.bind(this), update: this._updatePasskey.bind(this), delete: this._deletePasskey.bind(this) }, this.persistSession ? (s10.storage ? this.storage = s10.storage : (this.memoryStorage = {}, this.storage = ny(this.memoryStorage)), s10.userStorage && (this.userStorage = s10.userStorage)) : (this.memoryStorage = {}, this.storage = ny(this.memoryStorage)), s10.skipAutoInitialize || this.initialize().catch((e11) => {
+          this.storageKey = s10.storageKey, this.instanceID = null != (t10 = nD.nextInstanceID[this.storageKey]) ? t10 : 0, nD.nextInstanceID[this.storageKey] = this.instanceID + 1, this.logDebugMessages = !!s10.debug, "function" == typeof s10.debug && (this.logger = s10.debug), this.instanceID, this.persistSession = s10.persistSession, this.autoRefreshToken = s10.autoRefreshToken, this.experimental = null != (r10 = s10.experimental) ? r10 : {}, this.admin = new nb({ url: s10.url, headers: s10.headers, fetch: s10.fetch, experimental: this.experimental }), this.url = s10.url, this.headers = s10.headers, this.fetch = sW(s10.fetch), this.detectSessionInUrl = s10.detectSessionInUrl, this.flowType = s10.flowType, this.hasCustomAuthorizationHeader = s10.hasCustomAuthorizationHeader, this.throwOnError = s10.throwOnError, this.lockAcquireTimeout = s10.lockAcquireTimeout, null != s10.lock && (this.lock = s10.lock), this.jwks || (this.jwks = { keys: [] }, this.jwks_cached_at = Number.MIN_SAFE_INTEGER), this.mfa = { verify: this._verify.bind(this), enroll: this._enroll.bind(this), unenroll: this._unenroll.bind(this), challenge: this._challenge.bind(this), listFactors: this._listFactors.bind(this), challengeAndVerify: this._challengeAndVerify.bind(this), getAuthenticatorAssuranceLevel: this._getAuthenticatorAssuranceLevel.bind(this), webauthn: new nN(this) }, this.oauth = { getAuthorizationDetails: this._getAuthorizationDetails.bind(this), approveAuthorization: this._approveAuthorization.bind(this), denyAuthorization: this._denyAuthorization.bind(this), listGrants: this._listOAuthGrants.bind(this), revokeGrant: this._revokeOAuthGrant.bind(this) }, this.passkey = { startRegistration: this._startPasskeyRegistration.bind(this), verifyRegistration: this._verifyPasskeyRegistration.bind(this), startAuthentication: this._startPasskeyAuthentication.bind(this), verifyAuthentication: this._verifyPasskeyAuthentication.bind(this), list: this._listPasskeys.bind(this), update: this._updatePasskey.bind(this), delete: this._deletePasskey.bind(this) }, this.persistSession ? (s10.storage ? this.storage = s10.storage : (this.memoryStorage = {}, this.storage = ny(this.memoryStorage)), s10.userStorage && (this.userStorage = s10.userStorage)) : (this.memoryStorage = {}, this.storage = ny(this.memoryStorage)), s10.skipAutoInitialize || this.initialize().catch((e11) => {
             this._debug("#initialize()", "error", e11);
           });
         }
@@ -7903,10 +7903,10 @@ ${b3}`;
             let s10 = await sF(this.storage, this.storageKey);
             if (s10 && this.userStorage) {
               let t11 = await sF(this.userStorage, this.storageKey + "-user");
-              !this.storage.isServer && Object.is(this.storage, this.userStorage) && !t11 && (t11 = { user: s10.user }, await sW(this.userStorage, this.storageKey + "-user", t11)), s10.user = null != (e10 = null == t11 ? void 0 : t11.user) ? e10 : ns();
+              !this.storage.isServer && Object.is(this.storage, this.userStorage) && !t11 && (t11 = { user: s10.user }, await sV(this.userStorage, this.storageKey + "-user", t11)), s10.user = null != (e10 = null == t11 ? void 0 : t11.user) ? e10 : ns();
             } else if (s10 && !s10.user && !s10.user) {
               let e11 = await sF(this.storage, this.storageKey + "-user");
-              e11 && (null == e11 ? void 0 : e11.user) ? (s10.user = e11.user, await sG(this.storage, this.storageKey + "-user"), await sW(this.storage, this.storageKey, s10)) : s10.user = ns();
+              e11 && (null == e11 ? void 0 : e11.user) ? (s10.user = e11.user, await sG(this.storage, this.storageKey + "-user"), await sV(this.storage, this.storageKey, s10)) : s10.user = ns();
             }
             if (this._debug(r10, "session from storage", s10), !this._isValidSession(s10)) {
               this._debug(r10, "session is not valid"), null !== s10 && await this._removeSession();
@@ -7998,14 +7998,14 @@ ${b3}`;
           this._debug("#_saveSession()", e10), this.suppressGetSessionWarning = true;
           let t10 = Object.assign({}, e10), r10 = t10.user && true === t10.user.__isUserNotAvailableProxy;
           if (this.userStorage) {
-            !r10 && t10.user && await sW(this.userStorage, this.storageKey + "-user", { user: t10.user });
+            !r10 && t10.user && await sV(this.userStorage, this.storageKey + "-user", { user: t10.user });
             let e11 = Object.assign({}, t10);
             delete e11.user;
             let s10 = nn(e11);
-            await sW(this.storage, this.storageKey, s10);
+            await sV(this.storage, this.storageKey, s10);
           } else {
             let e11 = nn(t10);
-            await sW(this.storage, this.storageKey, e11);
+            await sV(this.storage, this.storageKey, e11);
           }
         }
         async _removeSession() {
@@ -8494,7 +8494,7 @@ ${b3}`;
       }
       let nB = [`runtime=${nM}`];
       n && nB.push(`runtime-version=${n}`);
-      let nq = { headers: { "X-Client-Info": `supabase-js/2.112.3; ${nB.join("; ")}` } }, nH = { schema: "public" }, nV = { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true, flowType: "implicit" }, nW = {}, nF = { enabled: false, respectSamplingDecision: true };
+      let nq = { headers: { "X-Client-Info": `supabase-js/2.112.3; ${nB.join("; ")}` } }, nH = { schema: "public" }, nW = { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true, flowType: "implicit" }, nV = {}, nF = { enabled: false, respectSamplingDecision: true };
       function nG(e10) {
         return (nG = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(e11) {
           return typeof e11;
@@ -8643,7 +8643,7 @@ ${b3}`;
             var r11, s11, n11, i3, a3, o3;
             let { db: l3, auth: u2, realtime: c2, global: h2 } = e11, { db: d2, auth: p2, realtime: f2, global: g2 } = t11, m2 = n0(e11.tracePropagation), b2 = n0(t11.tracePropagation), y2 = { db: nK(nK({}, d2), l3), auth: nK(nK({}, p2), u2), realtime: nK(nK({}, f2), c2), storage: {}, global: nK(nK(nK({}, g2), h2), {}, { headers: nK(nK({}, null != (r11 = null == g2 ? void 0 : g2.headers) ? r11 : {}), null != (s11 = null == h2 ? void 0 : h2.headers) ? s11 : {}) }), tracePropagation: { enabled: null != (n11 = null != (i3 = null == m2 ? void 0 : m2.enabled) ? i3 : null == b2 ? void 0 : b2.enabled) && n11, respectSamplingDecision: null == (a3 = null != (o3 = null == m2 ? void 0 : m2.respectSamplingDecision) ? o3 : null == b2 ? void 0 : b2.respectSamplingDecision) || a3 }, accessToken: async () => "" };
             return e11.accessToken ? y2.accessToken = e11.accessToken : delete y2.accessToken, y2;
-          }(null != r10 ? r10 : {}, { db: nH, realtime: nW, auth: nK(nK({}, nV), {}, { storageKey: o2 }), global: nq, tracePropagation: nF });
+          }(null != r10 ? r10 : {}, { db: nH, realtime: nV, auth: nK(nK({}, nW), {}, { storageKey: o2 }), global: nq, tracePropagation: nF });
           this.settings = l2, this.storageKey = null != (s10 = l2.auth.storageKey) ? s10 : "", this.headers = null != (n10 = l2.global.headers) ? n10 : {}, l2.accessToken ? (this.accessToken = l2.accessToken, this.auth = new Proxy({}, { get: (e11, t11) => {
             throw Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(t11)} is not possible`);
           } })) : this.auth = this._initSupabaseAuthClient(null != (i2 = l2.auth) ? i2 : {}, this.headers, l2.global.fetch), this.fetch = nY(t10, e10, this._getSessionToken.bind(this), l2.global.fetch, l2.tracePropagation), this.functionsFetch = nY(t10, e10, this._getSessionToken.bind(this), l2.global.fetch, l2.tracePropagation, { omitApiKeyAsBearer: true }), this.realtime = this._initRealtimeClient(nK({ headers: this.headers, accessToken: this._getAccessToken.bind(this), fetch: this.fetch }, l2.realtime)), this.accessToken && Promise.resolve(this.accessToken()).then((e11) => this.realtime.setAuth(e11)).catch((e11) => console.warn("Failed to set initial Realtime auth token:", e11)), this.rest = new tG(new URL("rest/v1", a2).href, { headers: this.headers, schema: l2.db.schema, fetch: this.fetch, timeout: l2.db.timeout, urlLengthLimit: l2.db.urlLengthLimit, retry: l2.db.retry }), this.storage = new sh(this.storageUrl.href, this.headers, this.fetch, null == r10 ? void 0 : r10.storage), l2.accessToken || this._listenForAuthEvents();
@@ -8985,11 +8985,11 @@ https://supabase.com/dashboard/project/_/settings/api`);
             return t11.pathname = "/", em.redirect(t11);
           }
           if (t10.startsWith("/auth/callback")) return r11;
-          if (!n10) {
+          if (!n10 && !t10.startsWith("/login")) {
             let t11 = e10.nextUrl.clone();
             return t11.pathname = "/login", em.redirect(t11);
           }
-          return r11.headers.set("x-user-id", n10.id), r11.headers.set("x-user-email", n10.email ?? ""), r11;
+          return n10 && (r11.headers.set("x-user-id", n10.id), r11.headers.set("x-user-email", n10.email ?? "")), r11;
         } catch (s11) {
           if (console.error("[middleware] auth check failed:", s11), t10.startsWith("/login") || t10.startsWith("/auth/callback")) return em.next({ request: e10 });
           let r11 = e10.nextUrl.clone();
@@ -9597,11 +9597,11 @@ var NEXT_DIR = path.join(__dirname, ".next");
 var OPEN_NEXT_DIR = path.join(__dirname, ".open-next");
 debug({ NEXT_DIR, OPEN_NEXT_DIR });
 var NextConfig = { "distDir": ".next", "cacheComponents": false, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "assetPrefix": "", "output": "standalone", "trailingSlash": false, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [], "qualities": [75], "unoptimized": false }, "reactMaxHeadersLength": 6e3, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "basePath": "", "expireTime": 31536e3, "generateEtags": true, "poweredByHeader": true, "cacheHandlers": {}, "cacheMaxMemorySize": 52428800, "compress": true, "i18n": null, "httpAgentOptions": { "keepAlive": true }, "pageExtensions": ["tsx", "ts", "jsx", "js"], "useFileSystemPublicRoutes": true, "experimental": { "ppr": false, "staleTimes": { "dynamic": 0, "static": 300 }, "dynamicOnHover": false, "inlineCss": false, "authInterrupts": false, "fetchCacheKeyPrefix": "", "isrFlushToDisk": true, "optimizeCss": false, "nextScriptWorkers": false, "disableOptimizedLoading": false, "largePageDataBytes": 128e3, "serverComponentsHmrCache": true, "caseSensitiveRoutes": false, "validateRSCRequestHeaders": false, "useSkewCookie": false, "preloadEntriesOnStart": true, "hideLogsAfterAbort": false, "removeUncaughtErrorAndRejectionListeners": false, "imgOptConcurrency": null, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "imgOptSkipMetadata": null, "imgOptTimeoutInSeconds": 7, "proxyClientMaxBodySize": 10485760, "trustHostHeader": false, "isExperimentalCompile": false }, "skipTrailingSlashRedirect": false, "serverExternalPackages": [] };
-var BuildId = "EbfsteUV9GjYz8Ftx-qBZ";
+var BuildId = "tiQT3gVQ2mfgsWrvLxyzB";
 var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/api", "regex": "^/api(?:/)?$", "routeKeys": {}, "namedRegex": "^/api(?:/)?$" }, { "page": "/api/conversations", "regex": "^/api/conversations(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations(?:/)?$" }, { "page": "/api/conversations/create", "regex": "^/api/conversations/create(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations/create(?:/)?$" }, { "page": "/api/conversations/delete", "regex": "^/api/conversations/delete(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations/delete(?:/)?$" }, { "page": "/api/messages/delete", "regex": "^/api/messages/delete(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/delete(?:/)?$" }, { "page": "/api/messages/history", "regex": "^/api/messages/history(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/history(?:/)?$" }, { "page": "/api/messages/reaction", "regex": "^/api/messages/reaction(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/reaction(?:/)?$" }, { "page": "/api/messages/read", "regex": "^/api/messages/read(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/read(?:/)?$" }, { "page": "/api/messages/search", "regex": "^/api/messages/search(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/search(?:/)?$" }, { "page": "/api/messages/send", "regex": "^/api/messages/send(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/send(?:/)?$" }, { "page": "/api/messages/vanish", "regex": "^/api/messages/vanish(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/vanish(?:/)?$" }, { "page": "/api/messages/voice", "regex": "^/api/messages/voice(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/voice(?:/)?$" }, { "page": "/api/pusher/auth", "regex": "^/api/pusher/auth(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/pusher/auth(?:/)?$" }, { "page": "/api/users/batch-status", "regex": "^/api/users/batch\\-status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/batch\\-status(?:/)?$" }, { "page": "/api/users/heartbeat", "regex": "^/api/users/heartbeat(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/heartbeat(?:/)?$" }, { "page": "/api/users/profile", "regex": "^/api/users/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/profile(?:/)?$" }, { "page": "/api/users/search", "regex": "^/api/users/search(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/search(?:/)?$" }, { "page": "/api/users/status", "regex": "^/api/users/status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/status(?:/)?$" }, { "page": "/auth/callback", "regex": "^/auth/callback(?:/)?$", "routeKeys": {}, "namedRegex": "^/auth/callback(?:/)?$" }, { "page": "/login", "regex": "^/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/login(?:/)?$" }], "dynamic": [], "data": { "static": [], "dynamic": [] } }, "locales": [] };
 var ConfigHeaders = [];
-var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/login": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/login", "dataRoute": "/login.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "0f9716b1b95e8d257c9de1ac07aebab1", "previewModeSigningKey": "deff4a7362e11c2521c590f026b1ace0afd34d56d52aab6115d2f1d174455388", "previewModeEncryptionKey": "baee1bbdccf186523c6142b785eacf6099e26d17c2eaf59788f7d6c0895225ee" } };
-var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_78fa9d6a.js", "server/edge/chunks/[root-of-the-server]__172fb303._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_7057d99f.js"], "name": "middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*))(\\\\.json)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "EbfsteUV9GjYz8Ftx-qBZ", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "guW0E2M+WfvVW74ZNIF835rbEX7IxLhFlH8vyPFEOYc=", "__NEXT_PREVIEW_MODE_ID": "0f9716b1b95e8d257c9de1ac07aebab1", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "baee1bbdccf186523c6142b785eacf6099e26d17c2eaf59788f7d6c0895225ee", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "deff4a7362e11c2521c590f026b1ace0afd34d56d52aab6115d2f1d174455388" } } }, "sortedMiddleware": ["/"], "functions": {} };
+var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/login": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/login", "dataRoute": "/login.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "1ed0ffe098a7484f8766364a92f33e9b", "previewModeSigningKey": "de104ff669379f3fd168bfd80ba01c7fca55522bd11dd443f24d772df2983d84", "previewModeEncryptionKey": "4fe498453c34c3d3109becb7beaebbb107c91a9517616d3926ea4fef0898d3ac" } };
+var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_78fa9d6a.js", "server/edge/chunks/[root-of-the-server]__172fb303._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_7057d99f.js"], "name": "middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*))(\\\\.json)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "tiQT3gVQ2mfgsWrvLxyzB", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "FgLIdKO3iJwg9TSX1L3Cp+5So+wHYspYsfVwsvbHxeg=", "__NEXT_PREVIEW_MODE_ID": "1ed0ffe098a7484f8766364a92f33e9b", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "4fe498453c34c3d3109becb7beaebbb107c91a9517616d3926ea4fef0898d3ac", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "de104ff669379f3fd168bfd80ba01c7fca55522bd11dd443f24d772df2983d84" } } }, "sortedMiddleware": ["/"], "functions": {} };
 var AppPathRoutesManifest = { "/_global-error/page": "/_global-error", "/_not-found/page": "/_not-found", "/api/conversations/create/route": "/api/conversations/create", "/api/conversations/delete/route": "/api/conversations/delete", "/api/conversations/route": "/api/conversations", "/api/messages/delete/route": "/api/messages/delete", "/api/messages/history/route": "/api/messages/history", "/api/messages/reaction/route": "/api/messages/reaction", "/api/messages/read/route": "/api/messages/read", "/api/messages/search/route": "/api/messages/search", "/api/messages/send/route": "/api/messages/send", "/api/messages/vanish/route": "/api/messages/vanish", "/api/messages/voice/route": "/api/messages/voice", "/api/pusher/auth/route": "/api/pusher/auth", "/api/route": "/api", "/api/users/batch-status/route": "/api/users/batch-status", "/api/users/heartbeat/route": "/api/users/heartbeat", "/api/users/profile/route": "/api/users/profile", "/api/users/search/route": "/api/users/search", "/api/users/status/route": "/api/users/status", "/auth/callback/route": "/auth/callback", "/login/page": "/login", "/page": "/" };
 var FunctionsConfigManifest = { "version": 1, "functions": {} };
 var PagesManifest = { "/404": "pages/404.html", "/500": "pages/500.html" };

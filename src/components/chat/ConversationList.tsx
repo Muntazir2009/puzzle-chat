@@ -216,7 +216,7 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
 }
 
 /* ------------------------------------------------------------------ */
-/*  LinkifiedText – detects & renders clickable URLs                   */
+/*  LinkifiedText - detects & renders clickable URLs                   */
 /* ------------------------------------------------------------------ */
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -287,19 +287,19 @@ const ConversationItemRow = React.memo(function ConversationItemRow({ conv, acti
   const isActive = activeId === conv.id;
 
   return (
-    <div className={cn("px-2 pt-0.5", index === 0 && "pt-1")}>
+    <div className={cn("mx-2 my-0.5", index === 0 && "mt-1")}>
     <button
       type="button"
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => onContextMenu(e, conv)}
       className={cn(
-        "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left",
-        "cute-conv-row",
-        isActive && "cute-conv-active",
+        "group relative flex w-full items-center gap-3 px-4 py-3.5 text-left rounded-2xl",
+        "liquid-card",
+        isActive && "liquid-card-active",
       )}
     >
       <div className="relative shrink-0">
-        <Avatar className="size-11 transition-all duration-300 ring-2 ring-transparent group-hover:shadow-lg" style={{
+        <Avatar className="size-12 transition-all duration-300 ring-2 ring-transparent group-hover:shadow-lg" style={{
           '--tw-ring-color': isActive ? 'var(--app-accent-pill-border)' : 'transparent',
         } as React.CSSProperties}>
           {conv.partner.avatar_url && <AvatarImage src={conv.partner.avatar_url} alt={conv.partner.name} />}
@@ -368,6 +368,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
   const [onlineMap, setOnlineMap] = useState<OnlineMap>({});
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
   const emptyContainerRef = useRef<HTMLDivElement>(null);
 
   /* Keep the current user's last_seen up-to-date */
@@ -378,6 +379,15 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
     () => conversations.map((c) => c.partner.id),
     [conversations],
   );
+
+  /* Local search filter */
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase();
+    return conversations.filter((c) =>
+      c.partner.name.toLowerCase().includes(q)
+    );
+  }, [conversations, searchQuery]);
 
   useEffect(() => {
     if (partnerIds.length === 0) return;
@@ -426,7 +436,8 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-14 shrink-0 items-center justify-between px-4" style={{ borderBottom: "1px solid var(--app-accent-subtle)" }}>
+      {/* Floating pill header */}
+      <header className="sticky top-3 z-10 mx-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.06] border border-white/[0.10] flex items-center justify-between">
         <h2 className="text-base font-bold tracking-tight" style={{
           background: "linear-gradient(135deg, var(--app-accent-light), var(--app-accent-lighter))",
           WebkitBackgroundClip: "text",
@@ -434,6 +445,31 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
         }}>Chats</h2>
         <NewChatDialog onSelect={onNewChat} />
       </header>
+
+      {/* Subtle inline search bar */}
+      {conversations.length > 0 && (
+        <div className="mx-5 mt-3 mb-1">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search chats..."
+              className="w-full rounded-full bg-white/[0.04] border border-white/[0.06] py-2 pl-10 pr-4 text-sm text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:bg-white/[0.06] focus:border-white/[0.10]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-white/30 transition-colors hover:text-white/60"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto py-1">
         {conversations.length === 0 ? (
@@ -484,9 +520,15 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
           </div>
         ) : (
           <>
-          {conversations.map((conv, idx) => (
+          {filteredConversations.map((conv, idx) => (
             <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} index={idx} />
           ))}
+          {filteredConversations.length === 0 && conversations.length > 0 && (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <Search className="size-5 text-white/20" />
+              <p className="text-sm text-white/30">No chats match "{searchQuery}"</p>
+            </div>
+          )}
           </>
         )}
       </div>

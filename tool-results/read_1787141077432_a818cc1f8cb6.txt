@@ -1,0 +1,1099 @@
+   820→  if (isFirst && isLast) {
+   821→    // Single message in group (or only message)
+   822→    return isOwn
+   823→      ? "rounded-2xl rounded-br-sm"
+   824→      : "rounded-2xl rounded-bl-sm";
+   825→  }
+   826→  if (isFirst) {
+   827→    // First message of a multi-message group
+   828→    return isOwn
+   829→      ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-sm rounded-br-sm"
+   830→      : "rounded-tl-2xl rounded-bl-sm rounded-tr-2xl rounded-br-sm";
+   831→  }
+   832→  if (isLast) {
+   833→    // Last message of a multi-message group
+   834→    return isOwn
+   835→      ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-sm rounded-br-2xl"
+   836→      : "rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl rounded-br-sm";
+   837→  }
+   838→  // Middle message
+   839→  return isOwn
+   840→    ? "rounded-tl-2xl rounded-bl-2xl rounded-tr-sm rounded-br-sm"
+   841→    : "rounded-tl-2xl rounded-bl-sm rounded-tr-2xl rounded-br-sm";
+   842→}
+   843→
+   844→/* ------------------------------------------------------------------ */
+   845→/*  MessageBubble                                                      */
+   846→/* ------------------------------------------------------------------ */
+   847→
+   848→const MessageBubble = React.memo(function MessageBubble({
+   849→  message,
+   850→  isOwn,
+   851→  isFirst,
+   852→  isLast,
+   853→  partnerName,
+   854→  partnerAvatar,
+   855→  currentUserId,
+   856→  currentUserName,
+   857→  currentUserAvatar,
+   858→  onReplyTo,
+   859→  onReact,
+   860→  onDeleteMessage,
+   861→  searchHighlight,
+   862→  activeActionId,
+   863→  onOpenAction,
+   864→  activeTapbackId,
+   865→  onOpenTapback,
+   866→}: {
+   867→  message: ChatMessage;
+   868→  isOwn: boolean;
+   869→  isFirst: boolean;
+   870→  isLast: boolean;
+   871→  partnerName: string;
+   872→  partnerAvatar: string | null;
+   873→  currentUserId: string;
+   874→  currentUserName: string;
+   875→  currentUserAvatar: string | null;
+   876→  onReplyTo?: (msg: ChatMessage) => void;
+   877→  onReact?: (id: string, emoji: string, add: boolean) => void;
+   878→  onDeleteMessage?: (id: string) => void;
+   879→  searchHighlight?: string;
+   880→  activeActionId: string | null;
+   881→  onOpenAction: (id: string | null) => void;
+   882→  activeTapbackId: string | null;
+   883→  onOpenTapback: (id: string | null) => void;
+   884→}) {
+   885→  const showTapback = activeTapbackId === message.id;
+   886→  const showActionSheet = activeActionId === message.id;
+   887→  const [showLightbox, setShowLightbox] = useState<string | null>(null);
+   888→  const [showReplyArrow, setShowReplyArrow] = useState(false);
+   889→  const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+   890→    undefined,
+   891→  );
+   892→  const wasDraggedRef = useRef(false);
+   893→
+   894→  /* Double-tap to reaction */
+   895→  const handleDoubleTapReaction = useCallback(() => {
+   896→    if (!onReact) return;
+   897→    onReact(message.id, "\u{1F44D}", true);
+   898→  }, [message.id, onReact]);
+   899→
+   900→  const doubleTap = useDoubleTap(handleDoubleTapReaction);
+   901→
+   902→  const handleClick = useCallback(() => {
+   903→    clearTimeout(longPressRef.current);
+   904→    if (wasDraggedRef.current) {
+   905→      wasDraggedRef.current = false;
+   906→      return;
+   907→    }
+   908→    // Check double-tap first
+   909→    const isDouble = doubleTap();
+   910→    if (isDouble) {
+   911→      // Double tap — close any open menus (reaction was already sent by hook)
+   912→      onOpenAction(null);
+   913→      onOpenTapback(null);
+   914→      return;
+   915→    }
+   916→    // Single tap — toggle action sheet
+   917→    if (activeActionId === message.id) {
+   918→      onOpenAction(null);
+   919→    } else {
+   920→      onOpenAction(message.id);
+   921→      onOpenTapback(null);
+   922→    }
+   923→  }, [activeActionId, message.id, onOpenAction, onOpenTapback, doubleTap]);
+   924→
+   925→  const handlePressStart = useCallback(() => {
+   926→    // Close any previously open menu from ANY bubble (prevent stacking)
+   927→    onOpenAction(null);
+   928→    onOpenTapback(null);
+   929→    longPressRef.current = setTimeout(() => {
+   930→      if (typeof navigator !== "undefined" && "vibrate" in navigator)
+   931→        navigator.vibrate(20);
+   932→      onOpenTapback(message.id);
+   933→    }, LONG_PRESS_MS);
+   934→  }, [onOpenAction, onOpenTapback, message.id]);
+   935→
+   936→  const handlePressEnd = useCallback(() => {
+   937→    clearTimeout(longPressRef.current);
+   938→  }, []);
+   939→
+   940→  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+   941→    e.preventDefault();
+   942→    onOpenAction(null);
+   943→    onOpenTapback(message.id);
+   944→  }, [onOpenAction, onOpenTapback, message.id]);
+   945→
+   946→  const handleCopy = useCallback(() => {
+   947→    navigator.clipboard
+   948→      ?.writeText(message.content)
+   949→      .then(() => {
+   950→        toast({
+   951→          title: "Copied to clipboard",
+   952→          description:
+   953→            message.content.length > 50
+   954→              ? message.content.slice(0, 50) + "..."
+   955→              : message.content,
+   956→        });
+   957→      })
+   958→      .catch(() => {
+   959→        toast({
+   960→          title: "Failed to copy",
+   961→          description: "Could not access clipboard",
+   962→          variant: "destructive",
+   963→        });
+   964→      });
+   965→    onOpenTapback(null);
+   966→  }, [message.content, onOpenTapback]);
+   967→
+   968→  const handleDelete = useCallback(() => {
+   969→    onDeleteMessage?.(message.id);
+   970→    onOpenTapback(null);
+   971→    onOpenAction(null);
+   972→  }, [message.id, onDeleteMessage, onOpenTapback, onOpenAction]);
+   973→
+   974→  const handleActionSheetCopy = useCallback(() => {
+   975→    navigator.clipboard
+   976→      ?.writeText(message.content)
+   977→      .then(() => {
+   978→        toast({
+   979→          title: "Copied to clipboard",
+   980→          description:
+   981→            message.content.length > 50
+   982→              ? message.content.slice(0, 50) + "..."
+   983→              : message.content,
+   984→        });
+   985→      })
+   986→      .catch(() => {
+   987→        toast({
+   988→          title: "Failed to copy",
+   989→          description: "Could not access clipboard",
+   990→          variant: "destructive",
+   991→        });
+   992→      });
+   993→    onOpenAction(null);
+   994→    onOpenTapback(null);
+   995→  }, [message.content, onOpenAction, onOpenTapback]);
+   996→
+   997→  const handleActionSheetReply = useCallback(() => {
+   998→    onReplyTo?.(message);
+   999→    onOpenAction(null);
+  1000→    onOpenTapback(null);
+  1001→  }, [message, onReplyTo, onOpenAction, onOpenTapback]);
+  1002→
+  1003→  const handleActionSheetForward = useCallback(() => {
+  1004→    toast({
+  1005→      title: "Forward",
+  1006→      description: "Forward coming soon!",
+  1007→    });
+  1008→    onOpenAction(null);
+  1009→    onOpenTapback(null);
+  1010→  }, [onOpenAction, onOpenTapback]);
+  1011→
+  1012→  const isFailed = message.status === "failed";
+  1013→  const isVoice = message.type === "voice";
+  1014→  const isText = !isVoice && message.type !== "image";
+  1015→  const isNew =
+  1016→    message.status === "sending" ||
+  1017→    Date.now() - new Date(message.created_at).getTime() < 2000;
+  1018→
+  1019→  const timestampText = formatDistanceToNow(
+  1020→    new Date(message.created_at || Date.now()),
+  1021→    { addSuffix: true },
+  1022→  );
+  1023→
+  1024→  const rounding = getBubbleRounding({ isFirst, isLast, isOwn });
+  1025→
+  1026→  return (
+  1027→    <>
+  1028→      <div
+  1029→        className={cn(
+  1030→          "message-bubble-row relative flex w-full select-none",
+  1031→          isOwn ? "justify-end" : "justify-start",
+  1032→          !isLast && isOwn ? "-mt-0.5" : "",
+  1033→          !isLast && !isOwn ? "-mt-0.5" : "",
+  1034→        )}
+  1035→      >
+  1036→        {/* Avatar column for other user's messages — always rendered for stacking */}
+  1037→        {!isOwn && (
+  1038→          <div className={cn(
+  1039→            "shrink-0 self-end",
+  1040→            isLast ? "mr-2" : "w-7 mr-0",
+  1041→          )}>
+  1042→            {isLast ? (
+  1043→              <Avatar className="size-7 ring-1 ring-white/10">
+  1044→                {partnerAvatar && (
+  1045→                  <AvatarImage src={partnerAvatar} alt={partnerName} />
+  1046→                )}
+  1047→                <AvatarFallback
+  1048→                  className="text-[10px] font-medium"
+  1049→                  style={{
+  1050→                    background:
+  1051→                      "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+  1052→                    color: "var(--app-accent-dark)",
+  1053→                  }}
+  1054→                >
+  1055→                  {partnerName.slice(0, 2).toUpperCase()}
+  1056→                </AvatarFallback>
+  1057→              </Avatar>
+  1058→            ) : (
+  1059→              <div className="w-7" />
+  1060→            )}
+  1061→          </div>
+  1062→        )}
+  1063→
+  1064→        <AnimatePresence>
+  1065→          {showTapback && onReact && (
+  1066→            <TapbackDock
+  1067→              message={message}
+  1068→              isOwn={isOwn}
+  1069→              onReact={(emoji, add) => {
+  1070→                onReact(message.id, emoji, add);
+  1071→                onOpenTapback(null);
+  1072→              }}
+  1073→              onReply={() => {
+  1074→                onReplyTo?.(message);
+  1075→                onOpenTapback(null);
+  1076→              }}
+  1077→              onCopy={handleCopy}
+  1078→              onDelete={isOwn ? handleDelete : undefined}
+  1079→            />
+  1080→          )}
+  1081→        </AnimatePresence>
+  1082→
+  1083→        <div
+  1084→          className="flex max-w-[95%] sm:max-w-[85%] flex-col gap-0.5 select-none"
+  1085→        >
+  1086→          <m.div
+  1087→            drag="x"
+  1088→            dragConstraints={{ left: 0, right: 80 }}
+  1089→            dragElastic={0.15}
+  1090→            dragSnapToOrigin
+  1091→            dragMomentum={false}
+  1092→            onDrag={(_, info) => {
+  1093→              if (info.offset.x < 0) return;
+  1094→              wasDraggedRef.current = true;
+  1095→              setShowReplyArrow(info.offset.x > 50);
+  1096→            }}
+  1097→            onDragEnd={(_, info) => {
+  1098→              if (info.offset.x > 50 && onReplyTo) {
+  1099→                onReplyTo(message);
+  1100→              }
+  1101→              setShowReplyArrow(false);
+  1102→              wasDraggedRef.current = false;
+  1103→            }}
+  1104→            onClick={handleClick}
+  1105→            onPointerDown={handlePressStart}
+  1106→            onPointerUp={handlePressEnd}
+  1107→            onPointerLeave={handlePressEnd}
+  1108→            onContextMenu={handleContextMenu}
+  1109→            className={cn(
+  1110→              "relative cursor-default select-none px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200",
+  1111→              rounding,
+  1112→              !isOwn &&
+  1113→                "bg-muted text-foreground shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
+  1114→              isFailed && "ring-2 ring-red-400/50",
+  1115→              isVoice && "py-2",
+  1116→              !isVoice &&
+  1117→                message.type !== "image" &&
+  1118→                "md:hover:shadow-md",
+  1119→            )}
+  1120→            style={
+  1121→              {
+  1122→                touchCallout: "none",
+  1123→                transform: "translate3d(0,0,0)",
+  1124→                background: isOwn
+  1125→                  ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))"
+  1126→                  : undefined,
+  1127→              } as React.CSSProperties
+  1128→            }
+  1129→          >
+  1130→            {/* Reply arrow indicator for swipe-to-reply */}
+  1131→            <m.div
+  1132→              className="absolute left-0 top-1/2 -translate-y-1/2 -ml-2 z-10"
+  1133→              animate={
+  1134→                showReplyArrow
+  1135→                  ? { scale: 1.2, opacity: 1 }
+  1136→                  : { scale: 0.5, opacity: 0 }
+  1137→              }
+  1138→              transition={{ duration: 0.2, ease: "easeOut" }}
+  1139→              style={{ pointerEvents: "none" }}
+  1140→            >
+  1141→              <div
+  1142→                className="size-8 rounded-full flex items-center justify-center"
+  1143→                style={{ background: "var(--app-accent)" }}
+  1144→              >
+  1145→                <Reply className="size-4 text-white rotate-180" />
+  1146→              </div>
+  1147→            </m.div>
+  1148→
+  1149→            {/* Message Action Sheet (single-tap menu) */}
+  1150→            <AnimatePresence>
+  1151→              {showActionSheet && (
+  1152→                <MessageActionSheet
+  1153→                  isOwn={isOwn}
+  1154→                  onReply={handleActionSheetReply}
+  1155→                  onCopy={handleActionSheetCopy}
+  1156→                  onDelete={isOwn ? handleDelete : undefined}
+  1157→                  onForward={handleActionSheetForward}
+  1158→                />
+  1159→              )}
+  1160→            </AnimatePresence>
+  1161→
+  1162→            {/* Reply quote */}
+  1163→            {message.reply_to_id && message.reply_to_content && (
+  1164→              <ReplyPreview
+  1165→                senderName={message.reply_to_sender_name ?? ""}
+  1166→                content={message.reply_to_content}
+  1167→                isOwn={isOwn}
+  1168→              />
+  1169→            )}
+  1170→
+  1171→            {/* Content */}
+  1172→            {isText ? (
+  1173→              <div className="flex items-end gap-1.5">
+  1174→                <div className="min-w-0 flex-1">
+  1175→                  <LinkifiedText
+  1176→                    text={message.content}
+  1177→                    className="whitespace-pre-wrap break-words"
+  1178→                    highlight={searchHighlight}
+  1179→                  />
+  1180→                </div>
+  1181→                <div className="flex shrink-0 items-center gap-1">
+  1182→                  {message.ephemeral_seconds &&
+  1183→                    message.ephemeral_seconds > 0 && (
+  1184→                      <EphemeralTimer
+  1185→                        seconds={message.ephemeral_seconds}
+  1186→                        onExpire={() => {
+  1187→                          /* trigger vanish */
+  1188→                        }}
+  1189→                      />
+  1190→                    )}
+  1191→                  <span
+  1192→                    className={cn(
+  1193→                      "text-[10px] leading-none mt-0.5 whitespace-nowrap",
+  1194→                      isNew &&
+  1195→                        "animate-[timestamp-fade_0.4s_ease_0.3s_both]",
+  1196→                      isOwn
+  1197→                        ? "text-white/50"
+  1198→                        : "text-muted-foreground/60",
+  1199→                    )}
+  1200→                  >
+  1201→                    {timestampText}
+  1202→                  </span>
+  1203→                  {isOwn && <ReceiptIcon status={message.status} />}
+  1204→                </div>
+  1205→              </div>
+  1206→            ) : isVoice ? (
+  1207→              message.waveform_data ? (
+  1208→                <VoiceBubble
+  1209→                  message={message}
+  1210→                  isOwn={isOwn}
+  1211→                  waveform={message.waveform_data}
+  1212→                />
+  1213→              ) : (
+  1214→                <p className="text-white/60 italic">Voice message</p>
+  1215→              )
+  1216→            ) : (
+  1217→              <div
+  1218→                className="group/img relative cursor-zoom-in"
+  1219→                onClick={() => setShowLightbox(message.content)}
+  1220→              >
+  1221→                <img
+  1222→                  src={message.content}
+  1223→                  alt="Shared image"
+  1224→                  className="max-h-64 rounded-lg object-contain transition-opacity duration-150 group-hover/img:opacity-90"
+  1225→                />
+  1226→                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors duration-150 group-hover/img:bg-black/20">
+  1227→                  <ZoomIn className="size-6 text-white opacity-0 transition-opacity duration-150 group-hover/img:opacity-80" />
+  1228→                </div>
+  1229→              </div>
+  1230→            )}
+  1231→
+  1232→            {/* Vanish indicator */}
+  1233→            {message.vanish_mode && (
+  1234→              <div className="mt-1 flex items-center gap-1 text-[10px] text-white/50">
+  1235→                <EyeOff className="size-3" />
+  1236→                <span>View once</span>
+  1237→              </div>
+  1238→            )}
+  1239→          </m.div>
+  1240→
+  1241→          {/* Timestamp + receipt for voice/image (text messages have inline timestamp) */}
+  1242→          {!isText && (
+  1243→            <div
+  1244→              className={cn(
+  1245→                "flex items-center gap-1.5 px-1 text-[10px] text-muted-foreground/60",
+  1246→                isOwn && "flex-row-reverse",
+  1247→              )}
+  1248→            >
+  1249→              {message.ephemeral_seconds &&
+  1250→                message.ephemeral_seconds > 0 && (
+  1251→                  <EphemeralTimer
+  1252→                    seconds={message.ephemeral_seconds}
+  1253→                    onExpire={() => {
+  1254→                      /* trigger vanish */
+  1255→                    }}
+  1256→                  />
+  1257→                )}
+  1258→              <span
+  1259→                className={cn(
+  1260→                  isNew && "animate-[timestamp-fade_0.4s_ease_0.3s_both]",
+  1261→                )}
+  1262→              >
+  1263→                {timestampText}
+  1264→              </span>
+  1265→              {isOwn && <ReceiptIcon status={message.status} />}
+  1266→            </div>
+  1267→          )}
+  1268→
+  1269→          {/* Reactions – overlapping bubble bottom edge */}
+  1270→          {onReact && message.reactions && (
+  1271→            <ReactionPills
+  1272→              reactions={message.reactions}
+  1273→              isOwn={isOwn}
+  1274→              onReact={(e, a) => onReact(message.id, e, a)}
+  1275→              currentUserId={currentUserId}
+  1276→            />
+  1277→          )}
+  1278→
+  1279→          {isFailed && (
+  1280→            <button
+  1281→              type="button"
+  1282→              onClick={(e) => {
+  1283→                e.stopPropagation();
+  1284→                onDeleteMessage?.(message.id);
+  1285→              }}
+  1286→              className="mt-1 flex items-center gap-1 px-1 text-[10px] text-red-400 transition-colors hover:text-red-300 active:scale-95"
+  1287→            >
+  1288→              <AlertCircle className="size-3" />
+  1289→              <span>Failed to send &middot; Tap to retry</span>
+  1290→            </button>
+  1291→          )}
+  1292→        </div>
+  1293→
+  1294→        {isOwn && (
+  1295→          <div className={cn(
+  1296→            "shrink-0 self-end",
+  1297→            isLast ? "ml-2" : "w-7 ml-0",
+  1298→          )}>
+  1299→            {isLast ? (
+  1300→              <Avatar className="size-7 ring-1 ring-white/10">
+  1301→                {currentUserAvatar && <AvatarImage src={currentUserAvatar} alt={currentUserName} />}
+  1302→                <AvatarFallback
+  1303→                  className="text-[10px] font-medium"
+  1304→                  style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))", color: "var(--app-accent-dark)" }}
+  1305→                >
+  1306→                  {currentUserName.slice(0, 2).toUpperCase()}
+  1307→                </AvatarFallback>
+  1308→              </Avatar>
+  1309→            ) : (
+  1310→              <div className="w-7" />
+  1311→            )}
+  1312→          </div>
+  1313→        )}
+  1314→      </div>
+  1315→
+  1316→      {/* Image Lightbox */}
+  1317→      <AnimatePresence>
+  1318→        {showLightbox && (
+  1319→          <ImageLightbox
+  1320→            src={showLightbox}
+  1321→            onClose={() => setShowLightbox(null)}
+  1322→          />
+  1323→        )}
+  1324→      </AnimatePresence>
+  1325→    </>
+  1326→  );
+  1327→});
+  1328→
+  1329→/* ------------------------------------------------------------------ */
+  1330→/*  MessageGroup                                                       */
+  1331→/* ------------------------------------------------------------------ */
+  1332→
+  1333→const MessageGroup = React.memo(function MessageGroup({
+  1334→  messages: groupMessages,
+  1335→  currentUserId,
+  1336→  currentUserName,
+  1337→  currentUserAvatar,
+  1338→  partnerName,
+  1339→  partnerAvatar,
+  1340→  onReplyTo,
+  1341→  onReact,
+  1342→  onDeleteMessage,
+  1343→  searchHighlight,
+  1344→  activeActionId,
+  1345→  onOpenAction,
+  1346→  activeTapbackId,
+  1347→  onOpenTapback,
+  1348→}: {
+  1349→  messages: ChatMessage[];
+  1350→  currentUserId: string;
+  1351→  currentUserName: string;
+  1352→  currentUserAvatar: string | null;
+  1353→  partnerName: string;
+  1354→  partnerAvatar: string | null;
+  1355→  onReplyTo?: (msg: ChatMessage) => void;
+  1356→  onReact?: (id: string, emoji: string, add: boolean) => void;
+  1357→  onDeleteMessage?: (id: string) => void;
+  1358→  searchHighlight?: string;
+  1359→  activeActionId: string | null;
+  1360→  onOpenAction: (id: string | null) => void;
+  1361→  activeTapbackId: string | null;
+  1362→  onOpenTapback: (id: string | null) => void;
+  1363→}) {
+  1364→  const isOwnGroup = groupMessages[0].sender_id === currentUserId;
+  1365→  return (
+  1366→    <div className={cn("flex flex-col", isOwnGroup ? "items-end" : "items-start")}>
+  1367→      {groupMessages.map((msg, idx) => {
+  1368→        const isFirst = idx === 0;
+  1369→        const isLast = idx === groupMessages.length - 1;
+  1370→        return (
+  1371→          <MessageBubble
+  1372→            key={msg.id}
+  1373→            message={msg}
+  1374→            isOwn={isOwnGroup}
+  1375→            isFirst={isFirst}
+  1376→            isLast={isLast}
+  1377→            partnerName={partnerName}
+  1378→            partnerAvatar={partnerAvatar}
+  1379→            currentUserId={currentUserId}
+  1380→            currentUserName={currentUserName}
+  1381→            currentUserAvatar={currentUserAvatar}
+  1382→            onReplyTo={onReplyTo}
+  1383→            onReact={onReact}
+  1384→            onDeleteMessage={onDeleteMessage}
+  1385→            searchHighlight={searchHighlight}
+  1386→            activeActionId={activeActionId}
+  1387→            onOpenAction={onOpenAction}
+  1388→            activeTapbackId={activeTapbackId}
+  1389→            onOpenTapback={onOpenTapback}
+  1390→          />
+  1391→        );
+  1392→      })}
+  1393→    </div>
+  1394→  );
+  1395→});
+  1396→
+  1397→/* ------------------------------------------------------------------ */
+  1398→/*  DateSeparator                                                      */
+  1399→/* ------------------------------------------------------------------ */
+  1400→
+  1401→function formatDateSeparator(dateStr: string): string {
+  1402→  const d = new Date(dateStr);
+  1403→  const now = new Date();
+  1404→  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  1405→  const yesterday = new Date(today);
+  1406→  yesterday.setDate(yesterday.getDate() - 1);
+  1407→  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  1408→
+  1409→  if (msgDay.getTime() === today.getTime()) return "Today";
+  1410→  if (msgDay.getTime() === yesterday.getTime()) return "Yesterday";
+  1411→  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  1412→}
+  1413→
+  1414→function DateSeparator({ date }: { date: string }) {
+  1415→  return (
+  1416→    <div className="flex items-center gap-3 px-1 py-2">
+  1417→      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+  1418→      <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-[var(--app-accent-subtle)]">
+  1419→        {formatDateSeparator(date)}
+  1420→      </span>
+  1421→      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+  1422→    </div>
+  1423→  );
+  1424→}
+  1425→
+  1426→/* ------------------------------------------------------------------ */
+  1427→/*  TypingIndicator (smooth wave dots)                                 */
+  1428→/* ------------------------------------------------------------------ */
+  1429→
+  1430→function TypingIndicator({
+  1431→  partnerName,
+  1432→  partnerAvatar,
+  1433→}: {
+  1434→  partnerName: string;
+  1435→  partnerAvatar: string | null;
+  1436→}) {
+  1437→  const initials = partnerName
+  1438→    .split(" ")
+  1439→    .map((w) => w[0])
+  1440→    .join("")
+  1441→    .toUpperCase()
+  1442→    .slice(0, 2);
+  1443→  return (
+  1444→    <div className="flex items-end gap-2 px-1">
+  1445→      <Avatar className="size-7 shrink-0 ring-1 ring-white/10">
+  1446→        {partnerAvatar && (
+  1447→          <AvatarImage src={partnerAvatar} alt={partnerName} />
+  1448→        )}
+  1449→        <AvatarFallback
+  1450→          className="text-[10px] font-medium"
+  1451→          style={{
+  1452→            background:
+  1453→              "linear-gradient(to bottom right, var(--app-accent-lighter), var(--app-accent-light))",
+  1454→            color: "var(--app-accent-dark)",
+  1455→          }}
+  1456→        >
+  1457→          {initials}
+  1458→        </AvatarFallback>
+  1459→      </Avatar>
+  1460→      <m.div
+  1461→        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+  1462→        animate={{ opacity: 1, y: 0, scale: 1 }}
+  1463→        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+  1464→        transition={{ duration: 0.15 }}
+  1465→        className="flex items-center gap-2.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800"
+  1466→      >
+  1467→        <span className="flex gap-1">
+  1468→          <span
+  1469→            className="typing-dot size-[7px] rounded-full"
+  1470→            style={{ backgroundColor: "var(--app-accent-light)" }}
+  1471→          />
+  1472→          <span
+  1473→            className="typing-dot size-[7px] rounded-full"
+  1474→            style={{ backgroundColor: "var(--app-accent-light)" }}
+  1475→          />
+  1476→          <span
+  1477→            className="typing-dot size-[7px] rounded-full"
+  1478→            style={{ backgroundColor: "var(--app-accent-light)" }}
+  1479→          />
+  1480→        </span>
+  1481→        <span className="text-xs text-muted-foreground">
+  1482→          {partnerName} is typing{"\u2026"}
+  1483→        </span>
+  1484→      </m.div>
+  1485→    </div>
+  1486→  );
+  1487→}
+  1488→
+  1489→/* ------------------------------------------------------------------ */
+  1490→/*  Skeleton / Empty / NewMsgs                                         */
+  1491→/* ------------------------------------------------------------------ */
+  1492→
+  1493→function MessageListSkeleton() {
+  1494→  return (
+  1495→    <div className="flex flex-col gap-4 px-1 py-2">
+  1496→      {Array.from({ length: 6 }).map((_, i) => (
+  1497→        <div
+  1498→          key={i}
+  1499→          className={cn(
+  1500→            "flex gap-2",
+  1501→            i % 2 === 0 ? "justify-start" : "justify-end",
+  1502→          )}
+  1503→        >
+  1504→          {i % 2 === 0 && (
+  1505→            <Skeleton className="size-7 shrink-0 rounded-full" />
+  1506→          )}
+  1507→          <Skeleton className={cn("h-16 w-48 rounded-2xl")} />
+  1508→          {i % 2 !== 0 && <div className="w-7 shrink-0" />}
+  1509→        </div>
+  1510→      ))}
+  1511→    </div>
+  1512→  );
+  1513→}
+  1514→
+  1515→function NewMessagesButton({
+  1516→  onClick,
+  1517→  count,
+  1518→}: {
+  1519→  onClick: () => void;
+  1520→  count: number;
+  1521→}) {
+  1522→  return (
+  1523→    <m.button
+  1524→      type="button"
+  1525→      onClick={onClick}
+  1526→      initial={{ opacity: 0, y: 16, scale: 0.9 }}
+  1527→      animate={{ opacity: 1, y: 0, scale: 1 }}
+  1528→      exit={{ opacity: 0, y: 16, scale: 0.9 }}
+  1529→      transition={{ duration: 0.15, ease: "easeOut" }}
+  1530→      className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 cursor-pointer select-none items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg transition-colors hover:opacity-90 active:scale-95"
+  1531→      aria-label={`Scroll to ${count} new`}
+  1532→      style={{
+  1533→        transform: "translate3d(0,0,0)",
+  1534→        background:
+  1535→          "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+  1536→      }}
+  1537→    >
+  1538→      <ArrowDown className="size-3.5" />
+  1539→      <span>
+  1540→        {count} new message{count > 1 ? "s" : ""}
+  1541→      </span>
+  1542→    </m.button>
+  1543→  );
+  1544→}
+  1545→
+  1546→function EmptyState({
+  1547→  partnerName,
+  1548→  partnerAvatar,
+  1549→}: {
+  1550→  partnerName: string;
+  1551→  partnerAvatar: string | null;
+  1552→}) {
+  1553→  const initials = partnerName
+  1554→    .split(" ")
+  1555→    .map((w) => w[0])
+  1556→    .join("")
+  1557→    .toUpperCase()
+  1558→    .slice(0, 2);
+  1559→
+  1560→  return (
+  1561→    <div className="flex flex-col items-center justify-center gap-4 py-20">
+  1562→      <Avatar className="size-20 ring-4" style={
+  1563→        { "--tw-ring-color": "var(--app-accent-lighter)" } as React.CSSProperties
+  1564→      }>
+  1565→        {partnerAvatar && (
+  1566→          <AvatarImage src={partnerAvatar} alt={partnerName} />
+  1567→        )}
+  1568→        <AvatarFallback
+  1569→          className="text-2xl font-bold text-white"
+  1570→          style={{
+  1571→            background:
+  1572→              "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))",
+  1573→          }}
+  1574→        >
+  1575→          {initials}
+  1576→        </AvatarFallback>
+  1577→      </Avatar>
+  1578→      <div className="text-center">
+  1579→        <p className="text-sm font-semibold text-foreground">{partnerName}</p>
+  1580→        <p className="mt-1 text-xs text-muted-foreground">
+  1581→          {"\uD83D\uDC4B"} No messages yet. Say hello to start the
+  1582→          conversation!
+  1583→        </p>
+  1584→      </div>
+  1585→    </div>
+  1586→  );
+  1587→}
+  1588→
+  1589→/* ------------------------------------------------------------------ */
+  1590→/*  MessageFeed (main export)                                          */
+  1591→/* ------------------------------------------------------------------ */
+  1592→
+  1593→type MessageGroupData = { senderId: string; messages: ChatMessage[] };
+  1594→
+  1595→export function MessageFeed({
+  1596→  messages,
+  1597→  isLoading,
+  1598→  isPartnerTyping,
+  1599→  currentUserId,
+  1600→  currentUserName,
+  1601→  currentUserAvatar,
+  1602→  partnerName,
+  1603→  partnerAvatar,
+  1604→  backgroundStyle,
+  1605→  onMarkAsRead,
+  1606→  onVanishMessage,
+  1607→  onReplyTo,
+  1608→  onDeleteMessage,
+  1609→  onReact,
+  1610→  scrollToMessageId,
+  1611→  onScrolledToMessage,
+  1612→  searchHighlight,
+  1613→  onClearSearchHighlight,
+  1614→  loadMore,
+  1615→  hasMore,
+  1616→  loadingMore,
+  1617→}: MessageFeedProps) {
+  1618→  const parentRef = useRef<HTMLDivElement>(null);
+  1619→  const isAutoScrollRef = useRef(true);
+  1620→  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  1621→  const [activeTapbackId, setActiveTapbackId] = useState<string | null>(null);
+  1622→  const [showNewBtn, setShowNewBtn] = useState(false);
+  1623→  const unreadRef = useRef(0);
+  1624→  const prevCountRef = useRef(messages.length);
+  1625→  const prevFirstIdRef = useRef(
+  1626→    messages.length > 0 ? messages[0].id : null,
+  1627→  );
+  1628→  const prevScrollHeightRef = useRef(0);
+  1629→
+  1630→  /* ---- Build message groups ---------------------------------------- */
+  1631→  const groups = useMemo(() => {
+  1632→    const result: MessageGroupData[] = [];
+  1633→    for (const msg of messages) {
+  1634→      const last = result[result.length - 1];
+  1635→      if (last && last.senderId === msg.sender_id) {
+  1636→        last.messages.push(msg);
+  1637→      } else {
+  1638→        result.push({ senderId: msg.sender_id, messages: [msg] });
+  1639→      }
+  1640→    }
+  1641→    return result;
+  1642→  }, [messages]);
+  1643→
+  1644→  const totalItems = useMemo(
+  1645→    () => groups.length + (isPartnerTyping ? 1 : 0),
+  1646→    [groups.length, isPartnerTyping],
+  1647→  );
+  1648→
+  1649→  const loadMoreRef = useRef(loadMore);
+  1650→  loadMoreRef.current = loadMore;
+  1651→
+  1652→  const virtualizer = useVirtualizer({
+  1653→    count: totalItems,
+  1654→    getScrollElement: () => parentRef.current,
+  1655→    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+  1656→    overscan: OVERSCAN,
+  1657→    paddingStart: 16,
+  1658→    paddingEnd: 16,
+  1659→    gap: 12,
+  1660→  });
+  1661→
+  1662→  const handleScroll = useCallback(
+  1663→    (e: UIEvent<HTMLDivElement>) => {
+  1664→      const el = e.currentTarget;
+  1665→      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+  1666→      if (dist <= AUTO_SCROLL_THRESHOLD) {
+  1667→        isAutoScrollRef.current = true;
+  1668→        setShowNewBtn(false);
+  1669→        unreadRef.current = 0;
+  1670→      } else {
+  1671→        isAutoScrollRef.current = false;
+  1672→      }
+  1673→      /* Trigger loadMore when scrolled near top */
+  1674→      if (el.scrollTop < 300 && hasMore && !loadingMore) {
+  1675→        loadMoreRef.current?.();
+  1676→      }
+  1677→    },
+  1678→    [hasMore, loadingMore],
+  1679→  );
+  1680→
+  1681→  const scrollToBottom = useCallback(
+  1682→    (behavior: ScrollBehavior = "smooth") => {
+  1683→      const el = parentRef.current;
+  1684→      if (!el) return;
+  1685→      el.scrollTo({ top: el.scrollHeight, behavior });
+  1686→      isAutoScrollRef.current = true;
+  1687→      setShowNewBtn(false);
+  1688→      unreadRef.current = 0;
+  1689→    },
+  1690→    [],
+  1691→  );
+  1692→
+  1693→  useEffect(() => {
+  1694→    if (messages.length > 0)
+  1695→      requestAnimationFrame(() => scrollToBottom("instant"));
+  1696→  }, [isLoading, scrollToBottom]);
+  1697→
+  1698→  useEffect(() => {
+  1699→    if (!onMarkAsRead) return;
+  1700→    const unread = messages.filter(
+  1701→      (m) => m.sender_id !== currentUserId && m.status !== "read",
+  1702→    );
+  1703→    if (unread.length > 0 && isAutoScrollRef.current)
+  1704→      onMarkAsRead(unread.map((m) => m.id));
+  1705→  }, [messages, currentUserId, onMarkAsRead]);
+  1706→
+  1707→  /* ---- Scroll to a specific message ----------------------------------- */
+  1708→  useEffect(() => {
+  1709→    if (!scrollToMessageId) return;
+  1710→    // Find which group contains the target message
+  1711→    const groupIdx = groups.findIndex((g) =>
+  1712→      g.messages.some((m) => m.id === scrollToMessageId),
+  1713→    );
+  1714→    if (groupIdx === -1) {
+  1715→      onScrolledToMessage?.();
+  1716→      return;
+  1717→    }
+  1718→    virtualizer.scrollToIndex(groupIdx, { align: "center" });
+  1719→    onScrolledToMessage?.();
+  1720→  }, [scrollToMessageId, groups, virtualizer, onScrolledToMessage]);
+  1721→
+  1722→  /* ---- Handle message count changes (new or prepended) ------------ */
+  1723→  useEffect(() => {
+  1724→    const prev = prevCountRef.current;
+  1725→    const prevFirstId = prevFirstIdRef.current;
+  1726→    prevCountRef.current = messages.length;
+  1727→    prevFirstIdRef.current =
+  1728→      messages.length > 0 ? messages[0].id : null;
+  1729→
+  1730→    if (messages.length <= prev) return;
+  1731→
+  1732→    /* Check if older messages were prepended (first message changed) */
+  1733→    const firstId = messages[0]?.id;
+  1734→    const wasPrepended = firstId !== prevFirstId && prevFirstId !== null;
+  1735→
+  1736→    if (wasPrepended) {
+  1737→      /* Older messages prepended – preserve scroll position */
+  1738→      const el = parentRef.current;
+  1739→      if (el) {
+  1740→        const oldHeight = prevScrollHeightRef.current;
+  1741→        prevScrollHeightRef.current = el.scrollHeight;
+  1742→        requestAnimationFrame(() => {
+  1743→          const newHeight = el.scrollHeight;
+  1744→          el.scrollTop += newHeight - oldHeight;
+  1745→        });
+  1746→      }
+  1747→      return;
+  1748→    }
+  1749→
+  1750→    /* New messages appended at the end */
+  1751→    const last = messages[messages.length - 1];
+  1752→    const own = last && last.sender_id === currentUserId;
+  1753→    if (own) {
+  1754→      requestAnimationFrame(() => scrollToBottom("instant"));
+  1755→      return;
+  1756→    }
+  1757→    if (isAutoScrollRef.current)
+  1758→      requestAnimationFrame(() => scrollToBottom("smooth"));
+  1759→    else {
+  1760→      unreadRef.current += messages.length - prev;
+  1761→      setShowNewBtn(true);
+  1762→    }
+  1763→  }, [messages.length, currentUserId, scrollToBottom]);
+  1764→
+  1765→  /* Track scroll height for scroll preservation */
+  1766→  useEffect(() => {
+  1767→    const el = parentRef.current;
+  1768→    if (!el) return;
+  1769→    prevScrollHeightRef.current = el.scrollHeight;
+  1770→  }, [messages.length]);
+  1771→
+  1772→  if (isLoading) return <MessageListSkeleton />;
+  1773→  if (messages.length === 0 && !isPartnerTyping)
+  1774→    return (
+  1775→      <EmptyState partnerName={partnerName} partnerAvatar={partnerAvatar} />
+  1776→    );
+  1777→
+  1778→  const virtualItems = virtualizer.getVirtualItems();
+  1779→
+  1780→  return (
+  1781→    <div
+  1782→      className="relative h-full w-full overflow-hidden"
+  1783→      style={backgroundStyle}
+  1784→    >
+  1785→      <div
+  1786→        ref={parentRef}
+  1787→        onScroll={handleScroll}
+  1788→        onClick={(e) => {
+  1789→          onClearSearchHighlight?.();
+  1790→          // Close menus if click is directly on the scroll container or background
+  1791→          const target = e.target as HTMLElement;
+  1792→          if (target === e.currentTarget || target.closest('.message-bubble-row') === null) {
+  1793→            setActiveActionId(null);
+  1794→            setActiveTapbackId(null);
+  1795→          }
+  1796→        }}
+  1797→        className="h-full w-full select-none overflow-y-auto overscroll-contain"
+  1798→        style={{ WebkitOverflowScrolling: "touch" }}
+  1799→      >
+  1800→        <div
+  1801→          style={{
+  1802→            height: `${virtualizer.getTotalSize()}px`,
+  1803→            width: "100%",
+  1804→            position: "relative",
+  1805→          }}
+  1806→        >
+  1807→          {/* Loading more spinner */}
+  1808→          {loadingMore && (
+  1809→            <div
+  1810→              style={{
+  1811→                position: "absolute",
+  1812→                top: 0,
+  1813→                left: 0,
+  1814→                width: "100%",
+  1815→                height: "48px",
+  1816→                zIndex: 5,
+  1817→              }}
+  1818→            >
+  1819→              <div className="flex items-center justify-center py-3">
+  1820→                <svg
+  1821→                  className="size-5 animate-spin"
+  1822→                  viewBox="0 0 24 24"
+  1823→                  fill="none"
+  1824→                  aria-label="Loading more messages"
+  1825→                  style={{ color: "var(--app-accent-light)" }}
+  1826→                >
+  1827→                  <circle
+  1828→                    className="opacity-25"
+  1829→                    cx="12"
+  1830→                    cy="12"
+  1831→                    r="10"
+  1832→                    stroke="currentColor"
+  1833→                    strokeWidth="4"
+  1834→                  />
+  1835→                  <path
+  1836→                    className="opacity-75"
+  1837→                    fill="currentColor"
+  1838→                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+  1839→                  />
+  1840→                </svg>
+  1841→              </div>
+  1842→            </div>
+  1843→          )}
+  1844→          {virtualItems.map((vi) => {
+  1845→            const isTyping = vi.index === groups.length;
+  1846→            const group = isTyping ? null : groups[vi.index];
+  1847→
+  1848→            // Determine if we need a date separator before this group
+  1849→            let showDateSep = false;
+  1850→            if (group) {
+  1851→              const firstMsg = group.messages[0];
+  1852→              if (vi.index === 0) {
+  1853→                showDateSep = true;
+  1854→              } else {
+  1855→                const prevGroup = groups[vi.index - 1];
+  1856→                const prevLastMsg = prevGroup.messages[prevGroup.messages.length - 1];
+  1857→                const prevDate = new Date(prevLastMsg.created_at);
+  1858→                const currDate = new Date(firstMsg.created_at);
+  1859→                showDateSep = prevDate.toDateString() !== currDate.toDateString();
+  1860→              }
+  1861→            }
+  1862→
+  1863→            return (
+  1864→              <div
+  1865→                key={vi.key}
+  1866→                data-index={vi.index}
+  1867→                ref={virtualizer.measureElement}
+  1868→                style={{
+  1869→                  position: "absolute",
+  1870→                  top: 0,
+  1871→                  left: 0,
+  1872→                  width: "100%",
+  1873→                  transform: `translateY(${vi.start}px)`,
+  1874→                }}
+  1875→              >
+  1876→                {isTyping ? (
+  1877→                  <TypingIndicator
+  1878→                    partnerName={partnerName}
+  1879→                    partnerAvatar={partnerAvatar}
+  1880→                  />
+  1881→                ) : group ? (
+  1882→                  <>
+  1883→                    {showDateSep && (
+  1884→                      <DateSeparator date={group.messages[0].created_at} />
+  1885→                    )}
+  1886→                    <MessageGroup
+  1887→                      messages={group.messages}
+  1888→                      currentUserId={currentUserId}
+  1889→                      currentUserName={currentUserName}
+  1890→                      currentUserAvatar={currentUserAvatar}
+  1891→                      partnerName={partnerName}
+  1892→                      partnerAvatar={partnerAvatar}
+  1893→                      onReplyTo={onReplyTo}
+  1894→                      onReact={onReact}
+  1895→                      onDeleteMessage={onDeleteMessage}
+  1896→                      searchHighlight={searchHighlight}
+  1897→                      activeActionId={activeActionId}
+  1898→                      onOpenAction={setActiveActionId}
+  1899→                      activeTapbackId={activeTapbackId}
+  1900→                      onOpenTapback={setActiveTapbackId}
+  1901→                    />
+  1902→                  </>
+  1903→                ) : null}
+  1904→              </div>
+  1905→            );
+  1906→          })}
+  1907→        </div>
+  1908→      </div>
+  1909→      {showNewBtn && unreadRef.current > 0 && (
+  1910→        <NewMessagesButton
+  1911→          count={unreadRef.current}
+  1912→          onClick={() => scrollToBottom("smooth")}
+  1913→        />
+  1914→      )}
+  1915→    </div>
+  1916→  );
+  1917→}
+  1918→

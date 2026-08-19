@@ -117,3 +117,39 @@ Stage Summary:
 - All changes wrapped in try-catch for edge runtime resilience
 - Build and local verification pass
 - User needs to redeploy: `wrangler deploy` from their terminal (requires CLOUDFLARE_API_TOKEN)
+
+---
+Task ID: 2-a
+Agent: Main
+Task: Liquid Pill Design Overhaul
+
+Work Log:
+- Added liquid design system utilities to globals.css: .liquid-pill, .liquid-pill-focus, .liquid-card, .liquid-card-active, .liquid-glass, .liquid-surface
+- Replaced .cute-conv-row/.cute-conv-active with .liquid-card/.liquid-card-active (removed ::before pseudo-element with radial gradient)
+- Replaced .paper-nav-pill/.paper-nav-active with .liquid-nav-pill/.liquid-nav-active (cleaner, same visual effect)
+- ChatLayout.tsx: Changed header from sticky bordered bar to sticky floating pill (rounded-full, mx-3, backdrop-blur-2xl, shadow-2xl, focus-within expansion)
+- ChatLayout.tsx: Added pt-14 to feed area to accommodate floating header
+- ChatLayout.tsx: Changed input bar bg from white/[0.08] to white/[0.06], border from white/[0.12] to white/[0.08], focus-within to white/[0.10] and white/[0.15] (more subtle glass effect)
+- ChatView.tsx: Removed Flower2, Star, Sparkles imports and decorative elements from NavPill
+- ChatView.tsx: Simplified nav to 2 buttons only (Chats + Settings), removed divider and decorations
+- ChatView.tsx: Changed nav pill CSS from paper-nav-pill to liquid-nav-pill
+- ChatView.tsx: Removed unused NAV_INDICES constant
+- MessageFeed.tsx: Added gap-1.5 between bubbles within a MessageGroup
+- MessageFeed.tsx: Increased virtualizer gap from 12 to 16 for more spacing between groups
+- MessageFeed.tsx: Replaced framer-motion drag-based swipe with native touch event handlers (onTouchStart/Move/End)
+- MessageFeed.tsx: Touch swipe supports right-swipe on any bubble and left-swipe on own bubble, with 60px threshold and horizontal-dominance check
+- MessageFeed.tsx: Changed reply arrow indicator from m.div with animate to plain div with CSS transition
+- MessageFeed.tsx: Changed bubble inner element from m.div to plain div (removed framer-motion drag props)
+- ConversationList.tsx: Redesigned header as floating pill (sticky top-3, mx-3, rounded-full, backdrop-blur-2xl, bg-white/[0.06])
+- ConversationList.tsx: Added inline search bar below header (rounded-full, bg-white/[0.04], filters by partner name locally)
+- ConversationList.tsx: Changed conversation rows from cute-conv-row to liquid-card with rounded-2xl, mx-2, my-0.5
+- ConversationList.tsx: Increased avatar size from size-11 to size-12
+- ConversationList.tsx: Added empty state when search has no results
+- Workaround: Used sticky positioning for chat header instead of fixed to avoid React Compiler ESLint parser error
+
+Stage Summary:
+- Five files modified: globals.css, ChatLayout.tsx, ChatView.tsx, MessageFeed.tsx, ConversationList.tsx
+- Cohesive liquid/pill design language applied throughout: glassmorphism, rounded-full/rounded-2xl shapes, semi-transparent backgrounds
+- All existing functionality preserved (send, receive, react, delete, voice, attachments, reply, long-press)
+- Lint passes (0 errors, 1 pre-existing warning about TanStack Virtual)
+- Dev server compiles successfully
