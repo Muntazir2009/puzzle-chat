@@ -55,3 +55,39 @@ Stage Summary:
 - PUSHER_SECRET and SUPABASE_SERVICE_ROLE_KEY already configured as wrangler secrets
 - Verified via agent-browser: clean login page, zero console errors
 - **Key lesson**: On Cloudflare Workers + OpenNext, `NEXT_PUBLIC_*` vars MUST be in `.env.local` for build-time inlining. `wrangler.jsonc` vars alone are insufficient.
+
+---
+Task ID: 3
+Agent: Main
+Task: Fix persistent black bars + keyboard hiding chats + nav pill misalignment
+
+Work Log:
+- User reported black bars still present after Task 1 fix, and input bar hides chats when opened
+- Analyzed: body had `env(safe-area-inset-*)` padding causing bg-background (near-black) to bleed through as visible bars
+- Analyzed: input pill used `position:fixed` which goes behind keyboard on iOS (fixed positions relative to layout viewport, not visual viewport)
+- Analyzed: nav pill `::after` active indicator used `position:absolute` but parent button had no `position:relative`, so indicator positioned relative to nav container instead of button
+- Analyzed: nav pill used incorrect safe-area centering formula
+
+Changes Made:
+1. **globals.css**:
+   - Removed ALL `env(safe-area-inset-*)` padding from `body` — containers handle insets at component level
+   - Added `position: relative` to `.liquid-nav-active` so `::after` pseudo-element positions correctly within each button
+2. **ChatLayout.tsx**:
+   - Outer container: added `relative overflow-hidden` for absolute positioning context
+   - Header: changed from `sticky` to `shrink-0` with `margin-top: max(8px, env(safe-area-inset-top))` — no longer needs sticky since it's in a flex column
+   - Feed area: removed `paddingTop` (header is now in flow), adjusted `paddingBottom` to `calc(64px + max(16px, env(safe-area-inset-bottom)))`
+   - Input pill: `fixed` → `absolute` — now stays inside container that shrinks with visual viewport when keyboard opens
+   - Preview bars: `fixed` → `absolute` with matching bottom position
+3. **ChatView.tsx**:
+   - Nav pill: simplified centering to `top: 50%` + `transform: translateY(-50%)`
+   - Back button: adjusted safe area top to `max(8px, env(safe-area-inset-top))`
+   - Branding header: reduced top padding
+   - Settings page: added `max(0.75rem, env(safe-area-inset-top))` top padding
+
+Stage Summary:
+- Black bars eliminated: body is now edge-to-edge, no padding gaps
+- Keyboard no longer hides input: absolute positioning follows container that shrinks with visual viewport
+- Nav pill indicator: `position: relative` on `.liquid-nav-active` fixes `::after` positioning
+- Deployed: Version `04b4493e-441f-4cee-a72a-678496f51734`
+- Pushed to GitHub (`1302c50`)
+- **Key lesson**: Never put safe-area padding on `body` — handle at component level. `position:fixed` elements go behind iOS keyboard; use `position:absolute` within a visual-viewport-sized container instead.
