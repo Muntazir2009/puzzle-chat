@@ -29,3 +29,29 @@ Stage Summary:
 - Feed padding dynamically accounts for safe areas so messages never hide behind black zones
 - Lint OOM (known issue with .open-next build artifacts, not code issue)
 - Dev server compiles successfully
+
+---
+Task ID: 2
+Agent: Main
+Task: Fix client-side exception on live site (Supabase env vars missing)
+
+Work Log:
+- Analyzed user screenshot via VLM: error was `@supabase/ssr: Your project's URL and API key are required to create a Supabase client!`
+- Root cause: `NEXT_PUBLIC_*` env vars were only in `wrangler.jsonc` `vars` (runtime), not available during `opennextjs-cloudflare build` (build-time)
+- Next.js inlines `process.env.NEXT_PUBLIC_*` into client bundle at BUILD time — without them, the client bundle has `undefined`
+- `wrangler.jsonc` vars only provide runtime env to the worker, not build-time inlining
+
+Changes Made:
+1. **Created `.env.local`** with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_PUSHER_APP_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`
+2. **Updated `.gitignore`** to exclude `.open-next/`, `.env.local`, and `upload/`
+3. **Removed 232 `.open-next` build artifacts** from git tracking
+4. Rebuilt with `npx opennextjs-cloudflare build` (required freeing memory by killing stale node processes)
+5. Deployed to Cloudflare Workers — Version ID: `cdaaa332-3cbe-4e5e-94e8-88d2e315c30a`
+6. Pushed to GitHub (`36dca15`)
+
+Stage Summary:
+- Login page renders correctly with no console errors
+- Supabase client now initializes properly on client side
+- PUSHER_SECRET and SUPABASE_SERVICE_ROLE_KEY already configured as wrangler secrets
+- Verified via agent-browser: clean login page, zero console errors
+- **Key lesson**: On Cloudflare Workers + OpenNext, `NEXT_PUBLIC_*` vars MUST be in `.env.local` for build-time inlining. `wrangler.jsonc` vars alone are insufficient.
