@@ -153,3 +153,25 @@ Stage Summary:
 - All existing functionality preserved (send, receive, react, delete, voice, attachments, reply, long-press)
 - Lint passes (0 errors, 1 pre-existing warning about TanStack Virtual)
 - Dev server compiles successfully
+---
+Task ID: 2-a
+Agent: full-stack-developer
+Task: Liquid/pill design overhaul — floating headers, swipe-to-reply, 2-btn nav, modern DM list
+
+Work Log:
+- Added liquid design system utilities to globals.css (.liquid-pill, .liquid-card, .liquid-glass, .liquid-surface)
+- Replaced .cute-conv-row/.cute-conv-active with .liquid-card/.liquid-card-active
+- Replaced .paper-nav-pill with .liquid-nav-pill
+- ChatLayout: converted sticky header to floating pill bar (rounded-full, fixed top-3, glassmorphic)
+- ChatLayout: lightened input bar bg from white/[0.08] to white/[0.06], softer focus states
+- ChatView: simplified NavPill to 2 buttons (Chats + Settings), removed Flower2/Star/Sparkles decorations
+- MessageFeed: added gap-1.5 between bubbles in groups, increased virtualizer gap from 12 to 16
+- MessageFeed: implemented native touch swipe-to-reply (60px threshold, horizontal dominance check, reply icon indicator)
+- ConversationList: floating pill header, inline search filter by partner name, liquid-card rows, avatars size-12
+- Fixed middleware /login redirect loop (was redirecting unauthenticated /login to /login)
+- Fixed middleware null-safety for header injection when user is null
+
+Stage Summary:
+- All UI changes deployed to puzzle.killermunu.workers.dev (commit 6e1f01f)
+- Login page verified working locally (200 status, zero errors)
+- Middleware handles all edge cases: static, API, /login (auth+unauth), /auth/callback, protected routes
