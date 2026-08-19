@@ -8855,6 +8855,8 @@ ${b3}`;
       async function ih(e10) {
         let { pathname: t10 } = e10.nextUrl, r10 = t10.startsWith("/_next") || t10.startsWith("/favicon") || t10.startsWith("/logo") || t10.startsWith("/robots"), s10 = t10.startsWith("/api/");
         if (r10 || s10) return em.next({ request: e10 });
+        let n10 = process.env.NEXT_PUBLIC_SUPABASE_URL, i2 = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!n10 || !i2) return em.next({ request: e10 });
         try {
           let r11 = em.next({ request: e10 }), s11 = function(e11, t11, r12) {
             if (!function() {
@@ -8884,8 +8886,8 @@ ${b3}`;
 Check your Supabase project's API settings to find these values
 
 https://supabase.com/dashboard/project/_/settings/api`);
-            let { storage: s12, getAll: n11, setAll: i2, setItems: a2, removedItems: o2 } = function(e12, t12) {
-              let r13, s13, n12 = e12.cookies ?? null, i3 = e12.cookieEncoding, a3 = {}, o3 = {}, l3 = () => {
+            let { storage: s12, getAll: n11, setAll: i3, setItems: a3, removedItems: o2 } = function(e12, t12) {
+              let r13, s13, n12 = e12.cookies ?? null, i4 = e12.cookieEncoding, a4 = {}, o3 = {}, l3 = () => {
                 let e13 = (0, n3.parse)(document.cookie);
                 return Object.keys(e13).map((t13) => ({ name: t13, value: e13[t13] ?? "" }));
               }, u2 = (e13) => {
@@ -8904,8 +8906,8 @@ https://supabase.com/dashboard/project/_/settings/api`);
                 };
                 if (r13 = async (t13) => await e13(t13), "set" in n12 && "remove" in n12) s13 = async (e14) => {
                   for (let t13 = 0; t13 < e14.length; t13 += 1) {
-                    let { name: r14, value: s14, options: i4 } = e14[t13];
-                    s14 ? await n12.set(r14, s14, i4) : await n12.remove(r14, i4);
+                    let { name: r14, value: s14, options: i5 } = e14[t13];
+                    s14 ? await n12.set(r14, s14, i5) : await n12.remove(r14, i5);
                   }
                 };
                 else if (t12) s13 = async () => {
@@ -8924,8 +8926,8 @@ https://supabase.com/dashboard/project/_/settings/api`);
                 throw Error("@supabase/ssr: createBrowserClient in non-browser runtimes (including Next.js pre-rendering mode) was not initialized cookie options that specify getAll and setAll functions (deprecated: alternatively use get, set and remove), but they were needed");
               };
               else r13 = () => l3(), s13 = u2;
-              return t12 ? { getAll: r13, setAll: s13, setItems: a3, removedItems: o3, storage: { isServer: true, getItem: async (e13) => {
-                if ("string" == typeof a3[e13]) return a3[e13];
+              return t12 ? { getAll: r13, setAll: s13, setItems: a4, removedItems: o3, storage: { isServer: true, getItem: async (e13) => {
+                if ("string" == typeof a4[e13]) return a4[e13];
                 if (o3[e13]) return null;
                 let t13 = await r13([e13]), s14 = await n9(e13, async (e14) => {
                   let r14 = t13?.find(({ name: t14 }) => t14 === e14) || null;
@@ -8933,18 +8935,18 @@ https://supabase.com/dashboard/project/_/settings/api`);
                 });
                 return s14 ? "string" != typeof s14 ? s14 : ia(s14) : null;
               }, setItem: async (t13, n13) => {
-                t13.endsWith("-code-verifier") && await io({ getAll: r13, setAll: s13, setItems: { [t13]: n13 }, removedItems: {} }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i3 }), a3[t13] = n13, delete o3[t13];
+                t13.endsWith("-code-verifier") && await io({ getAll: r13, setAll: s13, setItems: { [t13]: n13 }, removedItems: {} }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i4 }), a4[t13] = n13, delete o3[t13];
               }, removeItem: async (t13) => {
-                (ii.test(t13) || t13.endsWith("-flows-code-verifier")) && await io({ getAll: r13, setAll: s13, setItems: {}, removedItems: { [t13]: true } }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i3 }), delete a3[t13], o3[t13] = true;
-              } } } : { getAll: r13, setAll: s13, setItems: a3, removedItems: o3, storage: { isServer: false, getItem: async (e13) => {
+                (ii.test(t13) || t13.endsWith("-flows-code-verifier")) && await io({ getAll: r13, setAll: s13, setItems: {}, removedItems: { [t13]: true } }, { cookieOptions: e12?.cookieOptions ?? null, cookieEncoding: i4 }), delete a4[t13], o3[t13] = true;
+              } } } : { getAll: r13, setAll: s13, setItems: a4, removedItems: o3, storage: { isServer: false, getItem: async (e13) => {
                 let t13 = await r13([e13]), s14 = await n9(e13, async (e14) => {
                   let r14 = t13?.find(({ name: t14 }) => t14 === e14) || null;
                   return r14 ? r14.value : null;
                 });
                 return s14 ? ia(s14) : null;
               }, setItem: async (t13, n13) => {
-                let a4 = await r13([t13]), o4 = new Set((a4?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t13))), l4 = n13;
-                "base64url" === i3 && (l4 = is + ir(n13));
+                let a5 = await r13([t13]), o4 = new Set((a5?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t13))), l4 = n13;
+                "base64url" === i4 && (l4 = is + ir(n13));
                 let u3 = n8(t13, l4);
                 u3.forEach(({ name: e13 }) => {
                   o4.delete(e13);
@@ -8957,14 +8959,14 @@ https://supabase.com/dashboard/project/_/settings/api`);
                 })() : null, p2 = [...d2 ? [...o4].map((e13) => ({ name: e13, value: "", options: d2 })) : [], ...[...o4].map((e13) => ({ name: e13, value: "", options: c2 })), ...u3.map(({ name: e13, value: t14 }) => ({ name: e13, value: t14, options: h2 }))];
                 p2.length > 0 && await s13(p2, {});
               }, removeItem: async (t13) => {
-                let n13 = await r13([t13]), i4 = (n13?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t13));
-                if (0 === i4.length) return;
-                let a4 = { ...n4, ...e12?.cookieOptions, maxAge: 0 };
-                delete a4.name;
-                let o4 = a4.domain ? (() => {
-                  let { domain: e13, ...t14 } = a4;
+                let n13 = await r13([t13]), i5 = (n13?.map(({ name: e13 }) => e13) || []).filter((e13) => n6(e13, t13));
+                if (0 === i5.length) return;
+                let a5 = { ...n4, ...e12?.cookieOptions, maxAge: 0 };
+                delete a5.name;
+                let o4 = a5.domain ? (() => {
+                  let { domain: e13, ...t14 } = a5;
                   return t14;
-                })() : null, l4 = [...o4 ? i4.map((e13) => ({ name: e13, value: "", options: o4 })) : [], ...i4.map((e13) => ({ name: e13, value: "", options: a4 }))];
+                })() : null, l4 = [...o4 ? i5.map((e13) => ({ name: e13, value: "", options: o4 })) : [], ...i5.map((e13) => ({ name: e13, value: "", options: a5 }))];
                 await s13(l4, {});
               } } };
             }({ ...r12, cookieEncoding: r12?.cookieEncoding ?? "base64url" }, true), l2 = new n2(e11, t11, { ...r12, global: { ...r12?.global, headers: { ...r12?.global?.headers, "X-Client-Info": "supabase-ssr/0.12.4 createServerClient" } }, auth: { ...r12?.cookieOptions?.name ? { storageKey: r12.cookieOptions.name } : null, ...r12?.auth, flowType: "pkce", autoRefreshToken: false, detectSessionInUrl: false, persistSession: true, skipAutoInitialize: true, storage: s12, ...r12?.cookies && "encode" in r12.cookies && "tokens-only" === r12.cookies.encode ? { userStorage: r12?.auth?.userStorage ?? /* @__PURE__ */ function(e12 = {}) {
@@ -8975,21 +8977,21 @@ https://supabase.com/dashboard/project/_/settings/api`);
               } };
             }() } : null } });
             return l2.auth.onAuthStateChange(async (e12) => {
-              (Object.keys(a2).length > 0 || Object.keys(o2).length > 0) && ("SIGNED_IN" === e12 || "TOKEN_REFRESHED" === e12 || "USER_UPDATED" === e12 || "PASSWORD_RECOVERY" === e12 || "SIGNED_OUT" === e12 || "MFA_CHALLENGE_VERIFIED" === e12) && await io({ getAll: n11, setAll: i2, setItems: a2, removedItems: o2 }, { cookieOptions: r12?.cookieOptions ?? null, cookieEncoding: r12?.cookieEncoding ?? "base64url" });
+              (Object.keys(a3).length > 0 || Object.keys(o2).length > 0) && ("SIGNED_IN" === e12 || "TOKEN_REFRESHED" === e12 || "USER_UPDATED" === e12 || "PASSWORD_RECOVERY" === e12 || "SIGNED_OUT" === e12 || "MFA_CHALLENGE_VERIFIED" === e12) && await io({ getAll: n11, setAll: i3, setItems: a3, removedItems: o2 }, { cookieOptions: r12?.cookieOptions ?? null, cookieEncoding: r12?.cookieEncoding ?? "base64url" });
             }), l2;
-          }("https://njtdajospdunfbfgyymh.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdGRham9zcGR1bmZiZmd5eW1oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NTI3MTYsImV4cCI6MjEwMjQyODcxNn0.A5hF3MXpeBvpCY-2oM1MHzrqEB43fFmoosCfsPIECQQ", { cookies: { getAll: () => e10.cookies.getAll(), setAll(t11) {
+          }(n10, i2, { cookies: { getAll: () => e10.cookies.getAll(), setAll(t11) {
             t11.forEach(({ name: t12, value: r12 }) => e10.cookies.set(t12, r12)), r11 = em.next({ request: e10 }), t11.forEach(({ name: e11, value: t12, options: s12 }) => r11.cookies.set(e11, t12, s12));
-          } } }), { data: { user: n10 } } = await s11.auth.getUser();
-          if (n10 && t10.startsWith("/login")) {
+          } } }), { data: { user: a2 } } = await s11.auth.getUser();
+          if (a2 && t10.startsWith("/login")) {
             let t11 = e10.nextUrl.clone();
             return t11.pathname = "/", em.redirect(t11);
           }
           if (t10.startsWith("/auth/callback")) return r11;
-          if (!n10 && !t10.startsWith("/login")) {
+          if (!a2 && !t10.startsWith("/login")) {
             let t11 = e10.nextUrl.clone();
             return t11.pathname = "/login", em.redirect(t11);
           }
-          return n10 && (r11.headers.set("x-user-id", n10.id), r11.headers.set("x-user-email", n10.email ?? "")), r11;
+          return a2 && (r11.headers.set("x-user-id", a2.id), r11.headers.set("x-user-email", a2.email ?? "")), r11;
         } catch (s11) {
           if (console.error("[middleware] auth check failed:", s11), t10.startsWith("/login") || t10.startsWith("/auth/callback")) return em.next({ request: e10 });
           let r11 = e10.nextUrl.clone();
@@ -9597,11 +9599,11 @@ var NEXT_DIR = path.join(__dirname, ".next");
 var OPEN_NEXT_DIR = path.join(__dirname, ".open-next");
 debug({ NEXT_DIR, OPEN_NEXT_DIR });
 var NextConfig = { "distDir": ".next", "cacheComponents": false, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "assetPrefix": "", "output": "standalone", "trailingSlash": false, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [], "qualities": [75], "unoptimized": false }, "reactMaxHeadersLength": 6e3, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "basePath": "", "expireTime": 31536e3, "generateEtags": true, "poweredByHeader": true, "cacheHandlers": {}, "cacheMaxMemorySize": 52428800, "compress": true, "i18n": null, "httpAgentOptions": { "keepAlive": true }, "pageExtensions": ["tsx", "ts", "jsx", "js"], "useFileSystemPublicRoutes": true, "experimental": { "ppr": false, "staleTimes": { "dynamic": 0, "static": 300 }, "dynamicOnHover": false, "inlineCss": false, "authInterrupts": false, "fetchCacheKeyPrefix": "", "isrFlushToDisk": true, "optimizeCss": false, "nextScriptWorkers": false, "disableOptimizedLoading": false, "largePageDataBytes": 128e3, "serverComponentsHmrCache": true, "caseSensitiveRoutes": false, "validateRSCRequestHeaders": false, "useSkewCookie": false, "preloadEntriesOnStart": true, "hideLogsAfterAbort": false, "removeUncaughtErrorAndRejectionListeners": false, "imgOptConcurrency": null, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "imgOptSkipMetadata": null, "imgOptTimeoutInSeconds": 7, "proxyClientMaxBodySize": 10485760, "trustHostHeader": false, "isExperimentalCompile": false }, "skipTrailingSlashRedirect": false, "serverExternalPackages": [] };
-var BuildId = "tiQT3gVQ2mfgsWrvLxyzB";
+var BuildId = "210qAnqQdp55pnpwqsDTS";
 var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/api", "regex": "^/api(?:/)?$", "routeKeys": {}, "namedRegex": "^/api(?:/)?$" }, { "page": "/api/conversations", "regex": "^/api/conversations(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations(?:/)?$" }, { "page": "/api/conversations/create", "regex": "^/api/conversations/create(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations/create(?:/)?$" }, { "page": "/api/conversations/delete", "regex": "^/api/conversations/delete(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/conversations/delete(?:/)?$" }, { "page": "/api/messages/delete", "regex": "^/api/messages/delete(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/delete(?:/)?$" }, { "page": "/api/messages/history", "regex": "^/api/messages/history(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/history(?:/)?$" }, { "page": "/api/messages/reaction", "regex": "^/api/messages/reaction(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/reaction(?:/)?$" }, { "page": "/api/messages/read", "regex": "^/api/messages/read(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/read(?:/)?$" }, { "page": "/api/messages/search", "regex": "^/api/messages/search(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/search(?:/)?$" }, { "page": "/api/messages/send", "regex": "^/api/messages/send(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/send(?:/)?$" }, { "page": "/api/messages/vanish", "regex": "^/api/messages/vanish(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/vanish(?:/)?$" }, { "page": "/api/messages/voice", "regex": "^/api/messages/voice(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/messages/voice(?:/)?$" }, { "page": "/api/pusher/auth", "regex": "^/api/pusher/auth(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/pusher/auth(?:/)?$" }, { "page": "/api/users/batch-status", "regex": "^/api/users/batch\\-status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/batch\\-status(?:/)?$" }, { "page": "/api/users/heartbeat", "regex": "^/api/users/heartbeat(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/heartbeat(?:/)?$" }, { "page": "/api/users/profile", "regex": "^/api/users/profile(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/profile(?:/)?$" }, { "page": "/api/users/search", "regex": "^/api/users/search(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/search(?:/)?$" }, { "page": "/api/users/status", "regex": "^/api/users/status(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/users/status(?:/)?$" }, { "page": "/auth/callback", "regex": "^/auth/callback(?:/)?$", "routeKeys": {}, "namedRegex": "^/auth/callback(?:/)?$" }, { "page": "/login", "regex": "^/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/login(?:/)?$" }], "dynamic": [], "data": { "static": [], "dynamic": [] } }, "locales": [] };
 var ConfigHeaders = [];
-var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/login": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/login", "dataRoute": "/login.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "1ed0ffe098a7484f8766364a92f33e9b", "previewModeSigningKey": "de104ff669379f3fd168bfd80ba01c7fca55522bd11dd443f24d772df2983d84", "previewModeEncryptionKey": "4fe498453c34c3d3109becb7beaebbb107c91a9517616d3926ea4fef0898d3ac" } };
-var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_78fa9d6a.js", "server/edge/chunks/[root-of-the-server]__172fb303._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_7057d99f.js"], "name": "middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*))(\\\\.json)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "tiQT3gVQ2mfgsWrvLxyzB", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "FgLIdKO3iJwg9TSX1L3Cp+5So+wHYspYsfVwsvbHxeg=", "__NEXT_PREVIEW_MODE_ID": "1ed0ffe098a7484f8766364a92f33e9b", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "4fe498453c34c3d3109becb7beaebbb107c91a9517616d3926ea4fef0898d3ac", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "de104ff669379f3fd168bfd80ba01c7fca55522bd11dd443f24d772df2983d84" } } }, "sortedMiddleware": ["/"], "functions": {} };
+var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/login": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/login", "dataRoute": "/login.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": {}, "notFoundRoutes": [], "preview": { "previewModeId": "9033ec8d3c22104a797a7b1cbe727ce3", "previewModeSigningKey": "b911588e06981d963fc83e1d3a7071c6f1a46fd5d4a4993e9a31f34cb44cd626", "previewModeEncryptionKey": "30d8518179c0bf88736fc0c92530700f8f4927a74905b14d2fe53efde9a75349" } };
+var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge/chunks/node_modules_next_dist_esm_build_templates_edge-wrapper_78fa9d6a.js", "server/edge/chunks/[root-of-the-server]__172fb303._.js", "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_7057d99f.js"], "name": "middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*))(\\\\.json)?[\\/#\\?]?$", "originalSource": "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "210qAnqQdp55pnpwqsDTS", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "uaXv8lP0tuR7fh4J+mGAU29/gE/JvuH3JpF1ovxMKoQ=", "__NEXT_PREVIEW_MODE_ID": "9033ec8d3c22104a797a7b1cbe727ce3", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "30d8518179c0bf88736fc0c92530700f8f4927a74905b14d2fe53efde9a75349", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "b911588e06981d963fc83e1d3a7071c6f1a46fd5d4a4993e9a31f34cb44cd626" } } }, "sortedMiddleware": ["/"], "functions": {} };
 var AppPathRoutesManifest = { "/_global-error/page": "/_global-error", "/_not-found/page": "/_not-found", "/api/conversations/create/route": "/api/conversations/create", "/api/conversations/delete/route": "/api/conversations/delete", "/api/conversations/route": "/api/conversations", "/api/messages/delete/route": "/api/messages/delete", "/api/messages/history/route": "/api/messages/history", "/api/messages/reaction/route": "/api/messages/reaction", "/api/messages/read/route": "/api/messages/read", "/api/messages/search/route": "/api/messages/search", "/api/messages/send/route": "/api/messages/send", "/api/messages/vanish/route": "/api/messages/vanish", "/api/messages/voice/route": "/api/messages/voice", "/api/pusher/auth/route": "/api/pusher/auth", "/api/route": "/api", "/api/users/batch-status/route": "/api/users/batch-status", "/api/users/heartbeat/route": "/api/users/heartbeat", "/api/users/profile/route": "/api/users/profile", "/api/users/search/route": "/api/users/search", "/api/users/status/route": "/api/users/status", "/auth/callback/route": "/auth/callback", "/login/page": "/login", "/page": "/" };
 var FunctionsConfigManifest = { "version": 1, "functions": {} };
 var PagesManifest = { "/404": "pages/404.html", "/500": "pages/500.html" };
