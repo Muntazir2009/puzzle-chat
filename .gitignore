@@ -52,3 +52,11 @@ prompt
 server.log
 # Skills directory
 /skills/
+# OpenNext build output
+.open-next/
+
+# Environment files
+.env.local
+
+# Uploads
+upload/
