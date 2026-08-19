@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +13,13 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0a0a0a",
+};
 
 export const metadata: Metadata = {
   title: "Puzzle – Direct Messages",
@@ -47,7 +54,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://sockjs-ap2.pusher.com" />
         <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://njtdajospdunfbfgyymh.supabase.co"} />
         <link rel="dns-prefetch" href="https://ws-ap2.pusher.com" />
-        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}

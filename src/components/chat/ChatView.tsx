@@ -85,10 +85,11 @@ function NavPill({
   return (
     <div
       className={cn(
-        "fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-0.5 sm:left-4",
+        "fixed left-2 z-50 flex flex-col items-center gap-0.5 sm:left-4",
         "rounded-3xl py-2.5 px-2",
         "liquid-nav-pill",
       )}
+      style={{ top: 'calc(50% - env(safe-area-inset-top, 0px) / 2 + env(safe-area-inset-bottom, 0px) / 2)', transform: 'translateY(-50%)' }}
     >
       {/* Chats button */}
       <button
@@ -161,7 +162,7 @@ function SettingsPage({
     .slice(0, 2);
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto" style={{ paddingTop: 'max(0px, env(safe-area-inset-top, 0px))' }}>
       <div className="mx-auto max-w-lg px-4 py-6">
         {/* Page title */}
         <h1 className="text-xl font-bold tracking-tight mb-6">Settings</h1>
@@ -455,7 +456,8 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => handleNavigate("list")}
-                className="absolute left-12 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:left-14 sm:hidden"
+                className="absolute left-12 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:left-14 sm:hidden"
+                style={{ top: 'max(12px, env(safe-area-inset-top))' }}
                 aria-label="Back to chats"
               >
                 <ArrowLeft className="size-4" />
@@ -472,7 +474,7 @@ export function ChatView({
               className="h-full"
             >
               {/* Branding header */}
-              <div className="flex items-center gap-2.5 pt-6 pb-2 px-4">
+              <div className="flex items-center gap-2.5 pb-2 px-4" style={{ paddingTop: 'max(1.5rem, calc(env(safe-area-inset-top, 0px) + 12px))' }}>
                 <div
                   className="flex size-8 items-center justify-center rounded-xl text-white"
                   style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
