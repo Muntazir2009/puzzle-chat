@@ -89,7 +89,7 @@ function NavPill({
         "rounded-3xl py-2.5 px-2",
         "liquid-nav-pill",
       )}
-      style={{ top: 'calc(50% - env(safe-area-inset-top, 0px) / 2 + env(safe-area-inset-bottom, 0px) / 2)', transform: 'translateY(-50%)' }}
+      style={{ top: '50%', transform: 'translateY(-50%)' }}
     >
       {/* Chats button */}
       <button
@@ -162,7 +162,7 @@ function SettingsPage({
     .slice(0, 2);
 
   return (
-    <div className="h-full overflow-y-auto" style={{ paddingTop: 'max(0px, env(safe-area-inset-top, 0px))' }}>
+    <div className="h-full overflow-y-auto" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}>
       <div className="mx-auto max-w-lg px-4 py-6">
         {/* Page title */}
         <h1 className="text-xl font-bold tracking-tight mb-6">Settings</h1>
@@ -456,8 +456,8 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => handleNavigate("list")}
-                className="absolute left-12 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:left-14 sm:hidden"
-                style={{ top: 'max(12px, env(safe-area-inset-top))' }}
+                className="absolute left-12 top-2 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:left-14 sm:hidden"
+                style={{ top: 'max(8px, env(safe-area-inset-top, 0px))' }}
                 aria-label="Back to chats"
               >
                 <ArrowLeft className="size-4" />
@@ -474,7 +474,7 @@ export function ChatView({
               className="h-full"
             >
               {/* Branding header */}
-              <div className="flex items-center gap-2.5 pb-2 px-4" style={{ paddingTop: 'max(1.5rem, calc(env(safe-area-inset-top, 0px) + 12px))' }}>
+              <div className="flex items-center gap-2.5 pb-2 px-4" style={{ paddingTop: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 8px))' }}>
                 <div
                   className="flex size-8 items-center justify-center rounded-xl text-white"
                   style={{ background: "linear-gradient(to bottom right, var(--app-accent-from), var(--app-accent-to))" }}
