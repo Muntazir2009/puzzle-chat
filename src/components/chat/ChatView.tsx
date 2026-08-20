@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, MessageSquare, Settings, User, Palette, Heart, Code } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { ConversationList, type ConversationItem } from "./ConversationList";
 import dynamic from "next/dynamic";
@@ -144,6 +144,8 @@ function SettingsPage({
   onAvatarChange,
   onSignOut,
   signingOut,
+  devMode,
+  setDevMode,
 }: {
   userId: string;
   userName: string;
@@ -153,6 +155,8 @@ function SettingsPage({
   onAvatarChange: (url: string | null) => void;
   onSignOut: () => void;
   signingOut: boolean;
+  devMode: boolean;
+  setDevMode: (v: boolean) => void;
 }) {
   const userInitials = userName
     .split(" ")
@@ -211,6 +215,34 @@ function SettingsPage({
           </div>
         </div>
 
+        {/* Developer section */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden mb-4">
+          <div className="flex items-center gap-3 px-5 py-3.5">
+            <Code className="size-4 text-white/60" />
+            <span className="text-sm font-medium">Developer</span>
+          </div>
+          <Separator className="bg-white/10" />
+          <div className="flex items-center justify-between px-5 py-3.5">
+            <div>
+              <p className="text-sm">Developer Mode</p>
+              <p className="text-[11px] text-white/40">Show debug info & raw message data</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDevMode(!devMode)}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
+                devMode ? "bg-[var(--app-accent)]" : "bg-white/10"
+              )}
+            >
+              <span className={cn(
+                "pointer-events-none inline-block size-5 rounded-full bg-white shadow-sm transition-transform",
+                devMode ? "translate-x-5" : "translate-x-0"
+              )} />
+            </button>
+          </div>
+        </div>
+
         {/* Account section */}
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-3.5">
@@ -257,6 +289,15 @@ export function ChatView({
   const [localUserAvatar, setLocalUserAvatar] = useState(userAvatar);
   const [deletingConv, setDeletingConv] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<NavView>("list");
+  const [devMode, setDevMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem("puzzle-dev-mode") === "true"; } catch { return false; }
+  });
+
+  /* Persist devMode to localStorage */
+  useEffect(() => {
+    try { localStorage.setItem("puzzle-dev-mode", String(devMode)); } catch {}
+  }, [devMode]);
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + c.unread_count, 0),
@@ -425,6 +466,8 @@ export function ChatView({
                 onAvatarChange={setLocalUserAvatar}
                 onSignOut={handleSignOut}
                 signingOut={signingOut}
+                devMode={devMode}
+                setDevMode={setDevMode}
               />
             </m.div>
           ) : activeView === "chat" && activeConv ? (
@@ -449,6 +492,7 @@ export function ChatView({
                     name: activeConv.partner.name,
                     avatar_url: activeConv.partner.avatar_url,
                   }}
+                  devMode={devMode}
                 />
               </ErrorBoundary>
 

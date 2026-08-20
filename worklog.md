@@ -91,3 +91,46 @@ Stage Summary:
 - Deployed: Version `04b4493e-441f-4cee-a72a-678496f51734`
 - Pushed to GitHub (`1302c50`)
 - **Key lesson**: Never put safe-area padding on `body` — handle at component level. `position:fixed` elements go behind iOS keyboard; use `position:absolute` within a visual-viewport-sized container instead.
+
+---
+Task ID: 4-5-6
+Agent: Main
+Task: Improve double-tap to react, convert background picker to Sheet, add Developer Mode toggle
+
+Work Log:
+- Read all 3 target files fully + ChatLayout.tsx + sheet.tsx to understand existing code structure
+- Identified the exact locations for edits in each file
+
+Changes Made:
+1. **MessageFeed.tsx** — Double-tap improvements:
+   - `useDoubleTap` hook: Added `navigator.vibrate(10)` haptic feedback when double-tap is detected (inside the 300ms window)
+   - `MessageBubble`: Added `showHeart` state (boolean) and `singleTapTimerRef` ref
+   - `handleDoubleTapReaction`: Now calls `setShowHeart(true)` and sets a 600ms timeout to hide it
+   - `handleClick`: Single-tap action sheet is now delayed by 250ms via `setTimeout`. On double-tap, `clearTimeout(singleTapTimerRef.current)` cancels the pending action sheet
+   - Added `AnimatePresence` + `m.span` heart overlay inside the bubble div (absolute positioned, centered, z-20, pointer-events-none). Heart scales from 0→1.2 and fades out over 600ms using framer-motion
+
+2. **ChatBackgroundPicker.tsx** — Popover → Sheet conversion:
+   - Replaced `Popover`/`PopoverTrigger`/`PopoverContent` imports with `Sheet`/`SheetContent`/`SheetHeader`/`SheetTitle`/`SheetTrigger`
+   - Sheet slides up from bottom (`side="bottom"`) with `rounded-t-3xl`
+   - Layout redesigned for bottom sheet: sections with uppercase labels, grid of 12×12 rounded-xl tiles with labels underneath, scrollable content area with `max-h-[60vh]`
+   - Added "Upload Wallpaper" button with `Upload` icon that opens a hidden file input (`accept="image/*"`)
+   - File selection uses `FileReader.readAsDataURL()` to convert to base64 data URL, then passes to `onSetWallpaper`
+   - Kept all existing functionality: theme grid, wallpaper presets, custom URL input, clear wallpaper button
+   - Added `useRef` import for file input ref
+
+3. **ChatView.tsx** — Developer Mode toggle:
+   - Added `Code` to lucide-react imports
+   - `ChatView`: Added `devMode` state initialized from `localStorage.getItem('puzzle-dev-mode')` with `useEffect` to persist changes
+   - `SettingsPage`: Added `devMode` and `setDevMode` props
+   - Inserted Developer section between Appearance and Account sections with toggle switch styled with `var(--app-accent)` and `cn()`
+   - Passed `devMode` and `setDevMode` to `SettingsPage` and `devMode` to `ChatLayout`
+
+4. **ChatLayout.tsx** — Prop update:
+   - Added optional `devMode?: boolean` to `ChatLayoutProps` interface
+   - Destructured as `devMode: _devMode` to accept the prop without unused variable warning (for future use)
+
+Stage Summary:
+- Lint passes clean (only pre-existing TanStack Virtual warning)
+- Dev server compiles successfully (✓ Compiled in 153ms)
+- All three tasks completed without breaking existing functionality
+- Dev mode preference is persisted to localStorage and passed through the component tree

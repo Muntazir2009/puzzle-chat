@@ -21,7 +21,7 @@ import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatB
 /* ------------------------------------------------------------------ */
 
 export interface ChatPartner { id: string; name: string; avatar_url: string | null }
-export interface ChatLayoutProps { currentUserId: string; currentUserName: string; currentUserAvatar: string | null; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[] }
+export interface ChatLayoutProps { currentUserId: string; currentUserName: string; currentUserAvatar: string | null; otherUserId: string; conversationId: string; partner: ChatPartner; initialMessages?: ChatMessage[]; devMode?: boolean }
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -157,7 +157,7 @@ function PartnerInfoPanel({
 /*  ChatLayout                                                         */
 /* ------------------------------------------------------------------ */
 
-export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, otherUserId, conversationId, partner, initialMessages }: ChatLayoutProps) {
+export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, otherUserId, conversationId, partner, initialMessages, devMode: _devMode }: ChatLayoutProps) {
   const { messages, isLoading, isPartnerTyping, partnerStatus, sendMessage, onTyping, markAsRead, vanishMessage, deleteMessage, sendReaction, loadMore, hasMore, loadingMore } =
     useChat({ currentUserId, otherUserId, conversationId, initialMessages });
 
@@ -185,22 +185,31 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const containerStyle = viewport.height > 0 ? ({ height: `${viewport.height}px` } as React.CSSProperties) : ({ height: "100dvh" } as React.CSSProperties);
-  const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0 ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties) : undefined;
+  /* Background is fixed full-screen — never moves with keyboard */
+  const bgLayer = (
+    <div
+      className="fixed inset-0 z-0"
+      style={wallpaper
+        ? wallpaper.startsWith('url(') || wallpaper.startsWith('http')
+          ? {
+              backgroundImage: `url(${wallpaper})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }
+          : { background: wallpaper }
+        : theme.style
+      }
+    />
+  );
 
-  /* Compute background style — wallpaper overrides theme */
-  const bgStyle = wallpaper
-    ? wallpaper.startsWith('url(') || wallpaper.startsWith('http')
-      ? {
-          backgroundImage: `url(${wallpaper})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }
-      : {
-          background: wallpaper,
-        }
-    : theme.style;
+  /* Content container tracks visual viewport for keyboard handling */
+  const containerStyle = viewport.height > 0
+    ? ({ height: `${viewport.height}px` } as React.CSSProperties)
+    : ({ height: "100dvh" } as React.CSSProperties);
+  const kbOffset = viewport.isKeyboardVisible && viewport.offsetTop > 0
+    ? ({ marginTop: `-${viewport.offsetTop}px` } as React.CSSProperties)
+    : undefined;
 
   // Don't auto-focus input on chat open — let user tap when ready
 
@@ -371,8 +380,9 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
   /* ---- Render --------------------------------------------------- */
 
   return (
-    <div className="relative flex w-full flex-col bg-background overflow-hidden" style={containerStyle}>
-      <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
+    <div className="relative w-full" style={containerStyle}>
+      {bgLayer}
+      <div style={kbOffset} className="relative z-10 flex min-h-0 h-full flex-col">
         {/* Floating pill header — accounts for safe area inset on notched phones */}
         <header className="shrink-0 z-30 mx-3 mt-2 flex items-center gap-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.08] border border-white/[0.12] shadow-2xl transition-all duration-300 focus-within:bg-white/[0.12] focus-within:border-white/[0.18] focus-within:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_0_rgba(255,255,255,0.08)]" style={{ marginTop: 'max(8px, env(safe-area-inset-top, 0px))' }}>
           <button
@@ -416,7 +426,6 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             currentUserId={currentUserId}
             partnerName={partner.name}
             partnerAvatar={partner.avatar_url}
-            backgroundStyle={bgStyle}
             currentUserName={currentUserName}
             currentUserAvatar={currentUserAvatar}
             onMarkAsRead={markAsRead}

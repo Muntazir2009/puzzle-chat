@@ -253,6 +253,8 @@ export function useChat({
     channelRef.current = channel;
 
     function handleNewMessage(data: ChatChannelEvents["new-message"]) {
+      /* Skip messages from self — we already have the optimistic/persisted version */
+      if (data.sender_id === currentUserId) return;
       const incoming: ChatMessage = {
         id: data.id, conversation_id: data.conversation_id, sender_id: data.sender_id,
         sender_name: data.sender_name ?? "", reply_to_id: data.reply_to_id,
@@ -348,6 +350,8 @@ export function useChat({
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
           const incoming = parseMsg(payload.new as Record<string, unknown>);
+          /* Skip own messages — already handled by optimistic update */
+          if (incoming.sender_id === currentUserId) return;
           setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
           if (incoming.sender_id !== currentUserId) {
             readBatchRef.current.push(incoming.id);
@@ -413,8 +417,9 @@ export function useChat({
           body: JSON.stringify({ conversation_id: conversationId, content, ...opts }),
         });
         if (!res.ok) throw new Error(`Send failed: ${res.status}`);
-        const persisted: ChatMessage = await res.json();
-        setMessages((prev) => prev.map((m) => (m.id === tempId ? persisted : m)));
+        const raw = await res.json();
+        const full = parseMsg(raw);
+        setMessages((prev) => prev.map((m) => (m.id === tempId ? full : m)));
       } catch (err) {
         console.error("[useChat] sendMessage error:", err);
         setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, status: "failed" as const } : m));

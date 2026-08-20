@@ -371,10 +371,10 @@
    371→   371→  /* ---- Render --------------------------------------------------- */
    372→   372→
    373→   373→  return (
-   374→   374→    <div className="flex w-full flex-col bg-background" style={containerStyle}>
+   374→   374→    <div className="relative flex w-full flex-col bg-background overflow-hidden" style={containerStyle}>
    375→   375→      <div style={kbOffset} className="flex min-h-0 flex-1 flex-col">
    376→   376→        {/* Floating pill header — accounts for safe area inset on notched phones */}
-   377→   377→        <header className="sticky z-30 mx-3 flex items-center gap-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.08] border border-white/[0.12] shadow-2xl transition-all duration-300 focus-within:bg-white/[0.12] focus-within:border-white/[0.18] focus-within:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_0_rgba(255,255,255,0.08)]" style={{ top: 'max(12px, env(safe-area-inset-top))' }}>
+   377→   377→        <header className="shrink-0 z-30 mx-3 mt-2 flex items-center gap-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.08] border border-white/[0.12] shadow-2xl transition-all duration-300 focus-within:bg-white/[0.12] focus-within:border-white/[0.18] focus-within:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_0_rgba(255,255,255,0.08)]" style={{ marginTop: 'max(8px, env(safe-area-inset-top, 0px))' }}>
    378→   378→          <button
    379→   379→            type="button"
    380→   380→            onClick={() => setInfoPanelOpen(true)}
@@ -407,326 +407,327 @@
    407→   407→        </header>
    408→   408→
    409→   409→        {/* Feed area — padding accounts for safe area + floating header/input */}
-   410→   410→        <div className="relative min-h-0 flex-1" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))', paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
-   411→   411→          <MessageFeed
-   412→   412→            messages={messages}
-   413→   413→            isLoading={isLoading}
-   414→   414→            isPartnerTyping={isPartnerTyping}
-   415→   415→            currentUserId={currentUserId}
-   416→   416→            partnerName={partner.name}
-   417→   417→            partnerAvatar={partner.avatar_url}
-   418→   418→            backgroundStyle={bgStyle}
-   419→   419→            currentUserName={currentUserName}
-   420→   420→            currentUserAvatar={currentUserAvatar}
-   421→   421→            onMarkAsRead={markAsRead}
-   422→   422→            onVanishMessage={vanishMessage}
-   423→   423→            onDeleteMessage={deleteMessage}
-   424→   424→            onReplyTo={setReplyTo}
-   425→   425→            onReact={sendReaction}
-   426→   426→            loadMore={loadMore}
-   427→   427→            hasMore={hasMore}
-   428→   428→            loadingMore={loadingMore}
-   429→   429→          />
-   430→   430→        </div>
-   431→   431→      </div>
-   432→   432→
-   433→   433→      {/* Hidden file input for attachments */}
-   434→   434→      <input
-   435→   435→        ref={fileInputRef}
-   436→   436→        type="file"
-   437→   437→        accept={ACCEPTED_TYPES}
-   438→   438→        onChange={handleFileSelect}
-   439→   439→        className="hidden"
-   440→   440→        aria-hidden="true"
-   441→   441→      />
-   442→   442→
-   443→   443→      {/* Floating preview bars above the pill */}
-   444→   444→      {(replyTo || attachmentFile) && (
-   445→   445→        <div
-   446→   446→          className="fixed left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-30 flex flex-col gap-1.5"
-   447→   447→          style={{ bottom: 'calc(max(16px, env(safe-area-inset-bottom)) + 56px)' }}
-   448→   448→        >
-   449→   449→          {/* Attachment preview bar */}
-   450→   450→          <AnimatePresence>
-   451→   451→            {attachmentFile && (
-   452→   452→              <m.div
-   453→   453→                initial={{ height: 0, opacity: 0 }}
-   454→   454→                animate={{ height: "auto", opacity: 1 }}
-   455→   455→                exit={{ height: 0, opacity: 0 }}
-   456→   456→                transition={{ duration: 0.15, ease: "easeOut" }}
-   457→   457→                className="overflow-hidden rounded-2xl border backdrop-blur-sm"
-   458→   458→                style={{ backgroundColor: "var(--app-accent-subtle)", borderColor: "var(--app-accent-subtle)" }}
-   459→   459→              >
-   460→   460→                <div className="flex items-center gap-3 px-4 py-2.5">
-   461→   461→                  {attachmentPreview ? (
-   462→   462→                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-white/10">
-   463→   463→                      <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
-   464→   464→                    </div>
-   465→   465→                  ) : (
-   466→   466→                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)" }}>
-   467→   467→                      {attachmentFile.type === "application/pdf" ? (
-   468→   468→                        <FileText className="size-5" />
-   469→   469→                      ) : attachmentFile.type.startsWith("video/") ? (
-   470→   470→                        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
-   471→   471→                      ) : (
-   472→   472→                        <FileText className="size-5" />
-   473→   473→                      )}
-   474→   474→                    </div>
-   475→   475→                  )}
-   476→   476→                  <div className="min-w-0 flex-1">
-   477→   477→                    <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
-   478→   478→                    <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
-   479→   479→                  </div>
-   480→   480→                  {isUploading ? (
-   481→   481→                    <Loader2 className="size-5 shrink-0 animate-spin" style={{ color: "var(--app-accent)" }} />
-   482→   482→                  ) : (
-   483→   483→                    <button
-   484→   484→                      type="button"
-   485→   485→                      onClick={clearAttachment}
-   486→   486→                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
-   487→   487→                      aria-label="Remove attachment"
-   488→   488→                    >
-   489→   489→                      <X className="size-4" />
-   490→   490→                    </button>
-   491→   491→                  )}
-   492→   492→                </div>
-   493→   493→              </m.div>
-   494→   494→            )}
-   495→   495→          </AnimatePresence>
-   496→   496→
-   497→   497→          {/* Reply preview bar */}
-   498→   498→          <AnimatePresence>
-   499→   499→            {replyTo && (
-   500→   500→              <m.div
-   501→   501→                initial={{ height: 0, opacity: 0 }}
-   502→   502→                animate={{ height: "auto", opacity: 1 }}
-   503→   503→                exit={{ height: 0, opacity: 0 }}
-   504→   504→                transition={{ duration: 0.15, ease: "easeOut" }}
-   505→   505→                className="overflow-hidden backdrop-blur-sm rounded-2xl"
-   506→   506→                style={{ backgroundColor: "var(--app-accent-subtle)", borderLeft: "2px solid var(--app-accent)" }}
-   507→   507→              >
-   508→   508→                <div className="flex items-center gap-2 px-4 py-2">
-   509→   509→                  <div className="w-1 h-8 rounded-full" style={{ background: "linear-gradient(to bottom, var(--app-accent-from), var(--app-accent-to))" }} />
-   510→   510→                  <div className="min-w-0 flex-1">
-   511→   511→                    <p className="text-[11px] font-semibold" style={{ color: "var(--app-accent)" }}>{replyTo.sender_name || "Unknown"}</p>
-   512→   512→                    <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
-   513→   513→                  </div>
-   514→   514→                  <div className="flex items-center gap-1.5">
-   515→   515→                    <button
-   516→   516→                      type="button"
-   517→   517→                      onClick={() => setReplyTo(null)}
-   518→   518→                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95"
-   519→   519→                    >
-   520→   520→                      <X className="size-3.5" />
-   521→   521→                    </button>
-   522→   522→                    <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
-   523→   523→                  </div>
-   524→   524→                </div>
-   525→   525→              </m.div>
-   526→   526→            )}
-   527→   527→          </AnimatePresence>
-   528→   528→        </div>
-   529→   529→      )}
-   530→   530→
-   531→   531→      {/* Compact floating input pill */}
-   532→   532→      <form onSubmit={handleSubmit}>
-   533→   533→        <div
-   534→   534→          className={cn(
-   535→   535→            "fixed left-1/2 -translate-x-1/2",
-   536→   536→            "w-[90%] max-w-lg",
-   537→   537→            "rounded-full",
-   538→   538→            "backdrop-blur-2xl bg-white/[0.06]",
-   539→   539→            "border border-white/[0.08]",
-   540→   540→            "p-1.5 px-3 shadow-2xl z-40",
-   541→   541→            "flex items-center gap-2",
-   542→   542→            "transition-all duration-200",
-   543→   543→            "focus-within:bg-white/[0.10] focus-within:border-white/[0.15]",
-   544→   544→          )}
-   545→   545→          style={{ bottom: 'max(16px, env(safe-area-inset-bottom))' }}
-   546→   546→        >
-   547→   547→          {/* Paperclip button — left side of pill */}
-   548→   548→          {!showVoiceWaveform && (
-   549→   549→            <button
-   550→   550→              type="button"
-   551→   551→              onClick={handlePaperclipClick}
-   552→   552→              className={cn(
-   553→   553→                "flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 active:scale-95",
-   554→   554→                hasAttachment ? "text-[var(--app-accent)]" : "text-white/50 hover:text-white/80",
-   555→   555→              )}
-   556→   556→              aria-label="Attach file"
-   557→   557→            >
-   558→   558→              <Paperclip className="size-4" />
-   559→   559→            </button>
-   560→   560→          )}
-   561→   561→
-   562→   562→          {/* Emoji button — left side of pill, next to paperclip */}
-   563→   563→          {!showVoiceWaveform && (
-   564→   564→            <EmojiPicker
-   565→   565→              onSelect={(emoji) => {
-   566→   566→                const ta = inputRef.current;
-   567→   567→                if (!ta) return;
-   568→   568→                const start = ta.selectionStart ?? draft.length;
-   569→   569→                const end = ta.selectionEnd ?? draft.length;
-   570→   570→                const before = draft.slice(0, start);
-   571→   571→                const after = draft.slice(end);
-   572→   572→                setDraft(before + emoji + after);
-   573→   573→                requestAnimationFrame(() => {
-   574→   574→                  const pos = start + emoji.length;
-   575→   575→                  ta.focus();
-   576→   576→                  ta.setSelectionRange(pos, pos);
-   577→   577→                });
-   578→   578→              }}
-   579→   579→            >
-   580→   580→              <button
-   581→   581→                type="button"
-   582→   582→                className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:text-white/80 active:scale-95"
-   583→   583→                aria-label="Emoji"
-   584→   584→              >
-   585→   585→                <Smile className="size-4" />
-   586→   586→              </button>
-   587→   587→            </EmojiPicker>
-   588→   588→          )}
-   589→   589→
-   590→   590→          {/* Textarea — middle of pill (hidden when recording) */}
-   591→   591→          {!showVoiceWaveform && (
-   592→   592→            <textarea
-   593→   593→              ref={inputRef}
-   594→   594→              value={draft}
-   595→   595→              onChange={handleInputChange}
-   596→   596→              onKeyDown={handleKeyDown}
-   597→   597→              onInput={handleInput}
-   598→   598→              placeholder={replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message..."}
-   599→   599→              rows={1}
-   600→   600→              className={cn(
-   601→   601→                "flex-1 resize-none bg-transparent py-2 px-1 text-sm",
-   602→   602→                "text-white placeholder:text-white/40",
-   603→   603→                "focus-visible:outline-none",
-   604→   604→                "max-h-32 overflow-y-auto",
-   605→   605→                "scrollbar-none",
-   606→   606→              )}
-   607→   607→            />
-   608→   608→          )}
-   609→   609→
-   610→   610→          {/* Voice waveform overlay — replaces textarea inside the pill */}
-   611→   611→          {showVoiceWaveform && (
-   612→   612→            <div className="flex flex-1 items-center gap-3 px-3 py-1.5">
-   613→   613→              {/* Red recording dot */}
-   614→   614→              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-500">
-   615→   615→                {voice.isRecording && (
-   616→   616→                  <span className="relative flex size-3">
-   617→   617→                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-   618→   618→                    <span className="relative inline-flex size-3 rounded-full bg-red-500" />
-   619→   619→                  </span>
-   620→   620→                )}
-   621→   621→              </div>
-   622→   622→
-   623→   623→              {/* Waveform bars */}
-   624→   624→              <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 32 }}>
-   625→   625→                {voice.amplitudes.slice(-40).map((amp, i) => (
-   626→   626→                  <div
-   627→   627→                    key={i}
-   628→   628→                    className="w-[2px] rounded-full transition-all duration-75"
-   629→   629→                    style={{
-   630→   630→                      height: `${Math.max(3, amp * 32)}px`,
-   631→   631→                      backgroundColor: "var(--app-accent)",
-   632→   632→                      opacity: 0.7,
-   633→   633→                    }}
-   634→   634→                  />
-   635→   635→                ))}
-   636→   636→              </div>
-   637→   637→
-   638→   638→              {/* Timer */}
-   639→   639→              <span className="shrink-0 text-xs font-medium tabular-nums text-white/50">
-   640→   640→                {Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}
-   641→   641→              </span>
-   642→   642→            </div>
-   643→   643→          )}
-   644→   644→
-   645→   645→          {/* Right side of pill: Send / Mic / Voice controls */}
-   646→   646→
-   647→   647→          {/* Cancel recording button */}
-   648→   648→          {showVoiceWaveform && (
-   649→   649→            <button
-   650→   650→              type="button"
-   651→   651→              onClick={handleVoiceCancel}
-   652→   652→              className="flex size-8 shrink-0 items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
-   653→   653→              aria-label="Cancel recording"
-   654→   654→            >
-   655→   655→              <MicOff className="size-4" />
-   656→   656→            </button>
-   657→   657→          )}
-   658→   658→
-   659→   659→          {/* Voice send button */}
-   660→   660→          {showVoiceWaveform && (
-   661→   661→            <button
-   662→   662→              type="button"
-   663→   663→              onClick={handleVoiceSend}
-   664→   664→              disabled={isSendingVoice}
-   665→   665→              className="flex size-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-50"
-   666→   666→              style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }}
-   667→   667→              aria-label="Send voice"
-   668→   668→            >
-   669→   669→              {isSendingVoice ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
-   670→   670→            </button>
-   671→   671→          )}
-   672→   672→
-   673→   673→          {/* Send button (shown when there's text or attachment) */}
-   674→   674→          {!showVoiceWaveform && canSend && (
-   675→   675→            <AnimatePresence>
-   676→   676→              <m.div
-   677→   677→                key={sendBtnKey}
-   678→   678→                initial={{ scale: 0, opacity: 0, rotate: -90 }}
-   679→   679→                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-   680→   680→                exit={{ scale: 0, opacity: 0 }}
-   681→   681→                transition={{ duration: 0.15, ease: "easeOut" }}
-   682→   682→              >
-   683→   683→                <Button
-   684→   684→                  type="submit"
-   685→   685→                  size="icon"
-   686→   686→                  disabled={isSending || isUploading}
-   687→   687→                  className="size-8 shrink-0 rounded-full text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
-   688→   688→                  style={{
-   689→   689→                    background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
-   690→   690→                  }}
-   691→   691→                  aria-label="Send message"
-   692→   692→                >
-   693→   693→                  <ArrowUp className="size-3.5" />
-   694→   694→                </Button>
-   695→   695→              </m.div>
-   696→   696→            </AnimatePresence>
-   697→   697→          )}
-   698→   698→
-   699→   699→          {/* Mic button (shown when input is empty and no attachment) */}
-   700→   700→          {!showVoiceWaveform && !canSend && (
-   701→   701→            <AnimatePresence>
-   702→   702→              <m.div
-   703→   703→                initial={{ scale: 0, opacity: 0 }}
-   704→   704→                animate={{ scale: 1, opacity: 1 }}
-   705→   705→                exit={{ scale: 0, opacity: 0 }}
-   706→   706→                transition={{ duration: 0.15, ease: "easeOut" }}
-   707→   707→              >
-   708→   708→                <button
-   709→   709→                  type="button"
-   710→   710→                  onClick={() => voice.startRecording()}
-   711→   711→                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 active:scale-95"
-   712→   712→                  aria-label="Record voice"
-   713→   713→                >
-   714→   714→                  <Mic className="size-4" />
-   715→   715→                </button>
-   716→   716→              </m.div>
-   717→   717→            </AnimatePresence>
-   718→   718→          )}
-   719→   719→        </div>
-   720→   720→      </form>
-   721→   721→
-   722→   722→      {/* Partner Info Panel */}
-   723→   723→      <PartnerInfoPanel
-   724→   724→        partner={partner}
-   725→   725→        partnerStatus={partnerStatus}
-   726→   726→        open={infoPanelOpen}
-   727→   727→        onClose={() => setInfoPanelOpen(false)}
-   728→   728→      />
-   729→   729→    </div>
-   730→   730→  );
-   731→   731→}
-   732→   732→
+   410→   410→        {/* Feed area — spacer for input pill at bottom */}
+   411→   411→        <div className="relative min-h-0 flex-1" style={{ paddingBottom: 'calc(64px + max(16px, env(safe-area-inset-bottom, 0px)))' }}>
+   412→   412→          <MessageFeed
+   413→   413→            messages={messages}
+   414→   414→            isLoading={isLoading}
+   415→   415→            isPartnerTyping={isPartnerTyping}
+   416→   416→            currentUserId={currentUserId}
+   417→   417→            partnerName={partner.name}
+   418→   418→            partnerAvatar={partner.avatar_url}
+   419→   419→            backgroundStyle={bgStyle}
+   420→   420→            currentUserName={currentUserName}
+   421→   421→            currentUserAvatar={currentUserAvatar}
+   422→   422→            onMarkAsRead={markAsRead}
+   423→   423→            onVanishMessage={vanishMessage}
+   424→   424→            onDeleteMessage={deleteMessage}
+   425→   425→            onReplyTo={setReplyTo}
+   426→   426→            onReact={sendReaction}
+   427→   427→            loadMore={loadMore}
+   428→   428→            hasMore={hasMore}
+   429→   429→            loadingMore={loadingMore}
+   430→   430→          />
+   431→   431→        </div>
+   432→   432→      </div>
+   433→   433→
+   434→   434→      {/* Hidden file input for attachments */}
+   435→   435→      <input
+   436→   436→        ref={fileInputRef}
+   437→   437→        type="file"
+   438→   438→        accept={ACCEPTED_TYPES}
+   439→   439→        onChange={handleFileSelect}
+   440→   440→        className="hidden"
+   441→   441→        aria-hidden="true"
+   442→   442→      />
+   443→   443→
+   444→   444→      {/* Floating preview bars above the pill */}
+   445→   445→      {(replyTo || attachmentFile) && (
+   446→   446→        <div
+   447→   447→          className="absolute left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-30 flex flex-col gap-1.5"
+   448→   448→          style={{ bottom: 'calc(max(16px, env(safe-area-inset-bottom, 0px)) + 60px)' }}
+   449→   449→        >
+   450→   450→          {/* Attachment preview bar */}
+   451→   451→          <AnimatePresence>
+   452→   452→            {attachmentFile && (
+   453→   453→              <m.div
+   454→   454→                initial={{ height: 0, opacity: 0 }}
+   455→   455→                animate={{ height: "auto", opacity: 1 }}
+   456→   456→                exit={{ height: 0, opacity: 0 }}
+   457→   457→                transition={{ duration: 0.15, ease: "easeOut" }}
+   458→   458→                className="overflow-hidden rounded-2xl border backdrop-blur-sm"
+   459→   459→                style={{ backgroundColor: "var(--app-accent-subtle)", borderColor: "var(--app-accent-subtle)" }}
+   460→   460→              >
+   461→   461→                <div className="flex items-center gap-3 px-4 py-2.5">
+   462→   462→                  {attachmentPreview ? (
+   463→   463→                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-white/10">
+   464→   464→                      <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
+   465→   465→                    </div>
+   466→   466→                  ) : (
+   467→   467→                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)" }}>
+   468→   468→                      {attachmentFile.type === "application/pdf" ? (
+   469→   469→                        <FileText className="size-5" />
+   470→   470→                      ) : attachmentFile.type.startsWith("video/") ? (
+   471→   471→                        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+   472→   472→                      ) : (
+   473→   473→                        <FileText className="size-5" />
+   474→   474→                      )}
+   475→   475→                    </div>
+   476→   476→                  )}
+   477→   477→                  <div className="min-w-0 flex-1">
+   478→   478→                    <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
+   479→   479→                    <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
+   480→   480→                  </div>
+   481→   481→                  {isUploading ? (
+   482→   482→                    <Loader2 className="size-5 shrink-0 animate-spin" style={{ color: "var(--app-accent)" }} />
+   483→   483→                  ) : (
+   484→   484→                    <button
+   485→   485→                      type="button"
+   486→   486→                      onClick={clearAttachment}
+   487→   487→                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+   488→   488→                      aria-label="Remove attachment"
+   489→   489→                    >
+   490→   490→                      <X className="size-4" />
+   491→   491→                    </button>
+   492→   492→                  )}
+   493→   493→                </div>
+   494→   494→              </m.div>
+   495→   495→            )}
+   496→   496→          </AnimatePresence>
+   497→   497→
+   498→   498→          {/* Reply preview bar */}
+   499→   499→          <AnimatePresence>
+   500→   500→            {replyTo && (
+   501→   501→              <m.div
+   502→   502→                initial={{ height: 0, opacity: 0 }}
+   503→   503→                animate={{ height: "auto", opacity: 1 }}
+   504→   504→                exit={{ height: 0, opacity: 0 }}
+   505→   505→                transition={{ duration: 0.15, ease: "easeOut" }}
+   506→   506→                className="overflow-hidden backdrop-blur-sm rounded-2xl"
+   507→   507→                style={{ backgroundColor: "var(--app-accent-subtle)", borderLeft: "2px solid var(--app-accent)" }}
+   508→   508→              >
+   509→   509→                <div className="flex items-center gap-2 px-4 py-2">
+   510→   510→                  <div className="w-1 h-8 rounded-full" style={{ background: "linear-gradient(to bottom, var(--app-accent-from), var(--app-accent-to))" }} />
+   511→   511→                  <div className="min-w-0 flex-1">
+   512→   512→                    <p className="text-[11px] font-semibold" style={{ color: "var(--app-accent)" }}>{replyTo.sender_name || "Unknown"}</p>
+   513→   513→                    <p className="truncate text-xs text-muted-foreground">{replyTo.content}</p>
+   514→   514→                  </div>
+   515→   515→                  <div className="flex items-center gap-1.5">
+   516→   516→                    <button
+   517→   517→                      type="button"
+   518→   518→                      onClick={() => setReplyTo(null)}
+   519→   519→                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95"
+   520→   520→                    >
+   521→   521→                      <X className="size-3.5" />
+   522→   522→                    </button>
+   523→   523→                    <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
+   524→   524→                  </div>
+   525→   525→                </div>
+   526→   526→              </m.div>
+   527→   527→            )}
+   528→   528→          </AnimatePresence>
+   529→   529→        </div>
+   530→   530→      )}
+   531→   531→
+   532→   532→      {/* Compact floating input pill */}
+   533→   533→      <form onSubmit={handleSubmit}>
+   534→   534→        <div
+   535→   535→          className={cn(
+   536→   536→            "absolute left-1/2 -translate-x-1/2",
+   537→   537→            "w-[90%] max-w-lg",
+   538→   538→            "rounded-full",
+   539→   539→            "backdrop-blur-2xl bg-white/[0.06]",
+   540→   540→            "border border-white/[0.08]",
+   541→   541→            "p-1.5 px-3 shadow-2xl z-40",
+   542→   542→            "flex items-center gap-2",
+   543→   543→            "transition-all duration-200",
+   544→   544→            "focus-within:bg-white/[0.10] focus-within:border-white/[0.15]",
+   545→   545→          )}
+   546→   546→          style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
+   547→   547→        >
+   548→   548→          {/* Paperclip button — left side of pill */}
+   549→   549→          {!showVoiceWaveform && (
+   550→   550→            <button
+   551→   551→              type="button"
+   552→   552→              onClick={handlePaperclipClick}
+   553→   553→              className={cn(
+   554→   554→                "flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 active:scale-95",
+   555→   555→                hasAttachment ? "text-[var(--app-accent)]" : "text-white/50 hover:text-white/80",
+   556→   556→              )}
+   557→   557→              aria-label="Attach file"
+   558→   558→            >
+   559→   559→              <Paperclip className="size-4" />
+   560→   560→            </button>
+   561→   561→          )}
+   562→   562→
+   563→   563→          {/* Emoji button — left side of pill, next to paperclip */}
+   564→   564→          {!showVoiceWaveform && (
+   565→   565→            <EmojiPicker
+   566→   566→              onSelect={(emoji) => {
+   567→   567→                const ta = inputRef.current;
+   568→   568→                if (!ta) return;
+   569→   569→                const start = ta.selectionStart ?? draft.length;
+   570→   570→                const end = ta.selectionEnd ?? draft.length;
+   571→   571→                const before = draft.slice(0, start);
+   572→   572→                const after = draft.slice(end);
+   573→   573→                setDraft(before + emoji + after);
+   574→   574→                requestAnimationFrame(() => {
+   575→   575→                  const pos = start + emoji.length;
+   576→   576→                  ta.focus();
+   577→   577→                  ta.setSelectionRange(pos, pos);
+   578→   578→                });
+   579→   579→              }}
+   580→   580→            >
+   581→   581→              <button
+   582→   582→                type="button"
+   583→   583→                className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:text-white/80 active:scale-95"
+   584→   584→                aria-label="Emoji"
+   585→   585→              >
+   586→   586→                <Smile className="size-4" />
+   587→   587→              </button>
+   588→   588→            </EmojiPicker>
+   589→   589→          )}
+   590→   590→
+   591→   591→          {/* Textarea — middle of pill (hidden when recording) */}
+   592→   592→          {!showVoiceWaveform && (
+   593→   593→            <textarea
+   594→   594→              ref={inputRef}
+   595→   595→              value={draft}
+   596→   596→              onChange={handleInputChange}
+   597→   597→              onKeyDown={handleKeyDown}
+   598→   598→              onInput={handleInput}
+   599→   599→              placeholder={replyTo ? `Reply to ${replyTo.sender_name || "message"}...` : "Type a message..."}
+   600→   600→              rows={1}
+   601→   601→              className={cn(
+   602→   602→                "flex-1 resize-none bg-transparent py-2 px-1 text-sm",
+   603→   603→                "text-white placeholder:text-white/40",
+   604→   604→                "focus-visible:outline-none",
+   605→   605→                "max-h-32 overflow-y-auto",
+   606→   606→                "scrollbar-none",
+   607→   607→              )}
+   608→   608→            />
+   609→   609→          )}
+   610→   610→
+   611→   611→          {/* Voice waveform overlay — replaces textarea inside the pill */}
+   612→   612→          {showVoiceWaveform && (
+   613→   613→            <div className="flex flex-1 items-center gap-3 px-3 py-1.5">
+   614→   614→              {/* Red recording dot */}
+   615→   615→              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+   616→   616→                {voice.isRecording && (
+   617→   617→                  <span className="relative flex size-3">
+   618→   618→                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
+   619→   619→                    <span className="relative inline-flex size-3 rounded-full bg-red-500" />
+   620→   620→                  </span>
+   621→   621→                )}
+   622→   622→              </div>
+   623→   623→
+   624→   624→              {/* Waveform bars */}
+   625→   625→              <div className="flex flex-1 items-end justify-center gap-px" style={{ height: 32 }}>
+   626→   626→                {voice.amplitudes.slice(-40).map((amp, i) => (
+   627→   627→                  <div
+   628→   628→                    key={i}
+   629→   629→                    className="w-[2px] rounded-full transition-all duration-75"
+   630→   630→                    style={{
+   631→   631→                      height: `${Math.max(3, amp * 32)}px`,
+   632→   632→                      backgroundColor: "var(--app-accent)",
+   633→   633→                      opacity: 0.7,
+   634→   634→                    }}
+   635→   635→                  />
+   636→   636→                ))}
+   637→   637→              </div>
+   638→   638→
+   639→   639→              {/* Timer */}
+   640→   640→              <span className="shrink-0 text-xs font-medium tabular-nums text-white/50">
+   641→   641→                {Math.floor(voice.duration / 60)}:{String(voice.duration % 60).padStart(2, "0")}
+   642→   642→              </span>
+   643→   643→            </div>
+   644→   644→          )}
+   645→   645→
+   646→   646→          {/* Right side of pill: Send / Mic / Voice controls */}
+   647→   647→
+   648→   648→          {/* Cancel recording button */}
+   649→   649→          {showVoiceWaveform && (
+   650→   650→            <button
+   651→   651→              type="button"
+   652→   652→              onClick={handleVoiceCancel}
+   653→   653→              className="flex size-8 shrink-0 items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
+   654→   654→              aria-label="Cancel recording"
+   655→   655→            >
+   656→   656→              <MicOff className="size-4" />
+   657→   657→            </button>
+   658→   658→          )}
+   659→   659→
+   660→   660→          {/* Voice send button */}
+   661→   661→          {showVoiceWaveform && (
+   662→   662→            <button
+   663→   663→              type="button"
+   664→   664→              onClick={handleVoiceSend}
+   665→   665→              disabled={isSendingVoice}
+   666→   666→              className="flex size-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-50"
+   667→   667→              style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }}
+   668→   668→              aria-label="Send voice"
+   669→   669→            >
+   670→   670→              {isSendingVoice ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+   671→   671→            </button>
+   672→   672→          )}
+   673→   673→
+   674→   674→          {/* Send button (shown when there's text or attachment) */}
+   675→   675→          {!showVoiceWaveform && canSend && (
+   676→   676→            <AnimatePresence>
+   677→   677→              <m.div
+   678→   678→                key={sendBtnKey}
+   679→   679→                initial={{ scale: 0, opacity: 0, rotate: -90 }}
+   680→   680→                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+   681→   681→                exit={{ scale: 0, opacity: 0 }}
+   682→   682→                transition={{ duration: 0.15, ease: "easeOut" }}
+   683→   683→              >
+   684→   684→                <Button
+   685→   685→                  type="submit"
+   686→   686→                  size="icon"
+   687→   687→                  disabled={isSending || isUploading}
+   688→   688→                  className="size-8 shrink-0 rounded-full text-white transition-all duration-200 hover:opacity-80 hover:scale-105 active:scale-95"
+   689→   689→                  style={{
+   690→   690→                    background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))",
+   691→   691→                  }}
+   692→   692→                  aria-label="Send message"
+   693→   693→                >
+   694→   694→                  <ArrowUp className="size-3.5" />
+   695→   695→                </Button>
+   696→   696→              </m.div>
+   697→   697→            </AnimatePresence>
+   698→   698→          )}
+   699→   699→
+   700→   700→          {/* Mic button (shown when input is empty and no attachment) */}
+   701→   701→          {!showVoiceWaveform && !canSend && (
+   702→   702→            <AnimatePresence>
+   703→   703→              <m.div
+   704→   704→                initial={{ scale: 0, opacity: 0 }}
+   705→   705→                animate={{ scale: 1, opacity: 1 }}
+   706→   706→                exit={{ scale: 0, opacity: 0 }}
+   707→   707→                transition={{ duration: 0.15, ease: "easeOut" }}
+   708→   708→              >
+   709→   709→                <button
+   710→   710→                  type="button"
+   711→   711→                  onClick={() => voice.startRecording()}
+   712→   712→                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 active:scale-95"
+   713→   713→                  aria-label="Record voice"
+   714→   714→                >
+   715→   715→                  <Mic className="size-4" />
+   716→   716→                </button>
+   717→   717→              </m.div>
+   718→   718→            </AnimatePresence>
+   719→   719→          )}
+   720→   720→        </div>
+   721→   721→      </form>
+   722→   722→
+   723→   723→      {/* Partner Info Panel */}
+   724→   724→      <PartnerInfoPanel
+   725→   725→        partner={partner}
+   726→   726→        partnerStatus={partnerStatus}
+   727→   727→        open={infoPanelOpen}
+   728→   728→        onClose={() => setInfoPanelOpen(false)}
+   729→   729→      />
+   730→   730→    </div>
+   731→   731→  );
+   732→   732→}
+   733→   733→

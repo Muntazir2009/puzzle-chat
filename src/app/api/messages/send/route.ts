@@ -117,7 +117,12 @@ export async function POST(req: NextRequest) {
       console.error("[messages/send] Pusher trigger failed (non-fatal):", pusherErr);
     }
 
-    return NextResponse.json(message, { status: 201 });
+    return NextResponse.json({
+      ...message,
+      sender_name,
+      reply_to_content,
+      reply_to_sender_name,
+    }, { status: 201 });
   } catch (err) {
     console.error("[messages/send] error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

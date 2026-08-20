@@ -62,6 +62,10 @@ function useDoubleTap(
     const now = Date.now();
     if (now - lastTapRef.current < delay) {
       lastTapRef.current = 0;
+      // Haptic feedback on double-tap
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(10);
+      }
       onDoubleTap();
       return true; // is double tap
     }
@@ -886,10 +890,14 @@ const MessageBubble = React.memo(function MessageBubble({
   const showActionSheet = activeActionId === message.id;
   const [showLightbox, setShowLightbox] = useState<string | null>(null);
   const [showReplyArrow, setShowReplyArrow] = useState(false);
+  const [showHeart, setShowHeart] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const touchStartRef = useRef({ x: 0, y: 0 });
   const touchCurrentRef = useRef({ x: 0, y: 0 });
   const longPressRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
   const wasDraggedRef = useRef(false);
@@ -898,6 +906,8 @@ const MessageBubble = React.memo(function MessageBubble({
   const handleDoubleTapReaction = useCallback(() => {
     if (!onReact) return;
     onReact(message.id, "\u{1F44D}", true);
+    setShowHeart(true);
+    setTimeout(() => setShowHeart(false), 600);
   }, [message.id, onReact]);
 
   const doubleTap = useDoubleTap(handleDoubleTapReaction);
@@ -911,18 +921,21 @@ const MessageBubble = React.memo(function MessageBubble({
     // Check double-tap first
     const isDouble = doubleTap();
     if (isDouble) {
-      // Double tap — close any open menus (reaction was already sent by hook)
+      // Double tap — cancel single-tap timer, close menus
+      clearTimeout(singleTapTimerRef.current);
       onOpenAction(null);
       onOpenTapback(null);
       return;
     }
-    // Single tap — toggle action sheet
-    if (activeActionId === message.id) {
-      onOpenAction(null);
-    } else {
-      onOpenAction(message.id);
-      onOpenTapback(null);
-    }
+    // Delay single-tap action sheet by 250ms to allow for double-tap
+    singleTapTimerRef.current = setTimeout(() => {
+      if (activeActionId === message.id) {
+        onOpenAction(null);
+      } else {
+        onOpenAction(message.id);
+        onOpenTapback(null);
+      }
+    }, 250);
   }, [activeActionId, message.id, onOpenAction, onOpenTapback, doubleTap]);
 
   const handlePressStart = useCallback(() => {
@@ -1170,6 +1183,23 @@ const MessageBubble = React.memo(function MessageBubble({
                 <Reply className="size-4 text-white rotate-180" />
               </div>
             </div>
+
+            {/* Double-tap heart animation (like Instagram) */}
+            <AnimatePresence>
+              {showHeart && (
+                <m.span
+                  key="heart"
+                  initial={{ scale: 0, opacity: 1 }}
+                  animate={{ scale: 1.2, opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                  style={{ fontSize: 48 }}
+                >
+                  ❤️
+                </m.span>
+              )}
+            </AnimatePresence>
 
             {/* Message Action Sheet (single-tap menu) */}
             <AnimatePresence>

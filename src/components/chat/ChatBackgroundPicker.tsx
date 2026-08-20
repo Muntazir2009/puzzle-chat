@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Palette, ImagePlus, X } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useState, useCallback, useRef } from "react";
+import { Palette, ImagePlus, X, Upload } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -260,6 +260,7 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
   const [open, setOpen] = useState(false);
   const [customUrlMode, setCustomUrlMode] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleApplyCustomUrl = useCallback(() => {
     const trimmed = customUrl.trim();
@@ -280,152 +281,197 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
     setOpen(false);
   }, [onSetWallpaper]);
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "flex size-8 items-center justify-center rounded-full transition-colors duration-200",
-            open
-              ? "text-[var(--app-accent)]"
-              : "text-white/60 hover:text-white hover:bg-white/10",
-          )}
-          style={open ? { backgroundColor: "var(--app-accent-subtle)" } : undefined}
-          aria-label="Chat background theme"
-        >
-          <Palette className="size-4" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        side="bottom"
-        sideOffset={8}
-        className="w-auto rounded-2xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl p-3"
-      >
-        <p className="mb-2.5 px-1 text-xs font-medium text-zinc-400">
-          Chat Background
-        </p>
-        <div className="grid grid-cols-4 gap-2">
-          {themes.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => { onSelect(t.id); setOpen(false); }}
-              className="group relative flex size-10 items-center justify-center rounded-lg transition-all duration-200 outline-none"
-              title={t.label}
-              aria-label={t.label}
-              aria-pressed={t.id === themeId}
-            >
-              <span
-                className={cn(
-                  "size-full rounded-lg border transition-all duration-200",
-                  t.id === themeId
-                    ? "ring-2 ring-[var(--app-accent)]"
-                    : "hover:border-zinc-500",
-                )}
-                style={t.id === themeId
-                  ? { ...t.previewStyle, borderColor: "var(--app-accent)" }
-                  : { ...t.previewStyle, borderColor: "rgba(255,255,255,0.1)" }
-                }
-              />
-              <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
-                {t.label}
-              </span>
-            </button>
-          ))}
-        </div>
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      onSetWallpaper(dataUrl);
+      setOpen(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, [onSetWallpaper]);
 
-        {/* Wallpaper section */}
-        <div className="mt-4 border-t border-white/5 pt-3">
-          <p className="mb-2 px-1 text-xs font-medium text-zinc-400">
-            Wallpapers
-          </p>
-          <div className="flex items-center gap-2">
-            {WALLPAPER_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => handlePresetClick(preset)}
-                className="group relative flex size-10 items-center justify-center rounded-lg transition-all duration-200 outline-none"
-                title={preset.label}
-                aria-label={`Wallpaper: ${preset.label}`}
-              >
-                <span
+  return (
+    <>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "flex size-8 items-center justify-center rounded-full transition-colors duration-200",
+              open
+                ? "text-[var(--app-accent)]"
+                : "text-white/60 hover:text-white hover:bg-white/10",
+            )}
+            style={open ? { backgroundColor: "var(--app-accent-subtle)" } : undefined}
+            aria-label="Chat background theme"
+          >
+            <Palette className="size-4" />
+          </button>
+        </SheetTrigger>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-3xl border-white/10 bg-zinc-900/95 backdrop-blur-xl p-0"
+        >
+          <SheetHeader className="px-5 pt-5 pb-0">
+            <SheetTitle className="text-base font-semibold text-white">
+              Chat Background
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="px-5 pb-8 pt-4 overflow-y-auto max-h-[60vh]">
+            {/* Themes grid */}
+            <p className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+              Themes
+            </p>
+            <div className="grid grid-cols-4 gap-3">
+              {themes.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { onSelect(t.id); setOpen(false); }}
+                  className="group relative flex flex-col items-center gap-1.5 outline-none"
+                  title={t.label}
+                  aria-label={t.label}
+                  aria-pressed={t.id === themeId}
+                >
+                  <span
+                    className={cn(
+                      "size-12 rounded-xl border transition-all duration-200",
+                      t.id === themeId
+                        ? "ring-2 ring-[var(--app-accent)]"
+                        : "hover:border-zinc-500",
+                    )}
+                    style={t.id === themeId
+                      ? { ...t.previewStyle, borderColor: "var(--app-accent)" }
+                      : { ...t.previewStyle, borderColor: "rgba(255,255,255,0.1)" }
+                    }
+                  />
+                  <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
+                    {t.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Wallpaper section */}
+            <div className="mt-5 border-t border-white/5 pt-4">
+              <p className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+                Wallpapers
+              </p>
+              <div className="flex items-center gap-3">
+                {WALLPAPER_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handlePresetClick(preset)}
+                    className="group relative flex flex-col items-center gap-1.5 outline-none"
+                    title={preset.label}
+                    aria-label={`Wallpaper: ${preset.label}`}
+                  >
+                    <span
+                      className={cn(
+                        "size-12 rounded-xl border transition-all duration-200",
+                        wallpaper === preset.cssBackground
+                          ? "ring-2 ring-[var(--app-accent)]"
+                          : "hover:border-zinc-500",
+                      )}
+                      style={wallpaper === preset.cssBackground
+                        ? { ...preset.previewStyle, borderColor: "var(--app-accent)" }
+                        : { ...preset.previewStyle, borderColor: "rgba(255,255,255,0.1)" }
+                      }
+                    />
+                    <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
+                      {preset.label}
+                    </span>
+                  </button>
+                ))}
+
+                {/* Custom URL button */}
+                <button
+                  type="button"
+                  onClick={() => setCustomUrlMode(true)}
                   className={cn(
-                    "size-full rounded-lg border transition-all duration-200",
-                    wallpaper === preset.cssBackground
+                    "flex size-12 items-center justify-center rounded-xl border transition-all duration-200 outline-none",
+                    customUrlMode
                       ? "ring-2 ring-[var(--app-accent)]"
                       : "hover:border-zinc-500",
                   )}
-                  style={wallpaper === preset.cssBackground
-                    ? { ...preset.previewStyle, borderColor: "var(--app-accent)" }
-                    : { ...preset.previewStyle, borderColor: "rgba(255,255,255,0.1)" }
+                  style={customUrlMode
+                    ? { borderColor: "var(--app-accent)", backgroundColor: "var(--app-accent-subtle)" }
+                    : { borderColor: "rgba(255,255,255,0.1)" }
                   }
-                />
-                <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
-                  {preset.label}
-                </span>
-              </button>
-            ))}
+                  title="Custom URL"
+                  aria-label="Set custom wallpaper URL"
+                >
+                  <ImagePlus className="size-4" style={{ color: customUrlMode ? "var(--app-accent)" : "rgb(161 161 170)" }} />
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setCustomUrlMode(true)}
-              className={cn(
-                "flex size-10 items-center justify-center rounded-lg border transition-all duration-200 outline-none",
-                customUrlMode
-                  ? "ring-2 ring-[var(--app-accent)]"
-                  : "hover:border-zinc-500",
+                {/* Upload wallpaper button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex size-12 items-center justify-center rounded-xl border border-white/10 transition-all duration-200 outline-none hover:border-zinc-500"
+                  title="Upload Wallpaper"
+                  aria-label="Upload wallpaper image"
+                >
+                  <Upload className="size-4 text-zinc-500" />
+                </button>
+              </div>
+
+              {wallpaper && (
+                <button
+                  type="button"
+                  onClick={handleClearWallpaper}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/10 px-3 py-2 text-xs text-zinc-400 transition-colors hover:bg-white/5"
+                >
+                  <X className="size-3" />
+                  Clear wallpaper
+                </button>
               )}
-              style={customUrlMode
-                ? { borderColor: "var(--app-accent)", backgroundColor: "var(--app-accent-subtle)" }
-                : { borderColor: "rgba(255,255,255,0.1)" }
-              }
-              title="Custom URL"
-              aria-label="Set custom wallpaper URL"
-            >
-              <ImagePlus className="size-4" style={{ color: customUrlMode ? "var(--app-accent)" : "rgb(161 161 170)" }} />
-            </button>
-          </div>
 
-          {wallpaper && (
-            <button
-              type="button"
-              onClick={handleClearWallpaper}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/10 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-white/5"
-            >
-              <X className="size-3" />
-              Clear wallpaper
-            </button>
-          )}
-
-          {customUrlMode && (
-            <div className="mt-2 flex gap-2">
-              <input
-                type="url"
-                value={customUrl}
-                onChange={(e) => setCustomUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleApplyCustomUrl();
-                  if (e.key === "Escape") { setCustomUrlMode(false); setCustomUrl(""); }
-                }}
-                placeholder="https://example.com/image.jpg"
-                className="flex-1 rounded-lg border border-white/10 bg-transparent px-3 py-1.5 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-[var(--app-accent)]"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={handleApplyCustomUrl}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-black transition-opacity hover:opacity-80"
-                style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }}
-              >
-                Apply
-              </button>
+              {customUrlMode && (
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="url"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleApplyCustomUrl();
+                      if (e.key === "Escape") { setCustomUrlMode(false); setCustomUrl(""); }
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className="flex-1 rounded-xl border border-white/10 bg-transparent px-3 py-2 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-[var(--app-accent)]"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCustomUrl}
+                    className="rounded-xl px-4 py-2 text-xs font-medium text-black transition-opacity hover:opacity-80"
+                    style={{ background: "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))" }}
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Hidden file input for wallpaper upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileUpload}
+        className="hidden"
+        aria-hidden="true"
+      />
+    </>
   );
 }
