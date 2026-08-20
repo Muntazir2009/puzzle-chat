@@ -134,3 +134,29 @@ Stage Summary:
 - Dev server compiles successfully (✓ Compiled in 153ms)
 - All three tasks completed without breaking existing functionality
 - Dev mode preference is persisted to localStorage and passed through the component tree
+
+---
+Task ID: 7
+Agent: Main
+Task: Fix recurring Supabase client-side exception (session context lost .env.local)
+
+Work Log:
+- User reported same `@supabase/ssr: Your project's URL and API key are required` error on live site
+- Analyzed screenshot via VLM: confirmed identical Supabase init error in console
+- Root cause: `.env.local` file created in Task ID 2 was lost when session context reset between conversations
+- `.env.local` is gitignored (correct for security) but not persisted across sessions
+
+Changes Made:
+1. **Recreated `.env.local`** with all four `NEXT_PUBLIC_*` vars:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_PUSHER_APP_KEY`
+   - `NEXT_PUBLIC_PUSHER_CLUSTER`
+2. Cleaned `.open-next/` build artifacts (`rm -rf .open-next`)
+3. Rebuilt with `NODE_OPTIONS="--max-old-space-size=2048" npx opennextjs-cloudflare build`
+4. Deployed with `CLOUDFLARE_API_TOKEN` env var — Version ID: `49d69d29-7450-409d-b0a2-1f681da7d158`
+
+Stage Summary:
+- Login page renders correctly with zero console errors
+- Verified via agent-browser: clean login page, no Supabase errors
+- **Key lesson**: `.env.local` must be recreated after session resets since it's gitignored. Values are in `wrangler.jsonc` `vars` for reference.
