@@ -105,7 +105,7 @@ function PartnerInfoPanel({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed top-16 left-1/2 z-50 -translate-x-1/2 w-[90%] max-w-md rounded-2xl bg-neutral-900/90 border border-white/10 shadow-2xl backdrop-blur-xl p-4"
+            className="fixed top-16 left-1/2 z-50 -translate-x-1/2 w-[90%] max-w-md rounded-2xl bg-neutral-900/90 border border-white/10 backdrop-blur-xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Partner avatar + name + status */}
@@ -384,7 +384,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
       {bgLayer}
       <div style={kbOffset} className="relative z-10 flex min-h-0 h-full flex-col">
         {/* Floating pill header — accounts for safe area inset on notched phones */}
-        <header className="shrink-0 z-30 mx-3 mt-2 flex items-center gap-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.08] border border-white/[0.12] shadow-2xl transition-all duration-300 focus-within:bg-white/[0.12] focus-within:border-white/[0.18] focus-within:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_0_rgba(255,255,255,0.08)]" style={{ marginTop: 'max(8px, env(safe-area-inset-top, 0px))' }}>
+        <header className="shrink-0 z-30 mx-3 mt-2 flex items-center gap-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-transparent border border-white/[0.08] transition-all duration-300" style={{ marginTop: 'max(8px, env(safe-area-inset-top, 0px))' }}>
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
@@ -418,7 +418,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
 
         {/* Feed area — padding accounts for safe area + floating header/input */}
         {/* Feed area — spacer for input pill at bottom */}
-        <div className="relative min-h-0 flex-1" style={{ paddingBottom: 'calc(64px + max(16px, env(safe-area-inset-bottom, 0px)))' }}>
+        <div className="relative min-h-0 flex-1" style={{ paddingBottom: 'calc(64px + max(28px, calc(env(safe-area-inset-bottom, 0px) + 12px)))' }}>
           <MessageFeed
             messages={messages}
             isLoading={isLoading}
@@ -454,7 +454,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
       {(replyTo || attachmentFile) && (
         <div
           className="absolute left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-30 flex flex-col gap-1.5"
-          style={{ bottom: 'calc(max(16px, env(safe-area-inset-bottom, 0px)) + 60px)' }}
+          style={{ bottom: 'calc(max(28px, calc(env(safe-area-inset-bottom, 0px) + 12px)) + 60px)' }}
         >
           {/* Attachment preview bar */}
           <AnimatePresence>
@@ -545,14 +545,14 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             "absolute left-1/2 -translate-x-1/2",
             "w-[90%] max-w-lg",
             "rounded-full",
-            "backdrop-blur-2xl bg-white/[0.06]",
+            "backdrop-blur-2xl bg-transparent",
             "border border-white/[0.08]",
-            "p-1.5 px-3 shadow-2xl z-40",
+            "p-1.5 px-3 z-40",
             "flex items-center gap-2",
             "transition-all duration-200",
-            "focus-within:bg-white/[0.10] focus-within:border-white/[0.15]",
+            "focus-within:bg-white/[0.05] focus-within:border-white/[0.12]",
           )}
-          style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
+          style={{ bottom: 'max(28px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}
         >
           {/* Paperclip button — left side of pill */}
           {!showVoiceWaveform && (

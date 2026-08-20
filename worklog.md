@@ -160,3 +160,70 @@ Stage Summary:
 - Login page renders correctly with zero console errors
 - Verified via agent-browser: clean login page, no Supabase errors
 - **Key lesson**: `.env.local` must be recreated after session resets since it's gitignored. Values are in `wrangler.jsonc` `vars` for reference.
+
+---
+Task ID: 8
+Agent: Main
+Task: Fix black bars, transparent pills, remove glow, fix action sheet, fix unread, add upload API, remove search
+
+Work Log:
+- Analyzed all relevant source files (ChatLayout.tsx, MessageFeed.tsx, ChatView.tsx, ConversationList.tsx, ChatBackgroundPicker.tsx, globals.css, sheet.tsx, API routes)
+- Built fix plan covering 12 user-reported issues
+
+Changes Made:
+1. **ChatLayout.tsx — Transparent pills + move input up**:
+   - Header: `bg-white/[0.08]` → `bg-transparent`, removed `shadow-2xl` and `focus-within:shadow-*` classes
+   - Input pill: `bg-white/[0.06]` → `bg-transparent`, `shadow-2xl` removed, `focus-within:bg` reduced to `0.05`
+   - Input pill bottom: `max(16px, env(safe-area-inset-bottom))` → `max(28px, calc(env(safe-area-inset-bottom) + 12px))` (moved up)
+   - Feed paddingBottom updated to match new input position
+   - Preview bars bottom position updated to match
+   - Partner info panel: removed `shadow-2xl`
+2. **MessageFeed.tsx — Action sheet fix + glow removal**:
+   - Added click-away overlay: transparent `fixed inset-0 z-40` div when `activeActionId || activeTapbackId` is set, closes menus on click
+   - Removed `shadow-2xl` from lightbox image
+   - TapbackDock and extra emoji popup: `bg-neutral-900/90` → `bg-neutral-900/95`, removed `shadow-2xl`
+   - Double-tap already correctly reacts ❤️ (verified in code)
+3. **ConversationList.tsx — Remove search + remove glow**:
+   - Removed `searchQuery` state and `filteredConversations` memo
+   - Removed inline search bar JSX entirely
+   - Removed search results empty state
+   - New chat button: removed `shadow-lg`, `hover:shadow-xl`, `boxShadow` accent-ring
+   - Online dot: removed `boxShadow` glow
+   - Unread badge: removed `boxShadow` accent-ring
+   - Empty state floating badge: removed `boxShadow` accent-ring
+4. **globals.css — Remove ALL glow/shadow effects**:
+   - `.liquid-card`: simplified transition to only `border-color, background, transform`
+   - `.liquid-card-active`: removed `box-shadow` (glow ring + inset glow)
+   - `.liquid-pill`: `box-shadow` → `none`
+   - `.liquid-pill-focus:focus-within`: `box-shadow` → `none`
+   - `.liquid-nav-pill`: `box-shadow` → `none`
+   - `.liquid-nav-active`: `box-shadow` → `none`
+5. **sheet.tsx — Fix lag**:
+   - Overlay: `bg-black/50` → `bg-black/40` (lighter overlay renders faster)
+   - (Animation duration was already optimized in previous session: 150ms/200ms)
+6. **ChatView.tsx — Fix unread + refresh on nav**:
+   - `handleSelectConversation`: now clears `unread_count` locally for selected conversation AND calls `/api/conversations/read` to mark all messages as read server-side
+   - `handleNavigate`: when navigating back to list, refetches conversations to pick up new messages/unread counts
+7. **New: `/api/conversations/read/route.ts`**:
+   - POST endpoint that marks all unread messages in a conversation as `read`
+   - Verifies auth + conversation participation
+   - Updates `messages.status` to `"read"` where `sender_id != current_user`
+8. **New: `/api/messages/upload/route.ts`**:
+   - POST endpoint handling multipart FormData uploads
+   - Accepts: JPEG, PNG, GIF, WebP, MP4, PDF, TXT (max 10MB)
+   - Converts images to base64 data URLs for storage in messages table
+   - Verifies auth + conversation participation
+   - Resolves sender name and reply-to context
+   - Inserts message with correct type ("image" or "file")
+   - Triggers Pusher realtime event for partner
+
+Stage Summary:
+- All 12 issues addressed in one deployment
+- Version: `993f8952-03d4-41ea-81db-b2c1c998f494`
+- Verified via agent-browser: clean login page, zero console errors
+- **Key decisions**: 
+  - Images stored as base64 data URLs in messages table (no separate storage bucket needed)
+  - Transparent pill backgrounds for seamless look over wallpapers
+  - Click-away overlay pattern for dismissing action sheets (simpler than portal approach)
+  - Unread cleared both locally (immediate UI update) and server-side (persistent)
+  - Input bar raised 12px above safe area for better thumb reach

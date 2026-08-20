@@ -173,7 +173,7 @@
   border-radius: 1.25rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid transparent;
-  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 0.25s, background 0.25s, transform 0.15s;
 }
 .liquid-card:hover {
   border-color: rgba(255, 255, 255, 0.06);
@@ -186,7 +186,6 @@
 .liquid-card-active {
   border-color: var(--app-accent-pill-border) !important;
   background: rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 0 24px -6px var(--app-accent-ring), inset 0 0 20px -10px var(--app-accent-subtle);
 }
 
 @layer base {
@@ -392,10 +391,7 @@
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow:
-    0 8px 32px -4px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .liquid-pill-focus {
@@ -404,10 +400,7 @@
 .liquid-pill-focus:focus-within {
   background: rgba(255, 255, 255, 0.09);
   border-color: rgba(255, 255, 255, 0.16);
-  box-shadow:
-    0 8px 32px -4px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 .liquid-glass {
@@ -432,10 +425,7 @@
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow:
-    0 8px 32px -4px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   will-change: transform;
 }
 
@@ -447,9 +437,7 @@
     rgba(255, 255, 255, 0.06) 70%
   );
   color: white;
-  box-shadow:
-    0 0 20px -6px var(--app-accent-ring),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
 /* Red vertical indicator removed per user request */

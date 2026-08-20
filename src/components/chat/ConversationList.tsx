@@ -142,10 +142,9 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
       <DialogTrigger asChild>
         <Button
           size="icon"
-          className="size-9 rounded-full text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl active:scale-95"
+          className="size-9 rounded-full text-white transition-all duration-300 hover:scale-110 active:scale-95"
           style={{
             background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))",
-            boxShadow: `0 4px 14px -2px var(--app-accent-ring)`,
           }}
           aria-label="New chat"
         >
@@ -313,7 +312,6 @@ const ConversationItemRow = React.memo(function ConversationItemRow({ conv, acti
             className="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-background"
             style={{
               background: "#34d399",
-              boxShadow: "0 0 6px 1px rgba(52, 211, 153, 0.5)",
             }}
           />
         )}
@@ -347,7 +345,6 @@ const ConversationItemRow = React.memo(function ConversationItemRow({ conv, acti
                 className="unread-badge-pulse flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white"
                 style={{
                   background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))",
-                  boxShadow: `0 2px 8px -1px var(--app-accent-ring)`,
                 }}
               >{conv.unread_count > 9 ? "9+" : conv.unread_count}</span>
             )}
@@ -368,7 +365,6 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
   const [onlineMap, setOnlineMap] = useState<OnlineMap>({});
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
-  const [searchQuery, setSearchQuery] = useState("");
   const emptyContainerRef = useRef<HTMLDivElement>(null);
 
   /* Keep the current user's last_seen up-to-date */
@@ -379,15 +375,6 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
     () => conversations.map((c) => c.partner.id),
     [conversations],
   );
-
-  /* Local search filter */
-  const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
-    const q = searchQuery.toLowerCase();
-    return conversations.filter((c) =>
-      c.partner.name.toLowerCase().includes(q)
-    );
-  }, [conversations, searchQuery]);
 
   useEffect(() => {
     if (partnerIds.length === 0) return;
@@ -446,31 +433,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
         <NewChatDialog onSelect={onNewChat} />
       </header>
 
-      {/* Subtle inline search bar */}
-      {conversations.length > 0 && (
-        <div className="mx-5 mt-3 mb-1">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chats..."
-              className="w-full rounded-full bg-white/[0.04] border border-white/[0.06] py-2 pl-10 pr-4 text-sm text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:bg-white/[0.06] focus:border-white/[0.10]"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-white/30 transition-colors hover:text-white/60"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
+      {/* Conversation list */}
       <div className="flex-1 overflow-y-auto py-1">
         {conversations.length === 0 ? (
           <div
@@ -505,7 +468,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
               <m.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))', boxShadow: `0 4px 14px -2px var(--app-accent-ring)` }}
+                style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)`, background: 'linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))' }}
                 className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full text-white ring-4 ring-background max-lg:!transform-none"
               >
                 <Plus className="size-4 text-white" />
@@ -520,15 +483,9 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
           </div>
         ) : (
           <>
-          {filteredConversations.map((conv, idx) => (
+          {conversations.map((conv, idx) => (
             <ConversationItemRow key={conv.id} conv={conv} activeId={activeId} currentUserId={currentUserId} isOnline={!!onlineMap[conv.partner.id]} onSelect={onSelect} onContextMenu={handleCtx} index={idx} />
           ))}
-          {filteredConversations.length === 0 && conversations.length > 0 && (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <Search className="size-5 text-white/20" />
-              <p className="text-sm text-white/30">No chats match "{searchQuery}"</p>
-            </div>
-          )}
           </>
         )}
       </div>

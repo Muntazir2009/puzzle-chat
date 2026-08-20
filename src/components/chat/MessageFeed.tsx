@@ -237,7 +237,7 @@ function MessageActionSheet({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
-      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-neutral-900/90 border border-white/10 shadow-2xl backdrop-blur-xl transform-gpu will-change-transform"
+      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl bg-neutral-900/95 border border-white/10 backdrop-blur-xl transform-gpu will-change-transform"
       style={{ willChange: "transform, opacity" }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -320,7 +320,7 @@ function TapbackDock({
       exit={{ opacity: 0, scale: 0.8, y: 4 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-neutral-900/90 border border-white/10 px-1 py-1 shadow-2xl backdrop-blur-xl transform-gpu",
+        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-neutral-900/95 border border-white/10 px-1 py-1 backdrop-blur-xl transform-gpu",
         isOwn ? "right-1" : "left-1",
         "-top-12",
       )}
@@ -360,7 +360,7 @@ function TapbackDock({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 4 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-neutral-900/90 border border-white/10 px-1 py-1 shadow-2xl backdrop-blur-xl transform-gpu"
+                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-neutral-900/95 border border-white/10 px-1 py-1 backdrop-blur-xl transform-gpu"
               >
                 {extraEmojis.map((emoji) => (
                   <button
@@ -728,7 +728,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
         transition={{ duration: 0.15, ease: "easeOut" }}
         src={src}
         alt="Full size image"
-        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
         onClick={(e) => e.stopPropagation()}
       />
     </m.div>
@@ -905,7 +905,7 @@ const MessageBubble = React.memo(function MessageBubble({
   /* Double-tap to reaction */
   const handleDoubleTapReaction = useCallback(() => {
     if (!onReact) return;
-    onReact(message.id, "\u{1F44D}", true);
+    onReact(message.id, "\u2764\uFE0F", true);
     setShowHeart(true);
     setTimeout(() => setShowHeart(false), 600);
   }, [message.id, onReact]);
@@ -1837,6 +1837,13 @@ export function MessageFeed({
       className="relative h-full w-full overflow-hidden"
       style={backgroundStyle}
     >
+      {/* Click-away overlay for action sheets / tapback docks */}
+      {(activeActionId || activeTapbackId) && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => { setActiveActionId(null); setActiveTapbackId(null); }}
+        />
+      )}
       <div
         ref={parentRef}
         onScroll={handleScroll}

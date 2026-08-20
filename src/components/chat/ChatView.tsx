@@ -309,11 +309,12 @@ export function ChatView({
     if (view === "list") {
       setActiveConv(null);
       setActiveView("list");
+      fetchConversations();
     } else if (view === "settings") {
       setActiveConv(null);
       setActiveView("settings");
     }
-  }, []);
+  }, [fetchConversations]);
 
   /* Update browser tab title with unread count */
   useEffect(() => {
@@ -342,6 +343,16 @@ export function ChatView({
   useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
   const handleSelectConversation = useCallback((conv: ConversationItem) => {
+    /* Clear unread count locally */
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c))
+    );
+    /* Mark messages as read server-side (fire and forget) */
+    fetch("/api/conversations/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: conv.id }),
+    }).catch(() => {});
     setActiveConv(conv);
     setActiveView("chat");
   }, []);
