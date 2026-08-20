@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth";
+import { pusherServer, type ChatChannelEvents } from "@/lib/pusher-server";
+import { getRoomId } from "@/lib/room";
+import { getChannelName } from "@/lib/pusher-client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,12 +36,29 @@ export async function POST(req: NextRequest) {
     }
 
     /* Mark all unread messages in this conversation as read */
-    await supabase
+    const { data: updatedMsgs } = await supabase
       .from("messages")
       .update({ status: "read" })
       .eq("conversation_id", conversation_id)
       .neq("sender_id", userId)
-      .neq("status", "read");
+      .neq("status", "read")
+      .select("id");
+
+    /* Broadcast read receipt via Pusher so sender updates UI */
+    if (updatedMsgs && updatedMsgs.length > 0) {
+      const otherUserId = conv.user_a === userId ? conv.user_b : conv.user_a;
+      const roomId = getRoomId(userId, otherUserId);
+      const channelName = getChannelName(roomId);
+      try {
+        await pusherServer.trigger(channelName, "read", {
+          message_ids: updatedMsgs.map(m => m.id),
+          conversation_id,
+          user_id: userId,
+        } satisfies ChatChannelEvents["read"]);
+      } catch (err) {
+        console.error("[conversations/read] Pusher trigger failed (non-fatal):", err);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

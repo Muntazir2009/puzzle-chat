@@ -171,13 +171,13 @@
 /* Liquid card — modern DM list rows */
 .liquid-card {
   border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid transparent;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
   transition: border-color 0.25s, background 0.25s, transform 0.15s;
 }
 .liquid-card:hover {
-  border-color: rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255,255,255,0.10);
+  background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
 }
 .liquid-card:active {
   transform: scale(0.985);
@@ -389,7 +389,7 @@
   border-radius: 9999px;
   backdrop-filter: blur(24px) saturate(1.5);
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: none;
 }
@@ -398,7 +398,7 @@
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .liquid-pill-focus:focus-within {
-  background: rgba(255, 255, 255, 0.09);
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
   border-color: rgba(255, 255, 255, 0.16);
   box-shadow: none;
 }
@@ -406,11 +406,11 @@
 .liquid-glass {
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
 
 .liquid-surface {
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
 }
@@ -423,7 +423,7 @@
   border-radius: 9999px;
   backdrop-filter: blur(24px) saturate(1.5);
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: none;
   will-change: transform;

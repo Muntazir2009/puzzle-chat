@@ -20,7 +20,6 @@ import {
   Trash2,
   X,
   ZoomIn,
-  Forward,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -223,71 +222,66 @@ function MessageActionSheet({
   onReply,
   onCopy,
   onDelete,
-  onForward,
+  onClose,
 }: {
   isOwn: boolean;
   onReply: () => void;
   onCopy: () => void;
   onDelete?: () => void;
-  onForward: () => void;
+  onClose: () => void;
 }) {
   return (
-    <m.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl bg-neutral-900/95 border border-white/10 backdrop-blur-xl transform-gpu will-change-transform"
-      style={{ willChange: "transform, opacity" }}
-      onClick={(e) => e.stopPropagation()}
+    <>
+      {/* Backdrop to dismiss */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <m.div
+        initial={{ opacity: 0, scale: 0.9, y: 4 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 4 }}
+        transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-3"
+      >
+        <div
+          className="flex items-center gap-1 rounded-2xl p-1.5 border border-white/[0.08]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(30,30,30,0.95), rgba(20,20,20,0.98))',
+            backdropFilter: 'blur(40px) saturate(1.8)',
+            WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ActionButton icon={<Reply className="size-[15px]" />} label="Reply" onClick={() => { onReply(); onClose(); }} accent />
+          <ActionButton icon={<Copy className="size-[15px]" />} label="Copy" onClick={() => { onCopy(); onClose(); }} />
+          {isOwn && onDelete && (
+            <ActionButton icon={<Trash2 className="size-[15px]" />} label="Delete" onClick={() => { onDelete(); onClose(); }} destructive />
+          )}
+        </div>
+      </m.div>
+    </>
+  );
+}
+
+function ActionButton({ icon, label, onClick, accent, destructive }: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  accent?: boolean;
+  destructive?: boolean;
+}) {
+  const color = destructive ? '#f87171' : accent ? 'var(--app-accent-light)' : 'rgba(255,255,255,0.7)';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col items-center gap-1 px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-90"
+      style={{
+        background: destructive ? 'rgba(248,113,113,0.1)' : accent ? 'var(--app-accent-subtle)' : 'rgba(255,255,255,0.04)',
+      }}
+      aria-label={label}
     >
-      <div className="flex items-center gap-1 px-2 py-2">
-        <button
-          type="button"
-          onClick={onReply}
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95 group"
-          aria-label="Reply"
-        >
-          <Reply className="size-4 text-white group-hover:text-[var(--app-accent)]" />
-          <span className="text-[10px] text-zinc-400 group-hover:text-[var(--app-accent)]">
-            Reply
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95 group"
-          aria-label="Copy"
-        >
-          <Copy className="size-4 text-white group-hover:text-[var(--app-accent)]" />
-          <span className="text-[10px] text-zinc-400 group-hover:text-[var(--app-accent)]">
-            Copy
-          </span>
-        </button>
-        {isOwn && onDelete && (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95"
-            aria-label="Delete"
-          >
-            <Trash2 className="size-4 text-red-400" />
-            <span className="text-[10px] text-red-400">Delete</span>
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onForward}
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 hover:bg-white/10 active:scale-95 group"
-          aria-label="Forward"
-        >
-          <Forward className="size-4 text-white group-hover:text-[var(--app-accent)]" />
-          <span className="text-[10px] text-zinc-400 group-hover:text-[var(--app-accent)]">
-            Forward
-          </span>
-        </button>
-      </div>
-    </m.div>
+      <span style={{ color }}>{icon}</span>
+      <span className="text-[9px] font-medium" style={{ color: destructive ? '#f87171' : 'rgba(255,255,255,0.4)' }}>{label}</span>
+    </button>
   );
 }
 
@@ -320,11 +314,14 @@ function TapbackDock({
       exit={{ opacity: 0, scale: 0.8, y: 4 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-        "absolute z-50 flex items-center gap-0.5 rounded-2xl bg-neutral-900/95 border border-white/10 px-1 py-1 backdrop-blur-xl transform-gpu",
+        "absolute z-50 flex items-center gap-0.5 rounded-2xl border border-white/[0.08] px-1 py-1 backdrop-blur-xl transform-gpu",
         isOwn ? "right-1" : "left-1",
         "-top-12",
       )}
-      style={{ willChange: "transform, opacity" }}
+      style={{
+        willChange: "transform, opacity",
+        background: 'linear-gradient(135deg, rgba(30,30,30,0.95), rgba(20,20,20,0.98))',
+      }}
     >
       {primaryEmojis.map((emoji) => (
         <button
@@ -360,7 +357,10 @@ function TapbackDock({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 4 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl bg-neutral-900/95 border border-white/10 px-1 py-1 backdrop-blur-xl transform-gpu"
+                className="absolute bottom-full left-1/2 z-50 mb-1 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl border border-white/[0.08] px-1 py-1 backdrop-blur-xl transform-gpu"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(30,30,30,0.95), rgba(20,20,20,0.98))',
+                }}
               >
                 {extraEmojis.map((emoji) => (
                   <button
@@ -772,20 +772,22 @@ const ReactionPills = React.memo(function ReactionPills({
               "reaction-pop flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-all duration-150",
               "hover:scale-105 active:scale-95",
               !isActive &&
-                "border-zinc-700/80 bg-zinc-800/90 hover:bg-zinc-700/80",
+                "border-white/[0.06] hover:border-white/[0.10]",
             )}
             style={
               isActive
                 ? isOwn
                   ? {
                       borderColor: "rgba(255,255,255,0.3)",
-                      backgroundColor: "rgba(255,255,255,0.15)",
+                      background: "linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.10))",
                     }
                   : {
                       borderColor: "var(--app-accent)",
-                      backgroundColor: "var(--app-accent-subtle)",
+                      background: "linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.03))",
                     }
-                : undefined
+                : {
+                    background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+                  }
             }
           >
             <span className="text-xs">{emoji}</span>
@@ -987,6 +989,12 @@ const MessageBubble = React.memo(function MessageBubble({
     onOpenAction(null);
   }, [message.id, onDeleteMessage, onOpenTapback, onOpenAction]);
 
+  const handleActionSheetReply = useCallback(() => {
+    onReplyTo?.(message);
+    onOpenAction(null);
+    onOpenTapback(null);
+  }, [message, onReplyTo, onOpenAction, onOpenTapback]);
+
   const handleActionSheetCopy = useCallback(() => {
     navigator.clipboard
       ?.writeText(message.content)
@@ -1009,21 +1017,6 @@ const MessageBubble = React.memo(function MessageBubble({
     onOpenAction(null);
     onOpenTapback(null);
   }, [message.content, onOpenAction, onOpenTapback]);
-
-  const handleActionSheetReply = useCallback(() => {
-    onReplyTo?.(message);
-    onOpenAction(null);
-    onOpenTapback(null);
-  }, [message, onReplyTo, onOpenAction, onOpenTapback]);
-
-  const handleActionSheetForward = useCallback(() => {
-    toast({
-      title: "Forward",
-      description: "Forward coming soon!",
-    });
-    onOpenAction(null);
-    onOpenTapback(null);
-  }, [onOpenAction, onOpenTapback]);
 
   const isFailed = message.status === "failed";
   const isVoice = message.type === "voice";
@@ -1150,7 +1143,7 @@ const MessageBubble = React.memo(function MessageBubble({
               "relative cursor-default select-none px-4 py-2.5 text-sm leading-relaxed transition-shadow duration-200",
               rounding,
               !isOwn &&
-                "bg-muted text-foreground shadow-sm dark:bg-zinc-800 dark:text-zinc-100",
+                "text-foreground shadow-sm dark:text-zinc-100",
               isFailed && "ring-2 ring-red-400/50",
               isVoice && "py-2",
               !isVoice &&
@@ -1162,8 +1155,8 @@ const MessageBubble = React.memo(function MessageBubble({
                 touchCallout: "none",
                 transform: "translate3d(0,0,0)",
                 background: isOwn
-                  ? "linear-gradient(to right, var(--app-accent-from), var(--app-accent-to))"
-                  : undefined,
+                  ? "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))"
+                  : "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
               } as React.CSSProperties
             }
           >
@@ -1209,7 +1202,7 @@ const MessageBubble = React.memo(function MessageBubble({
                   onReply={handleActionSheetReply}
                   onCopy={handleActionSheetCopy}
                   onDelete={isOwn ? handleDelete : undefined}
-                  onForward={handleActionSheetForward}
+                  onClose={() => { onOpenAction(null); onOpenTapback(null); }}
                 />
               )}
             </AnimatePresence>

@@ -9,7 +9,7 @@ import { z } from "zod";
 const readBodySchema = z.object({
   conversation_id: z.string().uuid(),
   /** IDs of messages to mark as read (must belong to the OTHER user). */
-  message_ids: z.array(z.string().uuid()).min(1).max(100),
+  message_ids: z.array(z.string().min(1)).min(1).max(100),
 });
 
 export async function POST(req: NextRequest) {
@@ -24,6 +24,12 @@ export async function POST(req: NextRequest) {
     }
 
     const { conversation_id, message_ids } = parsed.data;
+
+    /* Filter out any temp/optimistic IDs — only real UUIDs can be updated in DB */
+    const realIds = message_ids.filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+    if (realIds.length === 0) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
 
     /* Verify auth */
     const authUser = await getAuthUser(req);
@@ -57,7 +63,7 @@ export async function POST(req: NextRequest) {
       .from("messages")
       .update({ status: "read" })
       .eq("conversation_id", conversation_id)
-      .in("id", message_ids)
+      .in("id", realIds)
       .neq("sender_id", userId);
 
     if (updateErr) {
@@ -75,7 +81,7 @@ export async function POST(req: NextRequest) {
     const channelName = getChannelName(roomId);
 
     const eventPayload: ChatChannelEvents["read"] = {
-      message_ids,
+      message_ids: realIds,
       conversation_id,
       user_id: userId,
     };

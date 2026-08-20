@@ -172,7 +172,7 @@ function SettingsPage({
         <h1 className="text-xl font-bold tracking-tight mb-6">Settings</h1>
 
         {/* Profile card */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-4">
+        <div className="rounded-2xl border border-white/[0.08] p-5 mb-4" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
               <Avatar className="size-14 ring-2 ring-white/10">
@@ -203,7 +203,7 @@ function SettingsPage({
         </div>
 
         {/* Appearance section */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden mb-4">
+        <div className="rounded-2xl border border-white/[0.08] overflow-hidden mb-4" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))' }}>
           <div className="flex items-center gap-3 px-5 py-3.5">
             <Palette className="size-4 text-white/60" />
             <span className="text-sm font-medium">Appearance</span>
@@ -216,7 +216,7 @@ function SettingsPage({
         </div>
 
         {/* Developer section */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden mb-4">
+        <div className="rounded-2xl border border-white/[0.08] overflow-hidden mb-4" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))' }}>
           <div className="flex items-center gap-3 px-5 py-3.5">
             <Code className="size-4 text-white/60" />
             <span className="text-sm font-medium">Developer</span>
@@ -244,7 +244,7 @@ function SettingsPage({
         </div>
 
         {/* Account section */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.08] overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))' }}>
           <div className="flex items-center gap-3 px-5 py-3.5">
             <User className="size-4 text-white/60" />
             <span className="text-sm font-medium">Account</span>
