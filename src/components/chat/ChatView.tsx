@@ -304,6 +304,22 @@ export function ChatView({
     [conversations],
   );
 
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/conversations");
+      if (res.ok) {
+        const data: ConversationItem[] = await res.json();
+        setConversations(data);
+      }
+    } catch (err) {
+      console.error("[ChatView] fetch conversations error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchConversations(); }, [fetchConversations]);
+
   /* Navigation handler */
   const handleNavigate = useCallback((view: NavView) => {
     if (view === "list") {
@@ -325,22 +341,6 @@ export function ChatView({
         : base;
     return () => { document.title = base; };
   }, [totalUnread]);
-
-  const fetchConversations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/conversations");
-      if (res.ok) {
-        const data: ConversationItem[] = await res.json();
-        setConversations(data);
-      }
-    } catch (err) {
-      console.error("[ChatView] fetch conversations error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
   const handleSelectConversation = useCallback((conv: ConversationItem) => {
     /* Clear unread count locally */
