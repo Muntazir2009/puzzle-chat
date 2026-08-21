@@ -2,7 +2,7 @@
 
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ArrowUp, Mic, MicOff, X, Smile, Paperclip, ImageIcon, Link2, Trash2, Ban, Bell, Loader2, FileText } from "lucide-react";
+import { ArrowUp, Mic, MicOff, X, Sticker, Paperclip, ImageIcon, Link2, Trash2, Ban, Bell, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageFeed } from "@/components/chat/MessageFeed";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { m, AnimatePresence } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 
-const EmojiPicker = dynamic(() => import("@/components/chat/EmojiPicker").then(m => ({ default: m.EmojiPicker })), { ssr: false, loading: () => <div className="size-8" /> });
+const StickerPicker = dynamic(() => import("@/components/chat/StickerPicker").then(m => ({ default: m.StickerPicker })), { ssr: false, loading: () => <div className="size-8" /> });
 import { ChatBackgroundPicker, useChatBackground } from "@/components/chat/ChatBackgroundPicker";
 
 /* ------------------------------------------------------------------ */
@@ -184,7 +184,9 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadXhrRef = useRef<XMLHttpRequest | null>(null);
 
   /* Background is fixed full-screen — never moves with keyboard */
   const bgLayer = (
@@ -245,10 +247,12 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
     setAttachmentPreview(null);
   }, [attachmentPreview]);
 
-  const uploadAttachment = useCallback(async () => {
-    if (!attachmentFile || isUploading) return;
-    setIsUploading(true);
-    try {
+  const uploadAttachment = useCallback(() => {
+    return new Promise<void>((resolve, reject) => {
+      if (!attachmentFile || isUploading) { resolve(); return; }
+      setIsUploading(true);
+      setUploadProgress(0);
+
       const fd = new FormData();
       fd.append("file", attachmentFile);
       fd.append("conversation_id", conversationId);
@@ -256,32 +260,52 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
       if (vanishMode) fd.append("vanish_mode", "true");
       if (ephemeralSeconds) fd.append("ephemeral_seconds", String(ephemeralSeconds));
 
-      const res = await fetch("/api/messages/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(data.error || `Upload failed: ${res.status}`);
-      }
-      /* Message is inserted server-side and pushed via realtime;
-         the useChat hook will pick it up automatically. */
-      clearAttachment();
-      setReplyTo(null);
-    } catch (err) {
-      console.error("[ChatLayout] upload error:", err);
-      toast({
-        title: "Upload failed",
-        description: err instanceof Error ? err.message : "Could not send the file.",
-        variant: "destructive",
+      const xhr = new XMLHttpRequest();
+      uploadXhrRef.current = xhr;
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress(pct);
+        }
       });
-    } finally {
-      setIsUploading(false);
-    }
+
+      xhr.addEventListener("load", () => {
+        uploadXhrRef.current = null;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          clearAttachment();
+          setReplyTo(null);
+          resolve();
+        } else {
+          let errMsg = `Upload failed: ${xhr.status}`;
+          try { const d = JSON.parse(xhr.responseText); errMsg = d.error || errMsg; } catch {}
+          reject(new Error(errMsg));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        uploadXhrRef.current = null;
+        reject(new Error("Network error during upload"));
+      });
+
+      xhr.addEventListener("abort", () => {
+        uploadXhrRef.current = null;
+        reject(new Error("Upload cancelled"));
+      });
+
+      xhr.open("POST", "/api/messages/upload");
+      xhr.send(fd);
+    });
   }, [attachmentFile, isUploading, conversationId, replyTo, vanishMode, ephemeralSeconds, clearAttachment]);
 
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     /* If an attachment is selected, upload it instead of sending text */
     if (hasAttachment && !hasText) {
-      await uploadAttachment();
+      try { await uploadAttachment(); } catch (err) {
+        console.error("[ChatLayout] upload error:", err);
+        toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Could not send the file.", variant: "destructive" });
+      } finally { setUploadProgress(0); }
       return;
     }
     /* If there's both text and an attachment, send text first, then upload */
@@ -295,7 +319,12 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
       await sendMessage(trimmed, opts);
       setSendBtnKey((k) => k + 1);
       /* Upload attachment after text is sent */
-      if (hasAttachment) await uploadAttachment();
+      if (hasAttachment) {
+        try { await uploadAttachment(); } catch (err) {
+          console.error("[ChatLayout] upload error:", err);
+          toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Could not send the file.", variant: "destructive" });
+        } finally { setUploadProgress(0); }
+      }
     }
     finally { setIsSending(false); requestAnimationFrame(() => inputRef.current?.focus()); }
   }, [draft, isSending, sendMessage, vanishMode, ephemeralSeconds, replyTo, hasAttachment, uploadAttachment]);
@@ -466,7 +495,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
                 className="overflow-hidden rounded-2xl border backdrop-blur-sm"
-                style={{ backgroundColor: "var(--app-accent-subtle)", borderColor: "var(--app-accent-subtle)" }}
+                style={{ background: 'linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.03))', borderColor: "var(--app-accent-subtle)" }}
               >
                 <div className="flex items-center gap-3 px-4 py-2.5">
                   {attachmentPreview ? (
@@ -474,7 +503,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                       <img src={attachmentPreview} alt={attachmentFile.name} className="size-full object-cover" />
                     </div>
                   ) : (
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "var(--app-accent-subtle)", color: "var(--app-accent)" }}>
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.03))', color: "var(--app-accent)" }}>
                       {attachmentFile.type === "application/pdf" ? (
                         <FileText className="size-5" />
                       ) : attachmentFile.type.startsWith("video/") ? (
@@ -489,7 +518,10 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                     <p className="text-xs text-muted-foreground">{formatFileSize(attachmentFile.size)}</p>
                   </div>
                   {isUploading ? (
-                    <Loader2 className="size-5 shrink-0 animate-spin" style={{ color: "var(--app-accent)" }} />
+                    <div className="flex shrink-0 flex-col items-center gap-1.5">
+                      <Loader2 className="size-5 animate-spin" style={{ color: "var(--app-accent)" }} />
+                      <span className="text-[10px] font-medium tabular-nums" style={{ color: "var(--app-accent)" }}>{uploadProgress}%</span>
+                    </div>
                   ) : (
                     <button
                       type="button"
@@ -503,6 +535,17 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                     </button>
                   )}
                 </div>
+                {isUploading && (
+                  <div className="mx-4 mb-2 h-1 overflow-hidden rounded-full" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
+                    <m.div
+                      className="h-full rounded-full"
+                      style={{ background: 'linear-gradient(90deg, var(--app-accent-from), var(--app-accent-to))' }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                    />
+                  </div>
+                )}
               </m.div>
             )}
           </AnimatePresence>
@@ -516,7 +559,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
                 className="overflow-hidden backdrop-blur-sm rounded-2xl"
-                style={{ backgroundColor: "var(--app-accent-subtle)", borderLeft: "2px solid var(--app-accent)" }}
+                style={{ background: 'linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.03))', borderLeft: "2px solid var(--app-accent)" }}
               >
                 <div className="flex items-center gap-2 px-4 py-2">
                   <div className="w-1 h-8 rounded-full" style={{ background: "linear-gradient(to bottom, var(--app-accent-from), var(--app-accent-to))" }} />
@@ -576,17 +619,17 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
 
           {/* Emoji button — left side of pill, next to paperclip */}
           {!showVoiceWaveform && (
-            <EmojiPicker
-              onSelect={(emoji) => {
+            <StickerPicker
+              onSelect={(sticker) => {
                 const ta = inputRef.current;
                 if (!ta) return;
                 const start = ta.selectionStart ?? draft.length;
                 const end = ta.selectionEnd ?? draft.length;
                 const before = draft.slice(0, start);
                 const after = draft.slice(end);
-                setDraft(before + emoji + after);
+                setDraft(before + sticker + after);
                 requestAnimationFrame(() => {
-                  const pos = start + emoji.length;
+                  const pos = start + sticker.length;
                   ta.focus();
                   ta.setSelectionRange(pos, pos);
                 });
@@ -595,11 +638,11 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
               <button
                 type="button"
                 className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:text-white/80 active:scale-95"
-                aria-label="Emoji"
+                aria-label="Stickers"
               >
-                <Smile className="size-4" />
+                <Sticker className="size-4" />
               </button>
-            </EmojiPicker>
+            </StickerPicker>
           )}
 
           {/* Textarea — middle of pill (hidden when recording) */}

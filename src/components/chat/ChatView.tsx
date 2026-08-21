@@ -438,7 +438,7 @@ export function ChatView({
   if (loading) {
     return (
       <ThemeProvider>
-        <div className="h-dvh w-full bg-background">
+        <div className="h-dvh w-full" style={{ background: 'linear-gradient(180deg, rgba(18,18,18,1), rgba(10,10,10,1))' }}>
           <div className="fixed left-2 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-0.5 rounded-3xl py-2.5 px-2 liquid-nav-pill sm:left-4">
             <Skeleton className="size-11 rounded-2xl" />
             <Skeleton className="size-11 rounded-2xl" />
@@ -455,7 +455,7 @@ export function ChatView({
   /* ---- Render */
   return (
     <ThemeProvider>
-      <div className="h-dvh w-full bg-background">
+      <div className="h-dvh w-full" style={{ background: 'linear-gradient(180deg, rgba(18,18,18,1), rgba(10,10,10,1))' }}>
         {/* Nav Pill — always visible, always functional */}
         <NavPill
           activeView={activeView}

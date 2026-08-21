@@ -101,7 +101,7 @@ const CategoryTab = memo(function CategoryTab({ category, active, onClick }: Cat
           ? "text-foreground font-semibold"
           : "text-muted-foreground hover:text-foreground")
       }
-      style={active ? { backgroundColor: "var(--app-accent-subtle)" } : undefined}
+      style={active ? { background: "linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.04))" } : undefined}
       onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }}
       onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       aria-label={category.label}
@@ -139,8 +139,8 @@ const EmojiCell = memo(function EmojiCell({ emoji, onSelect }: EmojiCellProps) {
         "active:scale-95 focus-visible:outline-none focus-visible:ring-2"
       }
       style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--app-accent-subtle)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ""; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.04))'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
       aria-label={emoji}
     >
       {emoji}
@@ -263,12 +263,12 @@ export function EmojiPicker({ onSelect, children }: EmojiPickerProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 8 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            style={{ transformOrigin: "bottom center" }}
+            style={{ transformOrigin: "bottom center", background: 'linear-gradient(135deg, rgba(30,30,30,0.95), rgba(18,18,18,0.98))' }}
             className={
               "absolute bottom-full right-0 z-50 mb-2 w-[300px] max-w-[320px] " +
               "overflow-hidden rounded-2xl " +
-              "border border-border/50 " +
-              "bg-background/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60 " +
+              "border border-white/[0.08] " +
+              "backdrop-blur-2xl " +
               "shadow-xl shadow-black/10 dark:shadow-black/30"
             }
             role="dialog"

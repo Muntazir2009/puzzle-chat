@@ -1188,7 +1188,7 @@ const MessageBubble = React.memo(function MessageBubble({
             >
               <div
                 className="size-8 rounded-full flex items-center justify-center"
-                style={{ background: "var(--app-accent)" }}
+                style={{ background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))" }}
               >
                 <Reply className="size-4 text-white rotate-180" />
               </div>
@@ -1480,7 +1480,7 @@ function DateSeparator({ date }: { date: string }) {
   return (
     <div className="flex items-center gap-3 px-1 py-2">
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-      <span className="shrink-0 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-[var(--app-accent-subtle)]">
+      <span className="shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-[var(--app-accent-subtle)]" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
         {formatDateSeparator(date)}
       </span>
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />

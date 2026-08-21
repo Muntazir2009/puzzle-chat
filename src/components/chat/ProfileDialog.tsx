@@ -265,7 +265,7 @@ export function ProfileDialog({
                       (avatarHovered && !uploading) && "scale-100",
                       uploading && "scale-90"
                     )}
-                    style={{ background: "var(--app-accent)" }}
+                    style={{ background: "linear-gradient(135deg, var(--app-accent-from), var(--app-accent-to))" }}
                   >
                     {uploading ? (
                       <Loader2 className="size-5 animate-spin" />

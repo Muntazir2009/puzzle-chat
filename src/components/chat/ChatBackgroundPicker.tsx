@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { Palette, ImagePlus, X, Upload } from "lucide-react";
+import { Palette, ImagePlus, X, Upload, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -261,6 +261,7 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
   const [customUrlMode, setCustomUrlMode] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [wallpaperLoading, setWallpaperLoading] = useState(false);
 
   const handleApplyCustomUrl = useCallback(() => {
     const trimmed = customUrl.trim();
@@ -285,12 +286,21 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
     if (!file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      /* Wallpaper stored as data URL in localStorage (~5MB limit) */
+      alert("Image must be under 5 MB for wallpaper.");
+      e.target.value = "";
+      return;
+    }
+    setWallpaperLoading(true);
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
       onSetWallpaper(dataUrl);
+      setWallpaperLoading(false);
       setOpen(false);
     };
+    reader.onerror = () => setWallpaperLoading(false);
     reader.readAsDataURL(file);
     e.target.value = "";
   }, [onSetWallpaper]);
@@ -308,7 +318,7 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
                 : "text-white/60 hover:text-white",
               !open && "transition-all duration-200",
             )}
-            style={open ? { backgroundColor: "var(--app-accent-subtle)" } : undefined}
+            style={open ? { background: "linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.04))" } : undefined}
             onMouseEnter={(e) => { if (!open) (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}
             onMouseLeave={(e) => { if (!open) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             aria-label="Chat background theme"
@@ -406,7 +416,7 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
                       : "hover:border-zinc-500",
                   )}
                   style={customUrlMode
-                    ? { borderColor: "var(--app-accent)", backgroundColor: "var(--app-accent-subtle)" }
+                    ? { borderColor: "var(--app-accent)", background: "linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.04))" }
                     : { borderColor: "rgba(255,255,255,0.1)" }
                   }
                   title="Custom URL"
@@ -419,11 +429,14 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex size-12 items-center justify-center rounded-xl border border-white/10 transition-all duration-200 outline-none hover:border-zinc-500"
+                  disabled={wallpaperLoading}
+                  className="flex size-12 items-center justify-center rounded-xl border border-white/10 transition-all duration-200 outline-none disabled:opacity-50"
                   title="Upload Wallpaper"
                   aria-label="Upload wallpaper image"
+                  onMouseEnter={(e) => { if (!wallpaperLoading) { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-accent-subtle)'; } }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 >
-                  <Upload className="size-4 text-zinc-500" />
+                  {wallpaperLoading ? <Loader2 className="size-4 animate-spin" style={{ color: "var(--app-accent)" }} /> : <Upload className="size-4 text-zinc-500" />}
                 </button>
               </div>
 
