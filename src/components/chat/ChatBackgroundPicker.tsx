@@ -305,9 +305,12 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
               "flex size-8 items-center justify-center rounded-full transition-colors duration-200",
               open
                 ? "text-[var(--app-accent)]"
-                : "text-white/60 hover:text-white hover:bg-white/10",
+                : "text-white/60 hover:text-white",
+              !open && "transition-all duration-200",
             )}
             style={open ? { backgroundColor: "var(--app-accent-subtle)" } : undefined}
+            onMouseEnter={(e) => { if (!open) (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}
+            onMouseLeave={(e) => { if (!open) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             aria-label="Chat background theme"
           >
             <Palette className="size-4" />
@@ -315,7 +318,8 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
         </SheetTrigger>
         <SheetContent
           side="bottom"
-          className="rounded-t-3xl border-white/10 bg-zinc-900/95 backdrop-blur-xl p-0"
+          className="rounded-t-3xl border-white/10 backdrop-blur-xl p-0"
+          style={{ background: 'linear-gradient(180deg, rgba(30,30,30,0.98), rgba(15,15,15,0.99))' }}
         >
           <SheetHeader className="px-5 pt-5 pb-0">
             <SheetTitle className="text-base font-semibold text-white">
@@ -427,7 +431,9 @@ export function ChatBackgroundPicker({ themeId, onSelect, wallpaper, onSetWallpa
                 <button
                   type="button"
                   onClick={handleClearWallpaper}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/10 px-3 py-2 text-xs text-zinc-400 transition-colors hover:bg-white/5"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/10 px-3 py-2 text-xs text-zinc-400 transition-all duration-200"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   <X className="size-3" />
                   Clear wallpaper

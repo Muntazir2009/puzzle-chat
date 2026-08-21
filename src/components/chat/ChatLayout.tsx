@@ -105,7 +105,8 @@ function PartnerInfoPanel({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed top-16 left-1/2 z-50 -translate-x-1/2 w-[90%] max-w-md rounded-2xl bg-neutral-900/90 border border-white/10 backdrop-blur-xl p-4"
+            className="fixed top-16 left-1/2 z-50 -translate-x-1/2 w-[90%] max-w-md rounded-2xl border border-white/10 backdrop-blur-xl p-4"
+            style={{ background: 'linear-gradient(135deg, rgba(40,40,40,0.95), rgba(20,20,20,0.98))' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Partner avatar + name + status */}
@@ -127,22 +128,22 @@ function PartnerInfoPanel({
             </div>
             {/* Action buttons in a row */}
             <div className="flex items-center gap-2">
-              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-white/70 transition-all duration-200 active:scale-95" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }} onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
                 <ImageIcon className="size-3.5" /> Shared media
               </button>
-              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-white/70 transition-all duration-200 active:scale-95" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }} onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
                 <Link2 className="size-3.5" /> Shared links
               </button>
-              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-white/70 transition-all duration-200 active:scale-95" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }} onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}>
                 <Bell className="size-3.5" /> Mute
               </button>
             </div>
             {/* Destructive actions */}
             <div className="flex items-center gap-2 mt-2">
-              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-red-400 hover:bg-red-500/10">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-red-400 transition-all duration-200 active:scale-95" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
                 <Ban className="size-3.5" /> Block
               </button>
-              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-red-400 hover:bg-red-500/10">
+              <button className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-red-400 transition-all duration-200 active:scale-95" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
                 <Trash2 className="size-3.5" /> Clear chat
               </button>
             </div>
@@ -388,7 +389,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
           <button
             type="button"
             onClick={() => setInfoPanelOpen(true)}
-            className="flex flex-1 items-center gap-3 rounded-lg p-0 transition-colors hover:bg-white/5 focus-visible:outline-none"
+            className="flex flex-1 items-center gap-3 rounded-lg p-0 transition-all duration-200 focus-visible:outline-none active:scale-[0.98]" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             aria-label="Open user info"
           >
             <Avatar className="size-8 ring-2 ring-[var(--app-accent-lighter)]/30">
@@ -493,8 +494,10 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                     <button
                       type="button"
                       onClick={clearAttachment}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:text-foreground active:scale-95"
                       aria-label="Remove attachment"
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                     >
                       <X className="size-4" />
                     </button>
@@ -525,11 +528,13 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                     <button
                       type="button"
                       onClick={() => setReplyTo(null)}
-                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95"
+                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 active:scale-95"
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                     >
                       <X className="size-3.5" />
                     </button>
-                    <kbd className="hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">Esc</kbd>
+                    <kbd className="hidden sm:inline-flex h-5 items-center rounded border px-1.5 text-[10px] font-medium text-muted-foreground" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }}>Esc</kbd>
                   </div>
                 </div>
               </m.div>
@@ -550,7 +555,7 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             "p-1.5 px-3 z-40",
             "flex items-center gap-2",
             "transition-all duration-200",
-            "focus-within:bg-white/[0.05] focus-within:border-white/[0.12]",
+            "focus-within:border-white/[0.12]",
           )}
           style={{ bottom: 'max(28px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}
         >
@@ -659,7 +664,9 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
             <button
               type="button"
               onClick={handleVoiceCancel}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-red-500 transition-all duration-200 active:scale-95"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04))' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               aria-label="Cancel recording"
             >
               <MicOff className="size-4" />
@@ -718,8 +725,10 @@ export function ChatLayout({ currentUserId, currentUserName, currentUserAvatar, 
                 <button
                   type="button"
                   onClick={() => voice.startRecording()}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 active:scale-95"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 transition-all duration-200 active:scale-95"
                   aria-label="Record voice"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   <Mic className="size-4" />
                 </button>

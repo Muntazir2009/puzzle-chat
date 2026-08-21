@@ -281,3 +281,32 @@ Stage Summary:
 - VLM analysis confirmed: proper gradients, glassmorphism, no errors visible
 - User should hard-refresh browser (Ctrl+Shift+R) if changes aren't visible due to caching
 - **Key note**: Previous deploys may have been cached by the user's browser or CDN edge cache
+
+---
+Task ID: 11
+Agent: Main
+Task: Apply gradients to every UI aspect across all components
+
+Work Log:
+- Audited all 8 chat components + login page for flat bg-white/X, bg-muted, bg-neutral, bg-popover, bg-zinc, hover:bg- classes
+- Systematically replaced every flat background with `linear-gradient(135deg, ...)` patterns
+- Used inline style + onMouseEnter/onMouseLeave for hover gradients (since Tailwind can't do gradient hovers)
+- Preserved intentional flat elements: tiny status dots (2-3px), 1px dividers, recording ping animations, image dim overlays
+
+Changes Made (8 files, 50+ individual gradient applications):
+1. **MessageFeed.tsx** — TapbackDock action buttons (6), voice play button, lightbox close button, typing indicator bubble, extra emoji popup buttons
+2. **ChatLayout.tsx** — PartnerInfoPanel card background, 3 action buttons (Shared media/links/mute), 2 destructive buttons (Block/Clear), header partner hover, attachment close button, reply close button, kbd element, mic button hover, voice cancel hover, input focus-within bg
+3. **ConversationList.tsx** — Header pill, search input, X clear button, search result rows, context menu background, delete hover, empty state icon containers (2)
+4. **ChatBackgroundPicker.tsx** — Sheet content background, palette trigger hover, clear wallpaper hover
+5. **EmojiPicker.tsx** — Category tab hover, search input background
+6. **ProfileDialog.tsx** — Edit profile trigger hover, avatar upload overlay
+7. **ChatView.tsx** — Nav pill inactive hovers (2), back button, sign out hover, liquid-card-active CSS class
+8. **login/page.tsx** — Glass card background, username input, password input (with focus gradient state)
+9. **globals.css** — .liquid-card-active now uses gradient instead of flat rgba
+
+Stage Summary:
+- VLM analysis: 8/10 gradient consistency rating
+- Only remaining flat backgrounds are intentionally flat (status dots, dividers, recording animations)
+- Deployed Version: 6efe046f-64a1-459e-89c6-35a7cd880e69
+- 7 new/modified assets uploaded (code changes confirmed deployed)
+- Build: 0 errors, 0 type errors

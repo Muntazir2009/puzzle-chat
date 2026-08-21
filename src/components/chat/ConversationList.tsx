@@ -162,11 +162,13 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder="Search by name..."
-              className="h-11 rounded-2xl border border-border/50 bg-muted/40 pl-11 pr-10 text-sm backdrop-blur-sm transition-all duration-200 focus:bg-muted/60"
-              style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties}
+              className="h-11 rounded-2xl border border-border/50 pl-11 pr-10 text-sm backdrop-blur-sm transition-all duration-200"
+              style={{ "--tw-ring-color": "var(--app-accent-ring)", background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' } as React.CSSProperties}
             />
             {query && (
-              <button type="button" onClick={() => { setQuery(""); setResults([]); }} className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground">
+              <button type="button" onClick={() => { setQuery(""); setResults([]); }} className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground/60 transition-all duration-200 hover:text-foreground"
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
                 <X className="size-3.5" />
               </button>
             )}
@@ -178,7 +180,7 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
           ) : results.length > 0 ? (
             <div className="flex flex-col gap-1">
               {results.map((user) => (
-                <button key={user.id} type="button" disabled={creating === user.id} onClick={() => handleStartChat(user.id, user.name, user.avatar_url)} className="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-200 hover:bg-muted/60 hover:shadow-sm disabled:opacity-50">
+                <button key={user.id} type="button" disabled={creating === user.id} onClick={() => handleStartChat(user.id, user.name, user.avatar_url)} className="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-200 disabled:opacity-50" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
                   <Avatar className="size-10 shrink-0 ring-2 ring-transparent transition-all duration-200 group-hover:ring-2" style={{ '--tw-ring-color': 'var(--app-accent-subtle)' } as React.CSSProperties}>
                     {user.avatar_url && <AvatarImage src={user.avatar_url} alt={user.name} />}
                     <AvatarFallback
@@ -195,14 +197,14 @@ function NewChatDialog({ onSelect }: { onSelect: (id: string, name: string, avat
             </div>
           ) : query ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: "var(--app-accent-subtle)" }}>
+              <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: 'linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.02))' }}>
                 <MessageCircle className="size-7" style={{ color: "var(--app-accent-light)" }} />
               </div>
               <p className="text-sm text-muted-foreground">No users found</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: "var(--app-accent-subtle)" }}>
+              <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: 'linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.02))' }}>
                 <Search className="size-7" style={{ color: "var(--app-accent-light)" }} />
               </div>
               <p className="text-sm text-muted-foreground">Type to search for users</p>
@@ -424,7 +426,7 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
   return (
     <div className="flex h-full flex-col">
       {/* Floating pill header */}
-      <header className="sticky top-3 z-10 mx-3 rounded-full py-2 px-4 backdrop-blur-2xl bg-white/[0.06] border border-white/[0.10] flex items-center justify-between">
+      <header className="sticky top-3 z-10 mx-3 rounded-full py-2 px-4 backdrop-blur-2xl border border-white/[0.10] flex items-center justify-between" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }}>
         <h2 className="text-base font-bold tracking-tight" style={{
           background: "linear-gradient(135deg, var(--app-accent-light), var(--app-accent-lighter))",
           WebkitBackgroundClip: "text",
@@ -497,15 +499,15 @@ export function ConversationList({ conversations, activeId, currentUserId, onSel
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.12 }}
-            className="fixed z-50 w-48 overflow-hidden rounded-2xl border bg-popover p-1 shadow-xl"
-            style={{ left: ctxPos.x, top: ctxPos.y, borderColor: "var(--app-accent-subtle)" }}
+            className="fixed z-50 w-48 overflow-hidden rounded-2xl border p-1"
+            style={{ left: ctxPos.x, top: ctxPos.y, borderColor: 'var(--app-accent-subtle)', background: 'linear-gradient(135deg, rgba(40,40,40,0.95), rgba(20,20,20,0.98))', backdropFilter: 'blur(20px)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => { onDelete(ctxConv.id); setCtxConv(null); }}
               disabled={deletingId === ctxConv.id}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-red-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-red-400 transition-all duration-200 hover:text-red-300 disabled:opacity-50" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
               {deletingId === ctxConv.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
               Delete conversation

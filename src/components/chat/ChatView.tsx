@@ -100,8 +100,10 @@ function NavPill({
           "relative flex size-11 items-center justify-center rounded-2xl transition-all duration-300",
           activeView === "list"
             ? "liquid-nav-active"
-            : "text-white/50 hover:text-white/80 hover:bg-white/[0.08]",
+            : "text-white/50 hover:text-white/80",
         )}
+        onMouseEnter={(e) => { if (activeView !== "list") (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }}
+        onMouseLeave={(e) => { if (activeView !== "list") (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         <Heart className={cn("size-[18px] transition-all duration-300", activeView === "list" && "fill-current scale-110")} />
         {unreadCount > 0 && (
@@ -122,8 +124,10 @@ function NavPill({
           "relative flex size-11 items-center justify-center rounded-2xl transition-all duration-300",
           activeView === "settings"
             ? "liquid-nav-active"
-            : "text-white/50 hover:text-white/80 hover:bg-white/[0.08]",
+            : "text-white/50 hover:text-white/80",
         )}
+        onMouseEnter={(e) => { if (activeView !== "settings") (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }}
+        onMouseLeave={(e) => { if (activeView !== "settings") (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         <Settings className="size-[18px]" />
       </button>
@@ -254,7 +258,9 @@ function SettingsPage({
             type="button"
             onClick={onSignOut}
             disabled={signingOut}
-            className="flex w-full items-center gap-2.5 px-5 py-3.5 text-sm text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+            className="flex w-full items-center gap-2.5 px-5 py-3.5 text-sm text-red-400 transition-all duration-200 hover:text-red-300 disabled:opacity-50"
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04))' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
             <LogOut className="size-4" />
             {signingOut ? "Signing out\u2026" : "Sign out"}
@@ -511,8 +517,8 @@ export function ChatView({
               <button
                 type="button"
                 onClick={() => handleNavigate("list")}
-                className="absolute left-12 top-2 z-20 flex size-8 items-center justify-center rounded-full bg-black/60 shadow-sm backdrop-blur-xl border border-white/10 transition-colors hover:bg-black/80 sm:left-14 sm:hidden"
-                style={{ top: 'max(8px, env(safe-area-inset-top, 0px))' }}
+                className="absolute left-12 z-20 flex size-8 items-center justify-center rounded-full border border-white/10 text-white transition-all duration-200 active:scale-95 sm:left-14 sm:hidden"
+                style={{ top: 'max(8px, env(safe-area-inset-top, 0px))', background: 'linear-gradient(135deg, rgba(30,30,30,0.85), rgba(15,15,15,0.9))', backdropFilter: 'blur(16px)' }}
                 aria-label="Back to chats"
               >
                 <ArrowLeft className="size-4" />

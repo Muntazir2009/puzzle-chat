@@ -99,9 +99,11 @@ const CategoryTab = memo(function CategoryTab({ category, active, onClick }: Cat
         "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 whitespace-nowrap " +
         (active
           ? "text-foreground font-semibold"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/60")
+          : "text-muted-foreground hover:text-foreground")
       }
       style={active ? { backgroundColor: "var(--app-accent-subtle)" } : undefined}
+      onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }}
+      onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       aria-label={category.label}
       aria-pressed={active}
     >
@@ -282,12 +284,12 @@ export function EmojiPicker({ onSelect, children }: EmojiPickerProps) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search emojis..."
                 className={
-                  "w-full rounded-xl border border-border/40 bg-muted/40 py-2 pl-8 pr-8 " +
+                  "w-full rounded-xl border border-border/40 py-2 pl-8 pr-8 " +
                   "text-xs text-foreground placeholder:text-muted-foreground/60 " +
                   "focus-visible:outline-none focus-visible:ring-2 " +
                   "transition-all duration-150"
                 }
-                style={{ "--tw-ring-color": "var(--app-accent-ring)" } as React.CSSProperties}
+                style={{ "--tw-ring-color": "var(--app-accent-ring)", background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' } as React.CSSProperties}
               />
               {searchQuery && (
                 <button

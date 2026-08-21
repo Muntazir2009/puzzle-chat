@@ -185,7 +185,7 @@
 
 .liquid-card-active {
   border-color: var(--app-accent-pill-border) !important;
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)) !important;
 }
 
 @layer base {

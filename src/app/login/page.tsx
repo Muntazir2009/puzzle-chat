@@ -100,7 +100,8 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 30, scale: 0.94 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-sm mx-4 overflow-hidden rounded-3xl border border-amber-400/[0.12] bg-white/[0.03] p-8 shadow-2xl shadow-amber-900/10 backdrop-blur-2xl"
+        className="relative z-10 w-full max-w-sm mx-4 overflow-hidden rounded-3xl border border-amber-400/[0.12] p-8 shadow-2xl shadow-amber-900/10 backdrop-blur-2xl"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))' }}
       >
         {/* Top shimmer line */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent"></div>
@@ -141,7 +142,10 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 autoComplete="username"
-                className="w-full rounded-xl border border-amber-400/[0.1] bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm font-medium text-white placeholder:text-zinc-500 focus:border-amber-400/30 focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-amber-400/10 transition-all duration-300"
+                className="w-full rounded-xl border border-amber-400/[0.1] py-3.5 pl-11 pr-4 text-sm font-medium text-white placeholder:text-zinc-500 focus:border-amber-400/30 focus:outline-none focus:ring-2 focus:ring-amber-400/10 transition-all duration-300"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))' }}
+              onFocus={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03))' }}
+              onBlur={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))' }}
               />
             </div>
 
@@ -156,7 +160,10 @@ export default function LoginPage() {
                 required
                 minLength={6}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
-                className="w-full rounded-xl border border-amber-400/[0.1] bg-white/[0.04] py-3.5 pl-11 pr-11 text-sm font-medium text-white placeholder:text-zinc-500 focus:border-amber-400/30 focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-amber-400/10 transition-all duration-300"
+                className="w-full rounded-xl border border-amber-400/[0.1] py-3.5 pl-11 pr-11 text-sm font-medium text-white placeholder:text-zinc-500 focus:border-amber-400/30 focus:outline-none focus:ring-2 focus:ring-amber-400/10 transition-all duration-300"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))' }}
+                onFocus={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03))' }}
+                onBlur={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))' }}
               />
               <button
                 type="button"

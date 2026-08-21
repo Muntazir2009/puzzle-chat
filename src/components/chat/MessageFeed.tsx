@@ -331,8 +331,10 @@ function TapbackDock({
             e.stopPropagation();
             onReact(emoji, true);
           }}
-          className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-95"
+          className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 active:scale-95"
           aria-label={`React ${emoji}`}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
         >
           {emoji}
         </button>
@@ -345,8 +347,10 @@ function TapbackDock({
               e.stopPropagation();
               setShowMore((v) => !v);
             }}
-            className="flex size-8 items-center justify-center rounded-xl text-xs font-bold text-zinc-400 transition-all duration-150 hover:bg-white/10"
+            className="flex size-8 items-center justify-center rounded-xl text-xs font-bold text-zinc-400 transition-all duration-150"
             aria-label="More reactions"
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
             +
           </button>
@@ -371,7 +375,9 @@ function TapbackDock({
                       onReact(emoji, true);
                       setShowMore(false);
                     }}
-                    className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 hover:bg-white/10 active:scale-95"
+                    className="flex size-8 items-center justify-center rounded-xl text-base transition-all duration-150 hover:scale-125 active:scale-95"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                   >
                     {emoji}
                   </button>
@@ -388,8 +394,10 @@ function TapbackDock({
           e.stopPropagation();
           onCopy();
         }}
-        className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10 active:scale-95"
+        className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 active:scale-95"
         aria-label="Copy message"
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         <Copy className="size-3.5" />
       </button>
@@ -399,8 +407,10 @@ function TapbackDock({
           e.stopPropagation();
           onReply();
         }}
-        className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 hover:bg-white/10 active:scale-95"
+        className="flex size-8 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 hover:text-zinc-200 active:scale-95"
         aria-label="Reply"
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         <Reply className="size-3.5" />
       </button>
@@ -411,8 +421,10 @@ function TapbackDock({
             e.stopPropagation();
             onDelete();
           }}
-          className="flex size-8 items-center justify-center rounded-xl text-zinc-500 transition-all duration-150 hover:text-red-400 hover:bg-white/10 active:scale-95"
+          className="flex size-8 items-center justify-center rounded-xl text-zinc-500 transition-all duration-150 hover:text-red-400 active:scale-95"
           aria-label="Delete"
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
         >
           <Trash2 className="size-3.5" />
         </button>
@@ -494,10 +506,12 @@ function VoiceBubble({
         onClick={toggle}
         className={cn(
           "flex size-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-95",
-          isOwn
-            ? "bg-white/20 hover:bg-white/30"
-            : "bg-zinc-600 hover:bg-[var(--app-accent-subtle)]",
         )}
+        style={{
+          background: isOwn
+            ? "linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.08))"
+            : "linear-gradient(135deg, var(--app-accent-subtle), rgba(255,255,255,0.03))",
+        }}
         aria-label={playing ? "Pause" : "Play"}
       >
         {playing ? (
@@ -716,7 +730,10 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95"
+        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full text-white transition-all duration-200 active:scale-95"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))', backdropFilter: 'blur(12px)' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.10))' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))' }}
         aria-label="Close"
       >
         <X className="size-5" />
@@ -1510,7 +1527,8 @@ function TypingIndicator({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 4, scale: 0.95 }}
         transition={{ duration: 0.15 }}
-        className="flex items-center gap-2.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3 shadow-sm dark:bg-zinc-800"
+        className="flex items-center gap-2.5 rounded-2xl rounded-bl-sm px-4 py-3"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }}
       >
         <span className="flex gap-1">
           <span

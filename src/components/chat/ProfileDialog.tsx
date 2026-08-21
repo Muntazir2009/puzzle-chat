@@ -206,7 +206,7 @@ export function ProfileDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
-        <div className="cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-muted">
+        <div className="cursor-pointer rounded-lg px-2 py-1.5 transition-all duration-200" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))' }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
           <User className="mr-2 inline size-4" />
           Edit profile
         </div>
@@ -255,12 +255,8 @@ export function ProfileDialog({
 
                 {/* Hover / uploading overlay */}
                 <div
-                  className={cn(
-                    "absolute inset-2 z-10 flex items-center justify-center rounded-full transition-opacity duration-200",
-                    (avatarHovered || uploading)
-                      ? "bg-black/40 opacity-100"
-                      : "bg-black/40 opacity-0 pointer-events-none"
-                  )}
+                  className="absolute inset-2 z-10 flex items-center justify-center rounded-full transition-opacity duration-200"
+                  style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.3))', opacity: (avatarHovered || uploading) ? 1 : 0, pointerEvents: (avatarHovered || uploading) ? 'auto' : 'none' }}
                   aria-hidden
                 >
                   <div
